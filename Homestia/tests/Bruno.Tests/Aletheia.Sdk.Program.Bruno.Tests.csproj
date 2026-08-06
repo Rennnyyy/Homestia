@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Aletheia.Sdk.Program.Bruno.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="Xunit.SkippableFact" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- Reference all slice projects to discover their types -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/Program/Aletheia.Sdk.Program.csproj" />
+    <ProjectReference Include="../../src/Capabilities/Aletheia.Sdk.Program.Capabilities.csproj" />
+    <ProjectReference Include="../../src/Entities/Aletheia.Sdk.Program.Entities.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability/Aletheia.Sdk.Capability.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity/Aletheia.Sdk.Entity.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations/Aletheia.Sdk.Operations.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Execution/Aletheia.Sdk.Execution.csproj" />
+  </ItemGroup>
+
+  <!-- Copy the server DLL into the test output for subprocess hosting -->
+  <ItemGroup>
+    <Content Include="../../src/Program/bin/$(Configuration)/net10.0/Aletheia.Sdk.Program.dll"
+             CopyToOutputDirectory="PreserveNewest"
+             Link="Aletheia.Sdk.Program.dll"
+             Visible="false"
+             Condition="Exists('../../src/Program/bin/$(Configuration)/net10.0/Aletheia.Sdk.Program.dll')" />
+    <Content Include="../../src/Program/bin/$(Configuration)/net10.0/Aletheia.Sdk.Program.deps.json"
+             CopyToOutputDirectory="PreserveNewest"
+             Visible="false"
+             Condition="Exists('../../src/Program/bin/$(Configuration)/net10.0/Aletheia.Sdk.Program.deps.json')" />
+    <Content Include="../../src/Program/bin/$(Configuration)/net10.0/Aletheia.Sdk.Program.runtimeconfig.json"
+             CopyToOutputDirectory="PreserveNewest"
+             Visible="false"
+             Condition="Exists('../../src/Program/bin/$(Configuration)/net10.0/Aletheia.Sdk.Program.runtimeconfig.json')" />
+  </ItemGroup>
+
+</Project>

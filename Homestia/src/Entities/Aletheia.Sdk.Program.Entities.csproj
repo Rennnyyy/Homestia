@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Aletheia.Sdk.Program.Entities</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity/Aletheia.Sdk.Entity.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity.Generators/Aletheia.Sdk.Entity.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations/Aletheia.Sdk.Operations.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations.Generators/Aletheia.Sdk.Operations.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

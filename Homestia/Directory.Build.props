@@ -1,0 +1,7 @@
+<Project>
+  <Import Project="../../Aletheia/SDK/Directory.Build.props" />
+  <PropertyGroup>
+    <!-- AngleSharp transitive dependency via dotNetRDF has a known moderate vulnerability. -->
+    <NoWarn>$(NoWarn);NU1902</NoWarn>
+  </PropertyGroup>
+</Project>

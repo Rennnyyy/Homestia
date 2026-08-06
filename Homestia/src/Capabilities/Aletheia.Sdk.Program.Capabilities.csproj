@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Aletheia.Sdk.Program.Capabilities</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability/Aletheia.Sdk.Capability.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Execution/Aletheia.Sdk.Execution.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Aletheia.Sdk.Program</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    Program slices — Capabilities, Entities, and Aspects are separate projects.
+    The Program host only wires them together and serves HTTP.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../Capabilities/Aletheia.Sdk.Program.Capabilities.csproj" />
+    <ProjectReference Include="../Entities/Aletheia.Sdk.Program.Entities.csproj" />
+    <ProjectReference Include="../Aspects/Aletheia.Sdk.Program.Aspects.csproj" />
+  </ItemGroup>
+
+  <!--
+    Aletheia SDK — host-level slices needed for HTTP wiring.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects/Aletheia.Sdk.Aspects.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects.Abstractions/Aletheia.Sdk.Aspects.Abstractions.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects.Entity/Aletheia.Sdk.Aspects.Entity.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Authorization/Aletheia.Sdk.Authorization.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Authorization.Entity/Aletheia.Sdk.Authorization.Entity.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Authorization.Http/Aletheia.Sdk.Authorization.Http.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Branch/Aletheia.Sdk.Branch.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Branch.Http/Aletheia.Sdk.Branch.Http.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability/Aletheia.Sdk.Capability.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability.Entity/Aletheia.Sdk.Capability.Entity.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability.Http/Aletheia.Sdk.Capability.Http.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability.Messaging/Aletheia.Sdk.Capability.Messaging.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity/Aletheia.Sdk.Entity.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity.Entity/Aletheia.Sdk.Entity.Entity.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity.Messaging/Aletheia.Sdk.Entity.Messaging.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Execution/Aletheia.Sdk.Execution.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/ObjectStorage/Aletheia.Sdk.ObjectStorage.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/ObjectStorage.Http/Aletheia.Sdk.ObjectStorage.Http.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Messaging/Aletheia.Sdk.Messaging.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Messaging.InMemory/Aletheia.Sdk.Messaging.InMemory.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/ObjectStorage.InMemory/Aletheia.Sdk.ObjectStorage.InMemory.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations/Aletheia.Sdk.Operations.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations.Http/Aletheia.Sdk.Operations.Http.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Repository/Aletheia.Sdk.Repository.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Repository.InMemory/Aletheia.Sdk.Repository.InMemory.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Structure/Aletheia.Sdk.Structure.csproj" />
+  </ItemGroup>
+
+</Project>

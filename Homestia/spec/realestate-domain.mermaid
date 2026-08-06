@@ -4,9 +4,6 @@ classDiagram
     %% ── CORE: Aletheia.Authentication.Agent (from Aletheia core — NOT our code) ──
     class Agent {
         <<Aletheia.Authentication>>
-        +displayName : string
-        +lastName : string
-        +firstNames : List~string~
     }
 
     %% ── ENUMS ───────────────────────────────────────────────────
@@ -31,7 +28,7 @@ classDiagram
 
     class RoomStatus {
         <<enumeration>>
-        Available (default)
+        Available
         Reserved
         ActivelyRented
         Blocked
@@ -40,13 +37,11 @@ classDiagram
     %% ── AGGREGATE: RealEstate ───────────────────────────────────
     class Landlord {
         +ID : Guid
-        +LandlordType : PropertyType
     }
 
     class Property {
         +ID : Guid
         +Name : string
-        +Address : string
         +PropertyType : PropertyType
         +RentalModel : RentalModel
     }
@@ -55,20 +50,16 @@ classDiagram
     class Segmentation {
         <<abstract>>
         +ID : Guid
+        +Name : string
+        +IsCommonArea : bool
     }
 
     class Room {
-        +ID : Guid
-        +Name : string
-        +RoomSize : decimal
-        +Location : string
         +FurnishingStatus : FurnishingStatus
         +RoomStatus : RoomStatus
     }
 
-    class CommonArea {
-        +ID : Guid
-        +Name : string
+    class Studio {
     }
 
     %% ── AGGREGATE: Inventory ────────────────────────────────────
@@ -81,18 +72,16 @@ classDiagram
     Landlord "1" --> "n" Property : owns
     Segmentation <|-- Property
     Segmentation <|-- Room
-    Segmentation <|-- CommonArea
-    Property "1" --> "n" Segmentation : segments into
-    Room "1" --> "n" InventoryItem : is equipped with
-    CommonArea "1" --> "n" InventoryItem : is equipped with
+    Segmentation <|-- Studio
+    Segmentation "1" --> "n" Segmentation : segments into
+    Segmentation "1" --> "n" InventoryItem : is equipped with
 
-    Landlord --> Agent : represented by
+    Landlord "n" --> "n" Agent : represented by
 
     Property --> PropertyType : classified as
     Property --> RentalModel : rented as
     Room --> FurnishingStatus : furnished as
     Room --> RoomStatus : has rental status
-    Landlord --> PropertyType : manages properties of type
 
     %% ── STYLING ─────────────────────────────────────────────────
     style Agent fill:#fff3cd,stroke:#f0ad4e,stroke-width:2px,color:#856404

@@ -1,0 +1,98 @@
+classDiagram
+    direction TB
+
+    %% ── CORE: Aletheia.Authentication.Agent (from Aletheia core — NOT our code) ──
+    class Agent {
+        <<Aletheia.Authentication>>
+        +displayName : string
+        +lastName : string
+        +firstNames : List~string~
+    }
+
+    %% ── ENUMS ───────────────────────────────────────────────────
+    class PropertyType {
+        <<enumeration>>
+        Apartment
+        Studio
+    }
+
+    class RentalModel {
+        <<enumeration>>
+        EntireProperty
+        SingleRoomRentalSharedLiving
+    }
+
+    class FurnishingStatus {
+        <<enumeration>>
+        Unfurnished
+        PartiallyFurnished
+        FullyFurnished
+    }
+
+    class RoomStatus {
+        <<enumeration>>
+        Available (default)
+        Reserved
+        ActivelyRented
+        Blocked
+    }
+
+    %% ── AGGREGATE: RealEstate ───────────────────────────────────
+    class Landlord {
+        +ID : Guid
+        +LandlordType : PropertyType
+    }
+
+    class Property {
+        +ID : Guid
+        +Name : string
+        +Address : string
+        +PropertyType : PropertyType
+        +RentalModel : RentalModel
+    }
+
+    %% ── ABSTRACTION: Segmentation ───────────────────────────────
+    class Segmentation {
+        <<abstract>>
+        +ID : Guid
+    }
+
+    class Room {
+        +ID : Guid
+        +Name : string
+        +RoomSize : decimal
+        +Location : string
+        +FurnishingStatus : FurnishingStatus
+        +RoomStatus : RoomStatus
+    }
+
+    class CommonArea {
+        +ID : Guid
+        +Name : string
+    }
+
+    %% ── AGGREGATE: Inventory ────────────────────────────────────
+    class InventoryItem {
+        +ID : Guid
+        +Name : string
+    }
+
+    %% ── RELATIONSHIPS ───────────────────────────────────────────
+    Landlord "1" --> "n" Property : owns
+    Segmentation <|-- Property
+    Segmentation <|-- Room
+    Segmentation <|-- CommonArea
+    Property "1" --> "n" Segmentation : segments into
+    Room "1" --> "n" InventoryItem : is equipped with
+    CommonArea "1" --> "n" InventoryItem : is equipped with
+
+    Landlord --> Agent : represented by
+
+    Property --> PropertyType : classified as
+    Property --> RentalModel : rented as
+    Room --> FurnishingStatus : furnished as
+    Room --> RoomStatus : has rental status
+    Landlord --> PropertyType : manages properties of type
+
+    %% ── STYLING ─────────────────────────────────────────────────
+    style Agent fill:#fff3cd,stroke:#f0ad4e,stroke-width:2px,color:#856404

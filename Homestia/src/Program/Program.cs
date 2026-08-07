@@ -111,6 +111,9 @@ var app = builder.Build();
 // Authorization token middleware (must come before endpoint mapping).
 app.UseAgentTokenMiddleware();
 
+// ── Static files — serves the Angular facade in production ──────────────────
+app.UseStaticFiles();
+
 // Branch scope — isolates requests to a branch context.
 if (branching)
 {
@@ -139,5 +142,8 @@ if (branching)
 app.MapEntityEntity();
 app.MapCapabilityEntity();
 app.MapAspectsEntity();
+
+// ── SPA fallback — serves index.html for client-side routes ──────────────────
+app.MapFallbackToFile("index.html");
 
 app.Run();

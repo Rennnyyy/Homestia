@@ -1,0 +1,73 @@
+{
+  "APP": {
+    "TITLE": "Homestia"
+  },
+  "NAV": {
+    "DASHBOARD": "Dashboard",
+    "PROPERTIES": "Immobilien",
+    "TENANTS": "Mieter",
+    "LEASES": "Mietverträge",
+    "INVENTORY": "Inventar",
+    "MAINTENANCE": "Instandhaltung"
+  },
+  "HEADER": {
+    "TOGGLE_THEME": "Design wechseln",
+    "TOGGLE_MENU": "Navigation öffnen",
+    "CLOSE_MENU": "Navigation schließen"
+  },
+  "SIDEBAR": {
+    "EXPAND": "Seitenleiste ausklappen",
+    "COLLAPSE": "Seitenleiste einklappen",
+    "NAVIGATION": "Navigation"
+  },
+  "DASHBOARD": {
+    "TITLE": "Dashboard",
+    "TOTAL_PROPERTIES": "Immobilien gesamt",
+    "ACTIVE_TENANTS": "Aktive Mieter",
+    "OPEN_MAINTENANCE": "Offene Aufträge",
+    "NO_DATA": "—"
+  },
+  "PROPERTIES": {
+    "TITLE": "Immobilien",
+    "ADD": "Immobilie hinzufügen",
+    "ADD_TITLE": "Neue Immobilie",
+    "EMPTY": "Keine Immobilien vorhanden. Fügen Sie Ihre erste Immobilie hinzu.",
+    "FORM": {
+      "NAME": "Name",
+      "NAME_PLACEHOLDER": "z. B. Berlin Mitte, Wohnung 3",
+      "TYPE": "Immobilientyp",
+      "TYPE_PLACEHOLDER": "Typ auswählen",
+      "RENTAL_MODEL": "Vermietungsmodell",
+      "RENTAL_MODEL_PLACEHOLDER": "Modell auswählen",
+      "ADDRESS": "Adresse",
+      "ADDRESS_PLACEHOLDER": "Straße, Hausnummer, PLZ, Stadt",
+      "CANCEL": "Abbrechen",
+      "SUBMIT": "Immobilie anlegen"
+    }
+  },
+  "TENANTS": {
+    "TITLE": "Mieter",
+    "ADD": "Mieter hinzufügen",
+    "EMPTY": "Keine Mieter vorhanden. Fügen Sie Ihren ersten Mieter hinzu."
+  },
+  "LEASES": {
+    "TITLE": "Mietverträge",
+    "ADD": "Neuer Mietvertrag",
+    "EMPTY": "Keine Mietverträge vorhanden. Erstellen Sie Ihren ersten Mietvertrag."
+  },
+  "INVENTORY": {
+    "TITLE": "Inventar",
+    "ADD": "Gegenstand hinzufügen",
+    "EMPTY": "Keine Inventargegenstände vorhanden. Beginnen Sie mit der Inventarerfassung."
+  },
+  "MAINTENANCE": {
+    "TITLE": "Instandhaltung",
+    "ADD": "Neuer Auftrag",
+    "EMPTY": "Keine Instandhaltungsaufträge vorhanden. Erstellen Sie einen Auftrag."
+  },
+  "LANG": {
+    "DE": "Deutsch",
+    "EN": "English",
+    "SWITCH": "Sprache wechseln"
+  }
+}

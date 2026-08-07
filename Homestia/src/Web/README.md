@@ -1,27 +1,94 @@
-# Web
+# Homestia Web — Frontend Handbook
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.0.7.
+Welcome to the Homestia Web frontend. This is the property management dashboard for landlords — built with Angular 18, Spartan UI, and Tailwind CSS.
 
-## Development server
+## Architecture at a Glance
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Shell** | `AppShellComponent` | Layout: header + sidebar (desktop) / drawer (mobile) |
+| **Routing** | Angular Router | Lazy-loaded feature modules per domain slice |
+| **UI Primitives** | Spartan UI | Headless accessible components (buttons, dialogs, selects) |
+| **Styling** | Tailwind CSS v3 | Utility-first; themed via CSS custom properties |
+| **Forms** | `signalForm()` helper | Thin wrapper over Angular `FormGroup`, exposes signals |
+| **State** | Services + `signal()` | Plain Angular services; no external state lib |
+| **API** | `ApiService` layer | Future: typed HTTP client for Aletheia backend |
 
-## Code scaffolding
+## Project Structure
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+```
+src/
+├── app/
+│   ├── core/                  # Singleton services, guards, interceptors
+│   │   ├── forms/             # signalForm() primitive & validators
+│   │   ├── layout/            # LayoutService, ThemeService
+│   │   └── state/             # Global state services
+│   ├── features/              # Lazy-loaded feature slices
+│   │   ├── dashboard/         # Home / overview
+│   │   ├── properties/        # Property CRUD
+│   │   ├── tenants/           # Tenant management
+│   │   ├── leases/            # Lease agreements
+│   │   ├── inventory/         # Inventory tracking
+│   │   └── maintenance/       # Maintenance requests
+│   ├── shared/                # Reusable components, pipes, directives
+│   │   ├── components/        # UI components shared across features
+│   │   └── pipes/             # Shared pipes
+│   ├── shell/                 # AppShell, Header, Sidebar, Drawer
+│   ├── app.component.ts       # Root component (delegates to shell)
+│   ├── app.config.ts          # Application bootstrap config
+│   └── app.routes.ts          # Top-level route definitions
+├── index.html
+├── styles.css                 # Tailwind directives + design tokens
+└── main.ts
+```
 
-## Build
+## Key Decisions
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+All architectural decisions are documented in `entity/Web/decisions/`:
 
-## Running unit tests
+| # | Decision |
+|---|---|
+| 001 | Tailwind CSS as the single CSS framework |
+| 002 | CSS custom properties for theming (Spartan native pattern) |
+| 003 | Custom `signalForm()` primitive for forms |
+| 004 | Services with Angular signals for state management |
+| 005 | Hybrid sidebar+header / drawer navigation |
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Dependencies
 
-## Running end-to-end tests
+| Package | Purpose |
+|---|---|
+| `@spartan-ng/ui-core` | Headless UI primitives |
+| `@angular/cdk` | Component Dev Kit (overlays, a11y, layout) |
+| `tailwindcss` | Utility-first CSS framework |
+| `tailwindcss-animate` | Animation utilities for Tailwind |
+| `tailwind-merge` + `clsx` | Conflict-free class composition |
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+## Getting Started
 
-## Further help
+```bash
+cd src/Web
+npm install
+npm start          # Dev server on http://localhost:4200
+npm run build      # Production build → ../Program/wwwroot
+npm test           # Run unit tests
+```
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Design Tokens
+
+All colors are defined as CSS custom properties in `src/styles.css`. The palette uses three semantic color scales:
+
+- **Surface** — backgrounds, cards, inputs (zinc-based)
+- **Primary** — brand, actions, focus rings (indigo-based)
+- **Accent** — highlights, badges, attention states (amber-based)
+- **Destructive** — errors, deletions, warnings (red-based)
+
+Light and dark themes are both defined in `styles.css`. Toggle via `.dark` class on `<html>`.
+
+## Conventions
+
+1. **No hardcoded colors** — use Tailwind semantic classes: `bg-primary-500`, `text-surface-900`.
+2. **No inline styles** — everything is a Tailwind utility class or a CSS custom property.
+3. **Standalone components only** — no `NgModule` except for test modules.
+4. **Signal-based reactivity** — avoid `BehaviorSubject`, prefer `signal()` and `computed()`.
+5. **Mobile-first** — every component must function at <1024px viewport width.

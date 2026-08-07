@@ -1,0 +1,73 @@
+{
+  "APP": {
+    "TITLE": "Homestia"
+  },
+  "NAV": {
+    "DASHBOARD": "Dashboard",
+    "PROPERTIES": "Properties",
+    "TENANTS": "Tenants",
+    "LEASES": "Leases",
+    "INVENTORY": "Inventory",
+    "MAINTENANCE": "Maintenance"
+  },
+  "HEADER": {
+    "TOGGLE_THEME": "Toggle theme",
+    "TOGGLE_MENU": "Open navigation",
+    "CLOSE_MENU": "Close navigation"
+  },
+  "SIDEBAR": {
+    "EXPAND": "Expand sidebar",
+    "COLLAPSE": "Collapse sidebar",
+    "NAVIGATION": "Navigation"
+  },
+  "DASHBOARD": {
+    "TITLE": "Dashboard",
+    "TOTAL_PROPERTIES": "Total Properties",
+    "ACTIVE_TENANTS": "Active Tenants",
+    "OPEN_MAINTENANCE": "Open Maintenance",
+    "NO_DATA": "—"
+  },
+  "PROPERTIES": {
+    "TITLE": "Properties",
+    "ADD": "Add Property",
+    "ADD_TITLE": "New Property",
+    "EMPTY": "No properties yet. Add your first property to get started.",
+    "FORM": {
+      "NAME": "Name",
+      "NAME_PLACEHOLDER": "e.g. Berlin Mitte, Apartment 3",
+      "TYPE": "Property Type",
+      "TYPE_PLACEHOLDER": "Select type",
+      "RENTAL_MODEL": "Rental Model",
+      "RENTAL_MODEL_PLACEHOLDER": "Select model",
+      "ADDRESS": "Address",
+      "ADDRESS_PLACEHOLDER": "Street, number, postcode, city",
+      "CANCEL": "Cancel",
+      "SUBMIT": "Create Property"
+    }
+  },
+  "TENANTS": {
+    "TITLE": "Tenants",
+    "ADD": "Add Tenant",
+    "EMPTY": "No tenants yet. Add your first tenant to get started."
+  },
+  "LEASES": {
+    "TITLE": "Leases",
+    "ADD": "New Lease",
+    "EMPTY": "No leases yet. Create your first lease agreement."
+  },
+  "INVENTORY": {
+    "TITLE": "Inventory",
+    "ADD": "Add Item",
+    "EMPTY": "No inventory items yet. Start tracking property inventory."
+  },
+  "MAINTENANCE": {
+    "TITLE": "Maintenance",
+    "ADD": "New Request",
+    "EMPTY": "No maintenance requests yet. Create one when something needs attention."
+  },
+  "LANG": {
+    "DE": "Deutsch",
+    "EN": "English",
+    "SWITCH": "Switch language"
+  }
+}

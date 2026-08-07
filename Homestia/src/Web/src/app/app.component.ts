@@ -1,13 +1,10 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { AppShellComponent } from './shell/app-shell.component';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [RouterOutlet],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+    selector: 'app-root',
+    imports: [AppShellComponent],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    template: `<app-shell />`
 })
-export class AppComponent {
-  title = 'Web';
-}
+export class AppComponent {}

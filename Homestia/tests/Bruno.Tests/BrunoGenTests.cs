@@ -1,5 +1,7 @@
 using Xunit.Sdk;
 
+using System.Reflection;
+
 namespace Aletheia.Sdk.Program.Bruno.Tests;
 
 /// <summary>
@@ -33,17 +35,16 @@ public sealed class BrunoGenTests : IAsyncLifetime
     {
         Skip.IfNot(_fixture.NpxAvailable, "Bruno CLI (npx @usebruno/cli) not available.");
 
-        var exit = await _fixture.RunBrunoChapterAsync(chapter);
+        var exit = await _fixture.RunGeneratedChapterAsync(chapter);
         Assert.Equal(0, exit);
     }
 
     public static IEnumerable<object[]> DiscoverAndGenerateChapters()
     {
         // Force-load the entity assembly so [MemberData] discovery can find them.
-        _ = typeof(Aletheia.Sdk.Program.Entities.DataRecord);
+        Assembly.Load("Aletheia.Sdk.Program.Entities");
 
-        var fixture = new BrunoGenFixture();
-        var chapters = fixture.GenerateAndGetChapters();
+        var chapters = BrunoGenFixture.GenerateAndGetChapters();
 
         foreach (var chapter in chapters)
             yield return new object[] { chapter };

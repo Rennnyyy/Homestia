@@ -43,7 +43,7 @@ using Aletheia.Sdk.Capability.Messaging.DependencyInjection;
 // ── Program slices ─────────────────────────────────────────────────────────
 using Aletheia.Sdk.Program.Aspects;
 using Aletheia.Sdk.Program.Capabilities;
-using Aletheia.Sdk.Program.Entities;
+using Aletheia.Sdk.Program.Entities.RealEstate;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SERVICE CONFIGURATION
@@ -83,11 +83,11 @@ builder.Services.AddCapabilityHttp();
 // Entities — full CRUD via [OperationEndpoints] + MapOperations().
 var repoBuilder = builder.Services.AddEntityRepository(builder.Configuration);
 repoBuilder.UseInMemory();
-builder.Services.AddOperationEndpointsHttpFromAssemblyContaining<DataRecord>();
+builder.Services.AddOperationEndpointsHttpFromAssemblyContaining<Property>();
 
 // Object storage — upload, download, delete blobs.
 builder.Services.AddInMemoryObjectStorage();
-builder.Services.AddObjectStorageHttpFromAssemblyContaining<DataRecord>();
+builder.Services.AddObjectStorageHttpFromAssemblyContaining<Property>();
 
 // Messaging — in-memory pub/sub for entity events.
 if (messaging)
@@ -100,7 +100,7 @@ if (messaging)
 // Exploration — runtime introspection of entities, capabilities, and aspects.
 builder.Services.AddAspectsEntity();
 builder.Services.AddCapabilityEntity(typeof(GreetHandler).Assembly);
-builder.Services.AddEntityEntity(typeof(DataRecord).Assembly);
+builder.Services.AddEntityEntity(typeof(Property).Assembly);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MIDDLEWARE PIPELINE

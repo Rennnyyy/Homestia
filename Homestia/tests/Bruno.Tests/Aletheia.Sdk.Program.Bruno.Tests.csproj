@@ -32,6 +32,7 @@
     <ProjectReference Include="../../../../Aletheia/SDK/src/Entity/Aletheia.Sdk.Entity.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Operations/Aletheia.Sdk.Operations.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Execution/Aletheia.Sdk.Execution.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Testing/Aletheia.Sdk.Testing.csproj" />
   </ItemGroup>
 
   <!-- Copy the server DLL into the test output for subprocess hosting -->

@@ -1,87 +1,50 @@
 using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
+using Aletheia.Sdk.Testing;
 
 namespace Aletheia.Sdk.Program.Bruno.Tests;
 
 /// <summary>
-/// xUnit collection fixture that manages the Program server subprocess
-/// lifecycle for Bruno integration tests.
+/// xUnit collection fixture that inherits the battle-tested server lifecycle
+/// from <see cref="BrunoFixture"/> and adds on-the-fly Bruno .bru chapter
+/// generation for all discovered <c>[Entity]</c> + <c>[OperationEndpoints]</c> types.
 /// </summary>
 [CollectionDefinition("BrunoGen")]
 public sealed class BrunoGenCollection : ICollectionFixture<BrunoGenFixture>;
 
-public class BrunoGenFixture : IAsyncLifetime
+public class BrunoGenFixture : BrunoFixture
 {
-    private Process? _serverProcess;
-    private int _serverPort;
+    public BrunoGenFixture() : base("Aletheia.Sdk.Program.dll") { }
 
-    public bool NpxAvailable { get; private set; }
-    public string BaseUrl => $"http://localhost:{_serverPort}";
-    public string BrunoOutputDir { get; private set; } = string.Empty;
+    /// <summary>Shared across the temporary [MemberData] fixture and the injected test fixture.</summary>
+    private static string? s_brunoOutputDir;
+    private static IReadOnlyList<string> s_chapters = Array.Empty<string>();
 
-    public async Task InitializeAsync()
+    public string BrunoOutputDir => s_brunoOutputDir ?? string.Empty;
+
+    // ── Bruno chapter auto-generation ───────────────────────────────────────
+
+    public static IReadOnlyList<string> GenerateAndGetChapters()
     {
-        NpxAvailable = await ProbeNpxAsync();
-    }
+        s_brunoOutputDir = AppContext.BaseDirectory;
 
-    public async Task DisposeAsync()
-    {
-        await StopServerAsync();
-    }
-
-    // ── Server lifecycle ────────────────────────────────────────────────────
-
-    public async Task StartServerAsync()
-    {
-        _serverPort = GetFreePort();
-
-        var dllPath = FindServerDll();
-        var contentRoot = FindContentRoot();
-
-        var psi = new ProcessStartInfo("dotnet", $"exec \"{dllPath}\"")
+        // Clean stale generated chapters from previous runs.
+        if (Directory.Exists(s_brunoOutputDir))
         {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        psi.Environment["ASPNETCORE_URLS"] = BaseUrl;
-        psi.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
-        psi.Environment["ASPNETCORE_CONTENTROOT"] = contentRoot;
-
-        _serverProcess = new Process { StartInfo = psi };
-        _serverProcess.Start();
-
-        await WaitForServerReadyAsync(TimeSpan.FromSeconds(30));
-    }
-
-    public async Task StopServerAsync()
-    {
-        if (_serverProcess is { HasExited: false })
-        {
-            _serverProcess.Kill(entireProcessTree: true);
-            await _serverProcess.WaitForExitAsync();
-            _serverProcess.Dispose();
-            _serverProcess = null;
+            foreach (var dir in Directory.GetDirectories(s_brunoOutputDir, "entities-*"))
+                Directory.Delete(dir, recursive: true);
         }
-    }
 
-    // ── Bruno generation and execution ──────────────────────────────────────
-
-    public IReadOnlyList<string> GenerateAndGetChapters()
-    {
-        BrunoOutputDir = Path.Combine(Path.GetTempPath(), $"bruno-gen-{Guid.NewGuid():N}");
         var entities = BrunoGenDiscoverer.DiscoverEntities();
 
-        var chapters = BrunoGenDiscoverer.GenerateBrunoCollection(
-            BrunoOutputDir, entities, BaseUrl);
+        s_chapters = BrunoGenDiscoverer.GenerateBrunoCollection(
+            s_brunoOutputDir, entities, "{{baseUrl}}");
 
-        return chapters;
+        return s_chapters;
     }
 
-    public async Task<int> RunBrunoChapterAsync(string chapter)
+    public async Task<int> RunGeneratedChapterAsync(string chapter)
     {
-        var chapterPath = Path.Combine(BrunoOutputDir, chapter);
+        var chapterPath = Path.Combine(s_brunoOutputDir!, chapter);
 
         using var proc = new Process();
         proc.StartInfo = new ProcessStartInfo(
@@ -94,98 +57,5 @@ public class BrunoGenFixture : IAsyncLifetime
         proc.Start();
         await proc.WaitForExitAsync();
         return proc.ExitCode;
-    }
-
-    // ── Helpers ─────────────────────────────────────────────────────────────
-
-    private static string FindServerDll()
-    {
-        var candidates = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, "Aletheia.Sdk.Program.dll"),
-            // Fallback: look in the Program project's build output
-            Path.Combine(
-                AppContext.BaseDirectory,
-                "..", "..", "..", "..", "..",
-                "src", "Program", "bin", "Debug", "net10.0", "Aletheia.Sdk.Program.dll"),
-        };
-
-        foreach (var path in candidates)
-        {
-            if (File.Exists(path))
-                return Path.GetFullPath(path);
-        }
-
-        throw new FileNotFoundException(
-            $"Could not find Aletheia.Sdk.Program.dll. Searched: {string.Join(", ", candidates)}");
-    }
-
-    private static string FindContentRoot()
-    {
-        // The Program project root (where appsettings.json lives)
-        var candidate = Path.Combine(
-            AppContext.BaseDirectory,
-            "..", "..", "..", "..", "..",
-            "src", "Program");
-
-        if (Directory.Exists(candidate))
-            return Path.GetFullPath(candidate);
-
-        return AppContext.BaseDirectory;
-    }
-
-    private static int GetFreePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
-
-    private async Task WaitForServerReadyAsync(TimeSpan timeout)
-    {
-        using var cts = new CancellationTokenSource(timeout);
-        using var client = new HttpClient();
-
-        while (!cts.IsCancellationRequested)
-        {
-            try
-            {
-                var response = await client.GetAsync(
-                    $"{BaseUrl}/api/entities/data-records", cts.Token);
-                if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.NotFound)
-                    return;
-            }
-            catch
-            {
-                // Server not ready yet
-            }
-
-            await Task.Delay(500, cts.Token);
-        }
-
-        throw new TimeoutException($"Server did not start within {timeout.TotalSeconds}s");
-    }
-
-    private static async Task<bool> ProbeNpxAsync()
-    {
-        try
-        {
-            using var proc = new Process();
-            proc.StartInfo = new ProcessStartInfo("npx", "--version")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-            };
-            proc.Start();
-            await proc.WaitForExitAsync();
-            return proc.ExitCode == 0;
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

@@ -31,33 +31,61 @@ public static class BrunoGenDiscoverer
             if (!(assembly.FullName?.StartsWith("Aletheia.Sdk.Program") ?? false))
                 continue;
 
-            foreach (var type in GetExportedTypesSafe(assembly))
+            DiscoverFromAssembly(assembly, result);
+        }
+
+        // Fallback: if the entities assembly wasn't loaded yet, load it explicitly.
+        if (result.Count == 0)
+        {
+            try
             {
-                var entityAttr = type.GetCustomAttribute<EntityAttribute>();
-                var opAttr = type.GetCustomAttribute<OperationEndpointsAttribute>();
-                if (entityAttr == null || opAttr == null || entityAttr.Path == null)
-                    continue;
-
-                var predicates = new List<PredicateMeta>();
-                foreach (var prop in type.GetProperties())
-                {
-                    var predAttr = prop.GetCustomAttribute<PredicateAttribute>();
-                    if (predAttr == null) continue;
-
-                    predicates.Add(new PredicateMeta(
-                        predAttr.Predicate,
-                        prop.PropertyType,
-                        prop.Name));
-                }
-
-                result.Add(new EntityMeta(
-                    type,
-                    entityAttr.Path,
-                    predicates));
+                var entitiesAssembly = Assembly.Load("Aletheia.Sdk.Program.Entities");
+                DiscoverFromAssembly(entitiesAssembly, result);
+            }
+            catch
+            {
+                // Assembly not available — no entities to generate.
             }
         }
 
         return result;
+    }
+
+    private static void DiscoverFromAssembly(Assembly assembly, List<EntityMeta> result)
+    {
+        foreach (var type in GetExportedTypesSafe(assembly))
+        {
+            var entityAttr = type.GetCustomAttribute<EntityAttribute>();
+            var opAttr = type.GetCustomAttribute<OperationEndpointsAttribute>();
+            if (entityAttr == null || opAttr == null)
+                continue;
+
+            var isEnumeration = type.GetCustomAttribute<EnumerationAttribute>() != null;
+
+            // Path comes from [Entity(Path)] or, for derived entities that
+            // only set PredicatePath, from [OperationEndpoints("route")].
+            var path = entityAttr.Path ?? opAttr.Path;
+            if (path == null)
+                continue;
+
+            var predicates = new List<PredicateMeta>();
+            foreach (var prop in type.GetProperties())
+            {
+                var predAttr = prop.GetCustomAttribute<PredicateAttribute>();
+                if (predAttr == null) continue;
+
+                predicates.Add(new PredicateMeta(
+                    predAttr.Predicate,
+                    prop.PropertyType,
+                    prop.Name));
+            }
+
+            result.Add(new EntityMeta(
+                type,
+                path,
+                predicates,
+                IsEnumeration: isEnumeration));
+        }
     }
 
     /// <summary>
@@ -99,28 +127,42 @@ public static class BrunoGenDiscoverer
             Directory.CreateDirectory(chapterDir);
             chapters.Add(Path.GetFileName(chapterDir));
 
-            // Variable to hold the created entity's IRI across requests
-            var iriVar = $"{{{{entityIri_{entity.Path}}}}}";
+            // Bruno v3 walks up the directory tree to find bruno.json — the
+            // root-level bruno.json above covers all chapter subdirectories.
+            // Per-chapter bruno.json would block this parent discovery.
 
-            // 01-create.bru
-            File.WriteAllText(Path.Combine(chapterDir, "01-create.bru"),
-                GenerateCreateBru(entity, baseUrl, iriVar));
+            if (entity.IsEnumeration)
+            {
+                // Enumerations are a fixed set — just verify the list endpoint
+                // returns the expected predefined instances.
+                File.WriteAllText(Path.Combine(chapterDir, "01-list-verify.bru"),
+                    GenerateEnumerationListBru(entity, baseUrl));
+            }
+            else
+            {
+                // Variable to hold the created entity's IRI across requests
+                var iriVar = $"{{{{entityIri_{entity.Path}}}}}";
 
-            // 02-read.bru
-            File.WriteAllText(Path.Combine(chapterDir, "02-read.bru"),
-                GenerateReadBru(entity, baseUrl, iriVar));
+                // 01-create.bru
+                File.WriteAllText(Path.Combine(chapterDir, "01-create.bru"),
+                    GenerateCreateBru(entity, baseUrl, iriVar));
 
-            // 03-update.bru
-            File.WriteAllText(Path.Combine(chapterDir, "03-update.bru"),
-                GenerateUpdateBru(entity, baseUrl, iriVar));
+                // 02-read.bru
+                File.WriteAllText(Path.Combine(chapterDir, "02-read.bru"),
+                    GenerateReadBru(entity, baseUrl, iriVar));
 
-            // 04-list.bru
-            File.WriteAllText(Path.Combine(chapterDir, "04-list.bru"),
-                GenerateListBru(entity, baseUrl));
+                // 03-update.bru
+                File.WriteAllText(Path.Combine(chapterDir, "03-update.bru"),
+                    GenerateUpdateBru(entity, baseUrl, iriVar));
 
-            // 05-delete.bru
-            File.WriteAllText(Path.Combine(chapterDir, "05-delete.bru"),
-                GenerateDeleteBru(entity, baseUrl, iriVar));
+                // 04-list.bru
+                File.WriteAllText(Path.Combine(chapterDir, "04-list.bru"),
+                    GenerateListBru(entity, baseUrl));
+
+                // 05-delete.bru
+                File.WriteAllText(Path.Combine(chapterDir, "05-delete.bru"),
+                    GenerateDeleteBru(entity, baseUrl, iriVar));
+            }
         }
 
         return chapters;
@@ -132,7 +174,7 @@ public static class BrunoGenDiscoverer
 
     private static string GenerateCreateBru(EntityMeta entity, string baseUrl, string iriVar)
     {
-        var sampleBody = GenerateSampleJsonBody(entity);
+        var bodyBlock = BuildBodyJsonBlock(entity);
 
         return $$"""
         meta {
@@ -151,9 +193,7 @@ public static class BrunoGenDiscoverer
           Content-Type: application/json
         }
 
-        body:json {
-          {{sampleBody}}
-        }
+        {{bodyBlock}}
 
         assert {
           res.status: eq 200
@@ -164,6 +204,22 @@ public static class BrunoGenDiscoverer
           bru.setVar("{{iriVar.Trim('{', '}')}}", res.body.iri);
         }
         """;
+    }
+
+    private static string BuildBodyJsonBlock(EntityMeta entity, string suffix = "")
+    {
+        var lines = new List<string>();
+        lines.Add("body:json {");
+        lines.Add("  {");
+        for (int i = 0; i < entity.Predicates.Count; i++)
+        {
+            var p = entity.Predicates[i];
+            var comma = i < entity.Predicates.Count - 1 ? "," : "";
+            lines.Add($"    \"{p.PredicateName}\": {GenerateSampleValue(p, suffix)}{comma}");
+        }
+        lines.Add("  }");
+        lines.Add("}");
+        return string.Join("\n", lines);
     }
 
     private static string GenerateReadBru(EntityMeta entity, string baseUrl, string iriVar)
@@ -192,7 +248,7 @@ public static class BrunoGenDiscoverer
 
     private static string GenerateUpdateBru(EntityMeta entity, string baseUrl, string iriVar)
     {
-        var sampleBody = GenerateSampleJsonBody(entity, suffix: " (updated)");
+        var bodyBlock = BuildBodyJsonBlock(entity, suffix: " (updated)");
 
         return $$"""
         meta {
@@ -211,9 +267,7 @@ public static class BrunoGenDiscoverer
           Content-Type: application/json
         }
 
-        body:json {
-          {{sampleBody}}
-        }
+        {{bodyBlock}}
 
         assert {
           res.status: eq 200
@@ -265,24 +319,58 @@ public static class BrunoGenDiscoverer
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Sample data generation
+    // Enumeration list-verify generator
     // ═══════════════════════════════════════════════════════════════════════
 
-    private static string GenerateSampleJsonBody(EntityMeta entity, string suffix = "")
+    private static string GenerateEnumerationListBru(EntityMeta entity, string baseUrl)
     {
-        var lines = new List<string>();
-        lines.Add("{");
+        // Read the static All property to get expected instances and their keys.
+        var allProp = entity.Type.GetProperty("All",
+            BindingFlags.Public | BindingFlags.Static);
+        var all = allProp?.GetValue(null) as System.Collections.IList;
+        var expectedCount = all?.Count ?? 0;
 
-        for (int i = 0; i < entity.Predicates.Count; i++)
+        // Build assertions for each expected key.
+        var keyAssertions = new List<string>();
+        if (all != null)
         {
-            var p = entity.Predicates[i];
-            var comma = i < entity.Predicates.Count - 1 ? "," : "";
-            lines.Add($"  \"{p.PredicateName}\": {GenerateSampleValue(p, suffix)}{comma}");
+            for (int i = 0; i < all.Count; i++)
+            {
+                var instance = all[i];
+                var keyProp = instance?.GetType().GetProperty("Key");
+                var key = keyProp?.GetValue(instance) as string;
+                if (key != null)
+                    keyAssertions.Add(
+                        $"res.body.items[{i}].key: eq \"{key}\"");
+            }
         }
 
-        lines.Add("}");
-        return string.Join("\n", lines);
+        var assertions = string.Join("\n  ", keyAssertions);
+
+        return $$"""
+        meta {
+          name: List {{entity.TypeName}} enumeration values
+          type: http
+          seq: 1
+        }
+
+        get {
+          url: {{baseUrl}}/api/entities/{{entity.Path}}
+          body: none
+          auth: none
+        }
+
+        assert {
+          res.status: eq 200
+          res.body.items: isArray
+          {{assertions}}
+        }
+        """;
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Sample data generation
+    // ═══════════════════════════════════════════════════════════════════════
 
     private static string GenerateSampleValue(PredicateMeta p, string suffix)
     {
@@ -363,7 +451,8 @@ public static class BrunoGenDiscoverer
 public sealed record EntityMeta(
     Type Type,
     string Path,
-    IReadOnlyList<PredicateMeta> Predicates)
+    IReadOnlyList<PredicateMeta> Predicates,
+    bool IsEnumeration = false)
 {
     public string TypeName => Type.Name;
 }

@@ -31,7 +31,10 @@
     "TITLE": "Immobilien",
     "ADD": "Immobilie hinzufügen",
     "ADD_TITLE": "Neue Immobilie",
+    "EDIT_TITLE": "Immobilie bearbeiten",
+    "CREATE_SUBTITLE": "Geben Sie die Details der Immobilie ein und definieren Sie die Zimmer.",
     "EMPTY": "Keine Immobilien vorhanden. Fügen Sie Ihre erste Immobilie hinzu.",
+    "BACK": "Zurück",
     "FORM": {
       "NAME": "Name",
       "NAME_PLACEHOLDER": "z. B. Berlin Mitte, Wohnung 3",
@@ -42,7 +45,45 @@
       "ADDRESS": "Adresse",
       "ADDRESS_PLACEHOLDER": "Straße, Hausnummer, PLZ, Stadt",
       "CANCEL": "Abbrechen",
-      "SUBMIT": "Immobilie anlegen"
+      "SUBMIT": "Immobilie anlegen",
+      "SAVE_CHANGES": "Änderungen speichern",
+      "ROOM_COUNT_LABEL": "Anzahl der Zimmer",
+      "SELECT_TYPE": "Typ auswählen",
+      "SELECT_MODEL": "Modell auswählen"
+    },
+    "WIZARD": {
+      "STEP_PROPERTY": "Immobilie",
+      "STEP_ROOMS": "Zimmer",
+      "STEP_REVIEW": "Überprüfen",
+      "ROOM_COUNT_QUESTION": "Wie viele vermietbare Zimmer hat diese Immobilie?",
+      "ROOM_COUNT_LABEL": "Anzahl der Zimmer",
+      "ROOM_PROGRESS": "Zimmer {{ current }} von {{ total }}",
+      "NEXT_ROOM": "Nächstes Zimmer",
+      "CONTINUE": "Weiter",
+      "BACK": "Zurück",
+      "REVIEW_TITLE": "Überprüfen Sie Ihre Eingaben vor dem Speichern.",
+      "SAVE": "Immobilie speichern"
+    },
+    "ACCORDION": {
+      "PROPERTY_DETAILS": "Immobiliendetails",
+      "ROOMS": "Zimmer",
+      "ADD_ROOM": "+ Zimmer hinzufügen"
+    },
+    "ROOM": {
+      "LABEL": "Zimmer {{ number }}",
+      "NAME": "Name",
+      "NAME_PLACEHOLDER": "z. B. Zimmer 1, Hauptschlafzimmer",
+      "FURNISHING_STATUS": "Möblierungsstatus",
+      "FURNISHING_PLACEHOLDER": "Möblierungsstatus auswählen",
+      "ROOM_STATUS": "Zimmerstatus",
+      "ROOM_STATUS_PLACEHOLDER": "Zimmerstatus auswählen"
+    },
+    "DELETE": {
+      "BUTTON": "Löschen",
+      "PROPERTY_BUTTON": "Immobilie löschen",
+      "CONFIRM": "Sind Sie sicher?",
+      "CONFIRM_YES": "Ja, löschen",
+      "CONFIRM_NO": "Nein"
     }
   },
   "TENANTS": {
@@ -69,5 +110,26 @@
     "DE": "Deutsch",
     "EN": "English",
     "SWITCH": "Sprache wechseln"
+  },
+  "ENUMS": {
+    "PROPERTY_TYPE": {
+      "APARTMENT": "Wohnung",
+      "STUDIO": "Studio"
+    },
+    "RENTAL_MODEL": {
+      "ENTIRE_PROPERTY": "Gesamte Immobilie",
+      "SINGLE_ROOM": "Einzelzimmervermietung — Gemeinschaftswohnen"
+    },
+    "FURNISHING": {
+      "UNFURNISHED": "Unmöbliert",
+      "PARTIALLY_FURNISHED": "Teilmöbliert",
+      "FULLY_FURNISHED": "Vollmöbliert"
+    },
+    "ROOM_STATUS": {
+      "AVAILABLE": "Verfügbar",
+      "RESERVED": "Reserviert",
+      "ACTIVELY_RENTED": "Aktiv vermietet",
+      "BLOCKED": "Gesperrt"
+    }
   }
 }

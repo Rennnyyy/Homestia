@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { HlmButton } from '@spartan-ng/helm/button';
 import {
   LucideSun,
@@ -20,7 +20,6 @@ import { ThemeService, THEMES } from '../../core/services/theme.service';
   ],
   template: `
     <div class="flex items-center gap-1">
-      <!-- Color palette cycling with dot indicators -->
       <div class="flex items-center gap-0.5">
         <button
           hlmBtn
@@ -32,21 +31,10 @@ import { ThemeService, THEMES } from '../../core/services/theme.service';
           <svg lucideChevronLeft class="size-3.5"></svg>
         </button>
 
-        <!-- Colored dots for all 6 palettes, current one is larger + ring -->
-        <div class="flex items-center gap-1 px-1">
-          @for (theme of themes; track theme.id) {
-            <span
-              class="rounded-full transition-all duration-200"
-              [class.size-2.5]="theme.id !== themeService.theme()"
-              [class.size-3]="theme.id === themeService.theme()"
-              [class.ring-2]="theme.id === themeService.theme()"
-              [class.ring-foreground]="theme.id === themeService.theme()"
-              [class.ring-offset-1]="theme.id === themeService.theme()"
-              [class.ring-offset-background]="theme.id === themeService.theme()"
-              [style.background-color]="theme.color"
-            ></span>
-          }
-        </div>
+        <span
+          class="rounded-full size-3 ring-2 ring-foreground ring-offset-1 ring-offset-background transition-colors duration-200"
+          [style.background-color]="currentColor()"
+        ></span>
 
         <button
           hlmBtn
@@ -59,7 +47,6 @@ import { ThemeService, THEMES } from '../../core/services/theme.service';
         </button>
       </div>
 
-      <!-- Dark / Light toggle -->
       <button
         hlmBtn
         variant="ghost"
@@ -79,6 +66,11 @@ import { ThemeService, THEMES } from '../../core/services/theme.service';
 export class ThemePicker {
   readonly themeService = inject(ThemeService);
   readonly themes = THEMES;
+
+  readonly currentColor = computed(() => {
+    const current = this.themes.find((t) => t.id === this.themeService.theme());
+    return current?.color ?? '#52525b';
+  });
 
   private get currentIndex(): number {
     return this.themes.findIndex((t) => t.id === this.themeService.theme());

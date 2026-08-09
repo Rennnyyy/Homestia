@@ -1,25 +1,47 @@
-<div class="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+<div class="min-h-screen bg-background">
   <!-- Header -->
   <header class="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center">
+      <!-- Left: logo + title -->
       <div class="flex items-center gap-3">
         <svg lucideHouse class="size-7 text-primary"></svg>
-        <h1 class="text-2xl font-bold tracking-tight">
+        <h1 class="text-2xl font-bold tracking-tight text-foreground">
           {{ 'app.title' | transloco }}
         </h1>
       </div>
-      <div class="flex items-center gap-4">
+
+      <!-- Spacer -->
+      <div class="flex-1"></div>
+
+      <!-- Center-right: theme picker + dark toggle + language -->
+      <div class="flex items-center gap-2">
         <app-theme-picker />
-        <button hlmBtn variant="outline" size="sm" (click)="toggleLang()">
-          {{ currentLang() === 'en' ? '🇬🇧 EN' : '🇩🇪 DE' }}
+        <button
+          hlmBtn
+          variant="ghost"
+          size="icon-xs"
+          (click)="toggleLang()"
+          class="text-muted-foreground hover:text-foreground text-xs font-medium"
+        >
+          {{ currentLang() === 'en' ? 'EN' : 'DE' }}
         </button>
       </div>
+
+      <!-- Far right: profile avatar -->
+      <button
+        hlmBtn
+        variant="ghost"
+        size="icon-sm"
+        class="ml-4 rounded-full size-8 bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20"
+      >
+        RR
+      </button>
     </div>
   </header>
 
   <!-- Hero -->
   <section class="max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
-    <h2 class="text-5xl font-extrabold mb-4 tracking-tight leading-tight">
+    <h2 class="text-5xl font-extrabold mb-4 tracking-tight leading-tight text-foreground">
       {{ 'app.welcome' | transloco }}
     </h2>
     <p class="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
@@ -33,7 +55,7 @@
 
   <!-- Features -->
   <section class="max-w-6xl mx-auto px-6 pb-24">
-    <h3 class="text-2xl font-bold text-center mb-10">
+    <h3 class="text-2xl font-bold text-center mb-10 text-foreground">
       {{ 'home.features' | transloco }}
     </h3>
 

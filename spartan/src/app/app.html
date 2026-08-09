@@ -1,10 +1,21 @@
 <div class="h-screen flex flex-col">
   <!-- Header -->
-  <header class="border-b border-border bg-background/80 backdrop-blur-sm shrink-0 z-50">
+  <header class="border-b border-border bg-card shrink-0 z-50">
     <div class="flex items-center px-6 py-3 gap-2">
+      <!-- Burger (mobile only) -->
+      <button
+        hlmBtn
+        variant="ghost"
+        size="icon-sm"
+        class="md:hidden -ml-2 text-muted-foreground hover:text-foreground shrink-0"
+        (click)="sidebarOpen.set(true)"
+      >
+        <svg lucideMenu class="size-5"></svg>
+      </button>
+
       <div class="flex items-center gap-3">
-        <svg lucideHouse class="size-7 text-primary"></svg>
-        <h1 class="text-2xl font-bold tracking-tight text-foreground">
+        <svg lucideHouse class="hidden md:block size-7 text-primary shrink-0"></svg>
+        <h1 class="text-lg md:text-2xl font-bold tracking-tight text-foreground">
           {{ 'app.title' | transloco }}
         </h1>
       </div>
@@ -36,7 +47,10 @@
 
   <!-- Body: sidebar + content -->
   <div class="flex flex-1 overflow-hidden">
-    <app-sidebar />
+    <app-sidebar
+      [mobileOpen]="sidebarOpen()"
+      (mobileOpenChange)="sidebarOpen.set($event)"
+    />
     <main class="flex-1 overflow-y-auto bg-background">
       <router-outlet />
     </main>

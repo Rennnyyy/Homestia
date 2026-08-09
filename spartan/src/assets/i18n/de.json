@@ -2,15 +2,8 @@
   "app.title": "Homestia",
   "app.welcome": "Willkommen bei Homestia!",
   "app.description": "Ihre Smart-Home-Verwaltungsplattform.",
-  "home.features": "Hauptfunktionen",
-  "home.spartan": "Spartan UI (Brain + Helm)",
-  "home.spartanDesc": "Barrierefreie, ungestylte Primitive mit schönen Tailwind-Themes.",
-  "home.i18n": "Internationalisierung",
-  "home.i18nDesc": "Mehrsprachige Unterstützung durch Transloco.",
-  "home.signals": "Angular Signals",
-  "home.signalsDesc": "Moderne reaktive Zustandsverwaltung in Angular integriert.",
-  "lang.switch": "Zu Englisch wechseln",
   "nav.home": "Start",
   "nav.properties": "Immobilien",
-  "nav.tenants": "Mieter"
+  "nav.tenants": "Mieter",
+  "nav.menu": "Menü"
 }

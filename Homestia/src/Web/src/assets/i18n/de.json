@@ -84,7 +84,9 @@
       "CONFIRM": "Sind Sie sicher?",
       "CONFIRM_YES": "Ja, löschen",
       "CONFIRM_NO": "Nein"
-    }
+    },
+    "ROOM_COUNT_ONE": "1 Zimmer",
+    "ROOM_COUNT_OTHER": "{{ count }} Zimmer"
   },
   "TENANTS": {
     "TITLE": "Mieter",

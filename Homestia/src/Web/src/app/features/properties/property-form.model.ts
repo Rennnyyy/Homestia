@@ -8,6 +8,7 @@ export interface SelectOption<T = string> {
 /** Raw shape of the property creation form. */
 export interface PropertyFormValue {
   name: string;
+  address: string;
   propertyType: string;
   rentalModel: string;
 }
@@ -28,6 +29,7 @@ export interface PropertyCreatePayload {
 /** Initial (empty) property form state. */
 export const EMPTY_PROPERTY_FORM: PropertyFormValue = {
   name: '',
+  address: '',
   propertyType: '',
   rentalModel: '',
 };
@@ -69,3 +71,65 @@ export const ROOM_STATUS_OPTIONS: SelectOption[] = [
 
 /** Rental model keys that trigger the room-count / per-room workflow. */
 export const ROOM_BASED_RENTAL_MODELS = new Set(['single-room-rental-shared-living']);
+
+// ── Mapping helpers: form model ↔ API model ──────────────────────────────────
+
+import type { Property, Room, CreatePropertyPayload, CreateRoomPayload } from '../../core/api';
+import { entityRefId } from '../../core/api';
+
+/** Extract the last path segment from an IRI (e.g. "https://.../property-types/apartment" → "apartment"). */
+function iriToKey(iri: string): string {
+  if (!iri) return '';
+  return iri.split('/').pop() ?? iri;
+}
+
+/** Map a backend Property entity to the UI form model. */
+export function propertyToFormValue(property: Property): PropertyFormValue {
+  return {
+    name: property.name ?? '',
+    address: property.address ?? '',
+    propertyType: iriToKey(entityRefId(property.propertyType)),
+    rentalModel: iriToKey(entityRefId(property.rentalModel)),
+  };
+}
+
+/** Map a backend Room entity to the UI room form model. */
+export function roomToFormValue(room: Room): RoomFormValue {
+  return {
+    name: room.name ?? '',
+    furnishingStatus: iriToKey(entityRefId(room.furnishingStatus)),
+    roomStatus: iriToKey(entityRefId(room.roomStatus)),
+  };
+}
+
+/** Map UI form values to an API CreateProperty payload. */
+export function formValueToCreatePayload(
+  form: PropertyFormValue,
+  propertyTypeIri: string,
+  rentalModelIri: string,
+): CreatePropertyPayload {
+  return {
+    name: form.name,
+    address: form.address,
+    propertyType: propertyTypeIri,
+    rentalModel: rentalModelIri,
+  };
+}
+
+/** Map a UI room form value to an API CreateRoom payload. isPartOf links to the parent Property. */
+export function roomFormToCreatePayload(
+  room: RoomFormValue,
+  furnishingStatusIri: string,
+  roomStatusIri: string,
+  isPartOfIri: string,
+): CreateRoomPayload {
+  return {
+    name: room.name,
+    isCommonArea: false,
+    roomSize: 0,
+    location: '',
+    furnishingStatus: furnishingStatusIri,
+    roomStatus: roomStatusIri,
+    isPartOf: isPartOfIri,
+  };
+}

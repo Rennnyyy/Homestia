@@ -1,4 +1,5 @@
 using Aletheia.Sdk.Entity;
+using Aletheia.Sdk.Entity.Contracts;
 using Aletheia.Sdk.Operations;
 
 namespace Aletheia.Sdk.Program.Entities.RealEstate;
@@ -8,11 +9,6 @@ namespace Aletheia.Sdk.Program.Entities.RealEstate;
 /// <see cref="Property"/>, <see cref="Room"/>, and <see cref="CommonArea"/> all
 /// derive from this base, sharing a common identity space and the <c>Name</c> property.
 /// </summary>
-/// <remarks>
-/// Entity inheritance follows the Aletheia pattern demonstrated by
-/// <c>MagicalScribe : Scribe</c>: the base owns <c>Path</c> and <c>[Identity]</c>;
-/// derived types only add properties and optionally override the endpoint route.
-/// </remarks>
 [Entity(Path = "segmentations")]
 [Identity(IdentityGenerator.Random)]
 [OperationEndpoints]
@@ -23,4 +19,8 @@ public partial class Segmentation
 
     [Predicate("isCommonArea")]
     public bool IsCommonArea { get; set; }
+
+    /// <summary>Owning: the property this segmentation belongs to.</summary>
+    [Owning("isPartOf")]
+    public partial EntityRef<Property>? IsPartOf { get; set; }
 }

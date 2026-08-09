@@ -1,10 +1,11 @@
-import { Component, input, output, model, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, model, effect, computed, ChangeDetectionStrategy } from '@angular/core';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 import { HlmInputDirective } from '@spartan-ng/helm/input';
 import { HlmButtonDirective } from '@spartan-ng/helm/button';
 import { HlmSelectDirective } from '../../shared/ui/select/src';
 import { signalForm } from '../../core/forms';
+import { EnumService } from '../../core/state';
 import {
   EMPTY_ROOM_FORM,
   FURNISHING_STATUS_OPTIONS,
@@ -60,7 +61,7 @@ const labelClasses = 'block text-sm font-medium text-surface-700 dark:text-surfa
               hlmSelect
             >
               <option value="" disabled>{{ 'PROPERTIES.ROOM.FURNISHING_PLACEHOLDER' | translate }}</option>
-              @for (opt of furnishingOptions; track opt.value) {
+              @for (opt of furnishingOptions(); track opt.value) {
                 <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
               }
             </select>
@@ -83,7 +84,7 @@ const labelClasses = 'block text-sm font-medium text-surface-700 dark:text-surfa
               hlmSelect
             >
               <option value="" disabled>{{ 'PROPERTIES.ROOM.ROOM_STATUS_PLACEHOLDER' | translate }}</option>
-              @for (opt of statusOptions; track opt.value) {
+              @for (opt of statusOptions(); track opt.value) {
                 <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
               }
             </select>
@@ -100,6 +101,8 @@ const labelClasses = 'block text-sm font-medium text-surface-700 dark:text-surfa
   `,
 })
 export class RoomFormComponent {
+  readonly enumService = inject(EnumService);
+
   /** 0-based index for generating unique IDs. */
   readonly index = input(0);
   /** Label shown as the card heading, e.g. "Room 1 / 3". */
@@ -112,8 +115,26 @@ export class RoomFormComponent {
   /** Two-way bindable room value — updated live as the user types. */
   readonly value = model<RoomFormValue>({ ...EMPTY_ROOM_FORM });
 
-  protected readonly furnishingOptions = FURNISHING_STATUS_OPTIONS;
-  protected readonly statusOptions = ROOM_STATUS_OPTIONS;
+  /** Furnishing status options — loaded from backend, falls back to hardcoded. */
+  protected readonly furnishingOptions = computed(() => {
+    const fromBackend = this.enumService.furnishingStatuses();
+    if (fromBackend.length === 0) return FURNISHING_STATUS_OPTIONS;
+    return fromBackend.map(e => ({
+      value: e.key,
+      labelKey: FURNISHING_STATUS_OPTIONS.find(o => o.value === e.key)?.labelKey ?? `Unknown value (${e.key})`,
+    }));
+  });
+
+  /** Room status options — loaded from backend, falls back to hardcoded. */
+  protected readonly statusOptions = computed(() => {
+    const fromBackend = this.enumService.roomStatuses();
+    if (fromBackend.length === 0) return ROOM_STATUS_OPTIONS;
+    return fromBackend.map(e => ({
+      value: e.key,
+      labelKey: ROOM_STATUS_OPTIONS.find(o => o.value === e.key)?.labelKey ?? `Unknown value (${e.key})`,
+    }));
+  });
+
   protected readonly labelClasses = labelClasses;
 
   protected readonly nameId = () => `room-name-${this.index()}`;

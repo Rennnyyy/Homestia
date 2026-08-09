@@ -15,6 +15,7 @@ import { HlmInputDirective } from '@spartan-ng/helm/input';
 import { HlmSelectDirective } from '../../shared/ui/select/src';
 import { LayoutService } from '../../core/layout';
 import { signalForm } from '../../core/forms';
+import { EnumService, RoomService } from '../../core/state';
 import { RoomFormComponent } from './room-form.component';
 import {
   EMPTY_PROPERTY_FORM,
@@ -22,10 +23,14 @@ import {
   PROPERTY_TYPE_OPTIONS,
   RENTAL_MODEL_OPTIONS,
   ROOM_BASED_RENTAL_MODELS,
+  propertyToFormValue,
+  roomToFormValue,
+  formValueToCreatePayload,
+  roomFormToCreatePayload,
   type PropertyFormValue,
   type RoomFormValue,
-  type PropertyCreatePayload,
 } from './property-form.model';
+import type { Property, Room, CreatePropertyPayload, CreateRoomPayload } from '../../core/api';
 
 const labelClasses = 'block text-sm font-medium text-surface-700 dark:text-surface-300';
 
@@ -86,7 +91,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
                   <div class="relative">
                     <select id="prop-type-d" formControlName="propertyType" hlmSelect>
                       <option value="" disabled>{{ 'PROPERTIES.FORM.SELECT_TYPE' | translate }}</option>
-                      @for (opt of propertyTypeOptions; track opt.value) {
+                      @for (opt of propertyTypeOptions(); track opt.value) {
                         <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
                       }
                     </select>
@@ -101,7 +106,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
                     <div class="relative">
                       <select id="prop-rental-d" formControlName="rentalModel" hlmSelect>
                         <option value="" disabled>{{ 'PROPERTIES.FORM.SELECT_MODEL' | translate }}</option>
-                        @for (opt of rentalModelOptions; track opt.value) {
+                        @for (opt of rentalModelOptions(); track opt.value) {
                           <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
                         }
                       </select>
@@ -213,7 +218,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
                   <label for="prop-type-e" [class]="labelClasses">{{ 'PROPERTIES.FORM.TYPE' | translate }}</label>
                   <div class="relative">
                     <select id="prop-type-e" formControlName="propertyType" hlmSelect>
-                      @for (opt of propertyTypeOptions; track opt.value) {
+                      @for (opt of propertyTypeOptions(); track opt.value) {
                         <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
                       }
                     </select>
@@ -224,7 +229,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
                   <label for="prop-rental-e" [class]="labelClasses">{{ 'PROPERTIES.FORM.RENTAL_MODEL' | translate }}</label>
                   <div class="relative">
                     <select id="prop-rental-e" formControlName="rentalModel" hlmSelect>
-                      @for (opt of rentalModelOptions; track opt.value) {
+                      @for (opt of rentalModelOptions(); track opt.value) {
                         <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
                       }
                     </select>
@@ -260,7 +265,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
               </details>
             }
             <div class="mt-2">
-              <button hlmBtn variant="secondary" size="sm" (click)="addRoom()">+ Add Room</button>
+              <button hlmBtn variant="secondary" size="sm" (click)="addRoom()">{{ 'PROPERTIES.ACCORDION.ADD_ROOM' | translate }}</button>
             </div>
           }
         </div>
@@ -333,7 +338,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
               <div class="relative">
                 <select id="prop-type-m" formControlName="propertyType" hlmSelect>
                   <option value="" disabled>{{ 'PROPERTIES.FORM.SELECT_TYPE' | translate }}</option>
-                  @for (opt of propertyTypeOptions; track opt.value) {
+                  @for (opt of propertyTypeOptions(); track opt.value) {
                     <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
                   }
                 </select>
@@ -348,7 +353,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
                 <div class="relative">
                   <select id="prop-rental-m" formControlName="rentalModel" hlmSelect>
                     <option value="" disabled>{{ 'PROPERTIES.FORM.SELECT_MODEL' | translate }}</option>
-                    @for (opt of rentalModelOptions; track opt.value) {
+                    @for (opt of rentalModelOptions(); track opt.value) {
                       <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
                     }
                   </select>
@@ -421,7 +426,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
                       <label for="prop-type-r" [class]="labelClasses">{{ 'PROPERTIES.FORM.TYPE' | translate }}</label>
                       <div class="relative">
                         <select id="prop-type-r" formControlName="propertyType" hlmSelect>
-                          @for (opt of propertyTypeOptions; track opt.value) {
+                          @for (opt of propertyTypeOptions(); track opt.value) {
                             <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
                           }
                         </select>
@@ -432,7 +437,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
                       <label for="prop-rental-r" [class]="labelClasses">{{ 'PROPERTIES.FORM.RENTAL_MODEL' | translate }}</label>
                       <div class="relative">
                         <select id="prop-rental-r" formControlName="rentalModel" hlmSelect>
-                          @for (opt of rentalModelOptions; track opt.value) {
+                          @for (opt of rentalModelOptions(); track opt.value) {
                             <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
                           }
                         </select>
@@ -471,7 +476,7 @@ type WizardStep = 'property' | 'rooms' | 'review';
                   </details>
                 }
                 <div class="mt-2">
-                  <button hlmBtn variant="secondary" size="sm" (click)="addRoom()">+ Add Room</button>
+                  <button hlmBtn variant="secondary" size="sm" (click)="addRoom()">{{ 'PROPERTIES.ACCORDION.ADD_ROOM' | translate }}</button>
                 </div>
               }
             </div>
@@ -536,11 +541,11 @@ type WizardStep = 'property' | 'rooms' | 'review';
 })
 export class PropertyCreateComponent {
   readonly layout = inject(LayoutService);
+  readonly enumService = inject(EnumService);
+  readonly roomService = inject(RoomService);
 
   /** Pre-fill property data (edit mode). When absent, the form starts empty (create mode). */
-  readonly initialProperty = input<PropertyFormValue | undefined>(undefined);
-  /** Pre-fill rooms data (edit mode). */
-  readonly initialRooms = input<RoomFormValue[]>([]);
+  readonly initialProperty = input<Property | undefined>(undefined);
 
   /** Whether we are editing an existing property. */
   protected readonly isEditing = computed(() => !!this.initialProperty());
@@ -552,54 +557,99 @@ export class PropertyCreateComponent {
 
   /** Emitted when the user cancels. */
   readonly cancelled = output<void>();
-  /** Emitted when the user saves, with the complete payload. */
-  readonly saved = output<PropertyCreatePayload>();
+  /** Emitted when the user saves, with the API-ready payload. */
+  readonly saved = output<CreatePropertyPayload>();
   /** Emitted when the user confirms deletion. */
   readonly deleted = output<void>();
+
+  /** Emitted with room payloads — parent creates rooms first, then the property. */
+  readonly roomsToCreate = output<CreateRoomPayload[]>();
 
   // ── Delete confirmation state ──
   protected readonly deleteConfirming = signal(false);
 
   // ── Style tokens ──
   protected readonly labelClasses = labelClasses;
-  protected readonly propertyTypeOptions = PROPERTY_TYPE_OPTIONS;
-  protected readonly rentalModelOptions = RENTAL_MODEL_OPTIONS;
+
+  /** Property type select options — loaded from backend, falls back to hardcoded. */
+  protected readonly propertyTypeOptions = computed(() => {
+    const fromBackend = this.enumService.propertyTypes();
+    if (fromBackend.length === 0) return PROPERTY_TYPE_OPTIONS;
+    return fromBackend.map(e => ({
+      value: e.key,
+      labelKey: PROPERTY_TYPE_OPTIONS.find(o => o.value === e.key)?.labelKey ?? `Unknown value (${e.key})`,
+    }));
+  });
+
+  /** Rental model select options — loaded from backend, falls back to hardcoded. */
+  protected readonly rentalModelOptions = computed(() => {
+    const fromBackend = this.enumService.rentalModels();
+    if (fromBackend.length === 0) return RENTAL_MODEL_OPTIONS;
+    return fromBackend.map(e => ({
+      value: e.key,
+      labelKey: RENTAL_MODEL_OPTIONS.find(o => o.value === e.key)?.labelKey ?? `Unknown value (${e.key})`,
+    }));
+  });
 
   // ── Property form ──
   protected readonly propertyForm = signalForm(
     new FormGroup({
       name: new FormControl(EMPTY_PROPERTY_FORM.name),
+      address: new FormControl(EMPTY_PROPERTY_FORM.address),
       propertyType: new FormControl(EMPTY_PROPERTY_FORM.propertyType),
       rentalModel: new FormControl(EMPTY_PROPERTY_FORM.rentalModel),
     }),
   );
 
+  /** Monotonic counter — ignore stale async responses when user switches properties rapidly. */
+  private loadToken = 0;
+
   constructor() {
     // Pre-fill form when editing an existing property
     effect(() => {
-      const initial = this.initialProperty();
-      if (initial) {
-        this.propertyForm.raw.patchValue(initial);
-      }
-    });
-    // Pre-fill rooms when editing
-    effect(() => {
-      const rooms = this.initialRooms();
-      if (rooms.length > 0) {
-        this.rooms.set(
-          rooms.map(r => ({ _key: crypto.randomUUID(), value: { ...r } })),
-        );
+      const property = this.initialProperty();
+      if (property) {
+        this.propertyForm.raw.patchValue(propertyToFormValue(property));
+        // Clear rooms immediately — prevent flicker from previous property
+        this.rooms.set([]);
+        this.pendingDeletions.set([]);
+        // Bump token to ignore stale async responses
+        const token = ++this.loadToken;
+        // Load each room individually by its IRI from the property's segmentedInto.
+        // This uses the backend's own authoritative linking — no filtering ambiguity.
+        const roomIris: string[] = (property.segmentedInto ?? [])
+          .map(ref => typeof ref === 'string' ? ref : (ref as { iri: string }).iri)
+          .filter((iri): iri is string => !!iri);
+        if (roomIris.length === 0) return;
+        Promise.all(
+          roomIris.map(iri => this.roomService.getByIri(iri)),
+        ).then(results => {
+          if (token !== this.loadToken) return;
+          const loaded: Room[] = results.filter((r): r is Room => r !== null);
+          this.rooms.set(
+            loaded.map(r => ({
+              _key: r.iri,
+              value: roomToFormValue(r),
+              iri: r.iri,
+            })),
+          );
+          this.pendingDeletions.set([]);
+        });
       }
     });
   }
 
   // ── Rooms state ──
   /** Each room tracked with a stable unique key plus its current value. */
-  protected readonly rooms = signal<{ _key: string; value: RoomFormValue }[]>([]);
+  protected readonly rooms = signal<{ _key: string; value: RoomFormValue; iri?: string }[]>([]);
 
-  /** Whether the selected rental model requires rooms. */
+  /** IRIs of backend-loaded rooms marked for deletion by the user. */
+  protected readonly pendingDeletions = signal<string[]>([]);
+
+  /** Whether the selected rental model requires rooms, OR existing rooms exist (edit mode). */
   protected readonly needsRooms = computed(() =>
-    ROOM_BASED_RENTAL_MODELS.has(this.propertyForm.value()['rentalModel'] as string),
+    ROOM_BASED_RENTAL_MODELS.has(this.propertyForm.value()['rentalModel'] as string) ||
+    (this.isEditing() && this.rooms().length > 0),
   );
 
   /** Whether to show the room count input (property type AND room-based rental model selected). */
@@ -694,6 +744,11 @@ export class PropertyCreateComponent {
   }
 
   protected removeRoom(index: number): void {
+    const room = this.rooms()[index];
+    // If this room has a backend IRI, mark it for deletion
+    if (room?.iri) {
+      this.pendingDeletions.update(list => [...list, room.iri!]);
+    }
     this.rooms.update(list => list.filter((_, i) => i !== index));
   }
 
@@ -702,15 +757,66 @@ export class PropertyCreateComponent {
     this.cancelled.emit();
   }
 
-  protected save(): void {
-    const payload: PropertyCreatePayload = {
-      property: this.propertyForm.value() as unknown as PropertyFormValue,
-      rooms: this.needsRooms()
-        ? this.rooms().map(r => r.value)
-        : [],
-    };
+  protected async save(): Promise<void> {
+    const formValue = this.propertyForm.value() as unknown as PropertyFormValue;
+    const propertyTypeIri = this.enumService.iriByKey(this.enumService.propertyTypes(), formValue.propertyType, 'property-types');
+    const rentalModelIri = this.enumService.iriByKey(this.enumService.rentalModels(), formValue.rentalModel, 'rental-models');
 
-    console.log('Save payload:', payload);
+    if (this.isEditing()) {
+      // ── Edit mode: property update + room reconciliation ──
+      const propertyIri = this.initialProperty()!.iri;
+
+      // Delete rooms marked for removal
+      const deletions = this.pendingDeletions();
+      await Promise.all(deletions.map(iri => this.roomService.deleteAsync(iri).catch(() => {})));
+
+      // Update existing rooms that have an IRI
+      const updates = this.rooms().filter(r => r.iri).map(async room => {
+        const furnishingIri = this.enumService.iriByKey(
+          this.enumService.furnishingStatuses(), room.value.furnishingStatus, 'furnishing-statuses',
+        );
+        const statusIri = this.enumService.iriByKey(
+          this.enumService.roomStatuses(), room.value.roomStatus, 'room-statuses',
+        );
+        await this.roomService.updateAsync(room.iri!, {
+          name: room.value.name,
+          furnishingStatus: furnishingIri,
+          roomStatus: statusIri,
+        }).catch(() => {});
+      });
+      await Promise.all(updates);
+
+      // Create new rooms (no IRI)
+      const creations = this.rooms().filter(r => !r.iri).map(async room => {
+        const furnishingIri = this.enumService.iriByKey(
+          this.enumService.furnishingStatuses(), room.value.furnishingStatus, 'furnishing-statuses',
+        );
+        const statusIri = this.enumService.iriByKey(
+          this.enumService.roomStatuses(), room.value.roomStatus, 'room-statuses',
+        );
+        await this.roomService.createAsync(
+          roomFormToCreatePayload(room.value, furnishingIri, statusIri, propertyIri),
+        ).catch(() => {});
+      });
+      await Promise.all(creations);
+
+      const payload = formValueToCreatePayload(formValue, propertyTypeIri, rentalModelIri);
+      this.saved.emit(payload);
+      return;
+    }
+
+    // ── Create mode: original logic ──
+    // Emit room payloads first (parent creates property, then rooms with isPartOf)
+    if (this.needsRooms() && this.rooms().length > 0) {
+      const roomPayloads = this.rooms().map(r => {
+        const furnishingIri = this.enumService.iriByKey(this.enumService.furnishingStatuses(), r.value.furnishingStatus, 'furnishing-statuses');
+        const statusIri = this.enumService.iriByKey(this.enumService.roomStatuses(), r.value.roomStatus, 'room-statuses');
+        return roomFormToCreatePayload(r.value, furnishingIri, statusIri, '');
+      });
+      this.roomsToCreate.emit(roomPayloads);
+    }
+
+    const payload = formValueToCreatePayload(formValue, propertyTypeIri, rentalModelIri);
     this.saved.emit(payload);
   }
 

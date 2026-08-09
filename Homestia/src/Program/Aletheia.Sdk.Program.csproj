@@ -1,5 +1,43 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       Auto-rebuild Angular into wwwroot on every dotnet run / build.
+       Skip with: dotnet run -p:SkipAngularBuild=true
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <Target Name="BuildAngularFrontend" BeforeTargets="BeforeBuild"
+          Condition="'$(SkipAngularBuild)' != 'true'">
+    <PropertyGroup>
+      <WebDir>$(MSBuildProjectDirectory)/../Web</WebDir>
+      <WwwRootDir>$(MSBuildProjectDirectory)/wwwroot</WwwRootDir>
+    </PropertyGroup>
+
+    <!-- Clean old wwwroot output and static web assets cache -->
+    <RemoveDir Directories="$(WwwRootDir)" Condition="Exists('$(WwwRootDir)')" />
+    <MakeDir Directories="$(WwwRootDir)" />
+    <!-- Wipe static web assets manifest so .NET re-scans fresh wwwroot -->
+    <Delete Files="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets.build.json"
+            Condition="Exists('$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets.build.json')" />
+    <Delete Files="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets.pack.json"
+            Condition="Exists('$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets.pack.json')" />
+
+    <Message Importance="high" Text="──────────────────────────────────────────────" />
+    <Message Importance="high" Text="🔨 Building Angular frontend..." />
+    <Message Importance="high" Text="   Source : $(WebDir)" />
+    <Message Importance="high" Text="   Output : $(WwwRootDir)" />
+    <Message Importance="high" Text="──────────────────────────────────────────────" />
+
+    <!-- npm install (only if node_modules missing) -->
+    <Exec Command="npm install" WorkingDirectory="$(WebDir)"
+          Condition="Exists('$(WebDir)/package.json') And !Exists('$(WebDir)/node_modules')" />
+
+    <!-- ng build -->
+    <Exec Command="npx ng build --output-path $(WwwRootDir)"
+          WorkingDirectory="$(WebDir)"
+          Condition="Exists('$(WebDir)/package.json')" />
+
+    <Message Importance="high" Text="✅ Angular build complete." />
+  </Target>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>

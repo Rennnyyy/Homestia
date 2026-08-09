@@ -1,0 +1,105 @@
+<div class="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+  <!-- Header -->
+  <header class="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg lucideHouse class="size-7 text-primary"></svg>
+        <h1 class="text-2xl font-bold tracking-tight">
+          {{ 'app.title' | transloco }}
+        </h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <app-theme-picker />
+        <button hlmBtn variant="outline" size="sm" (click)="toggleLang()">
+          {{ currentLang() === 'en' ? '🇬🇧 EN' : '🇩🇪 DE' }}
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
+    <h2 class="text-5xl font-extrabold mb-4 tracking-tight leading-tight">
+      {{ 'app.welcome' | transloco }}
+    </h2>
+    <p class="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+      {{ 'app.description' | transloco }}
+    </p>
+    <button hlmBtn size="lg" class="gap-2">
+      Get Started
+      <svg lucideArrowRight class="size-4"></svg>
+    </button>
+  </section>
+
+  <!-- Features -->
+  <section class="max-w-6xl mx-auto px-6 pb-24">
+    <h3 class="text-2xl font-bold text-center mb-10">
+      {{ 'home.features' | transloco }}
+    </h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Spartan UI card -->
+      <section hlmCard class="hover:shadow-lg transition-shadow duration-300">
+        <div hlmCardHeader class="flex flex-col items-center text-center pt-8">
+          <span class="rounded-full bg-primary/10 p-3 mb-4 inline-flex">
+            <svg lucidePalette class="size-7 text-primary"></svg>
+          </span>
+          <h4 hlmCardTitle class="text-lg font-semibold mb-2">
+            {{ 'home.spartan' | transloco }}
+          </h4>
+        </div>
+        <div hlmCardContent class="text-center pb-6">
+          <p hlmCardDescription>
+            {{ 'home.spartanDesc' | transloco }}
+          </p>
+        </div>
+      </section>
+
+      <!-- i18n card -->
+      <section hlmCard class="hover:shadow-lg transition-shadow duration-300">
+        <div hlmCardHeader class="flex flex-col items-center text-center pt-8">
+          <span class="rounded-full bg-primary/10 p-3 mb-4 inline-flex">
+            <svg lucideGlobe class="size-7 text-primary"></svg>
+          </span>
+          <h4 hlmCardTitle class="text-lg font-semibold mb-2">
+            {{ 'home.i18n' | transloco }}
+          </h4>
+        </div>
+        <div hlmCardContent class="text-center pb-6">
+          <p hlmCardDescription>
+            {{ 'home.i18nDesc' | transloco }}
+          </p>
+        </div>
+      </section>
+
+      <!-- Signals card -->
+      <section hlmCard class="hover:shadow-lg transition-shadow duration-300">
+        <div hlmCardHeader class="flex flex-col items-center text-center pt-8">
+          <span class="rounded-full bg-primary/10 p-3 mb-4 inline-flex">
+            <svg lucideBolt class="size-7 text-primary"></svg>
+          </span>
+          <h4 hlmCardTitle class="text-lg font-semibold mb-2">
+            {{ 'home.signals' | transloco }}
+          </h4>
+        </div>
+        <div hlmCardContent class="text-center pb-6">
+          <p hlmCardDescription>
+            {{ 'home.signalsDesc' | transloco }}
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Stack badges -->
+    <div class="flex flex-wrap justify-center gap-3 mt-12">
+      <span hlmBadge variant="outline">Angular 22</span>
+      <span hlmBadge variant="outline">Spartan UI (Brain + Helm)</span>
+      <span hlmBadge variant="outline">Tailwind CSS 4</span>
+      <span hlmBadge variant="outline">Transloco i18n</span>
+    </div>
+  </section>
+
+  <footer class="border-t border-border py-6 text-center text-sm text-muted-foreground">
+    <p>Homestia — Built with ❤️ using Angular, Spartan UI, and Tailwind CSS</p>
+  </footer>
+</div>

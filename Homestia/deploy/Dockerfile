@@ -1,10 +1,9 @@
 # ══════════════════════════════════════════════════════════════════════════════
 # Homestia — Multi-stage Docker build for Fly.io
 #
-# Build context MUST be the Katharsis/ parent directory so that both
-# Aletheia/SDK/ and Homestia/Homestia/ are available for COPY.
+# Build context: Katharsis/ (contains both Aletheia/SDK/ and Homestia/Homestia/)
 #
-# Deploy:  ./Homestia/Homestia/deploy/deploy.sh
+# Deploy:  bash Homestia/Homestia/deploy/deploy.sh
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ── Stage 0: Angular frontend build ─────────────────────────────────────────
@@ -55,13 +54,8 @@ RUN dotnet publish src/Program/Aletheia.Sdk.Program.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Use the built-in non-root 'app' user (pre-configured in .NET images)
-USER app
-
-# Copy the published .NET output
 COPY --from=dotnet-build /app ./
 
-# Fly.io expects apps to listen on :8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 

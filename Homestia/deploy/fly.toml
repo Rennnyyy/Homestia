@@ -1,33 +1,33 @@
-# fly.toml — Fly.io configuration for Homestia
+# fly.toml — Fly.io configuration for Homestia (Real Estate Platform)
 # App: homestia  →  https://homestia.fly.dev
 
-app = "homestia"
+app            = "homestia"
 primary_region = "ams"
 
 [build]
-  # Path relative to the build context (Katharsis/ parent directory)
-  dockerfile = "Homestia/Homestia/deploy/Dockerfile"
+  # Build context: Katharsis/ (contains both Aletheia/SDK/ and Homestia/Homestia/)
+  context    = "../../.."
+  dockerfile = "Dockerfile"
 
 [env]
   ASPNETCORE_ENVIRONMENT = "Production"
 
 [http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = "stop"
-  auto_start_machines = true
-  min_machines_running = 1
-  processes = ["app"]
+  internal_port        = 8080
+  force_https          = true
+  auto_stop_machines   = "stop"
+  auto_start_machines  = true
+  min_machines_running = 0
+  processes            = ["app"]
 
   [[http_service.checks]]
-    interval = "10s"
-    timeout = "5s"
+    interval     = "10s"
+    timeout      = "5s"
     grace_period = "15s"
-    method = "get"
-    path = "/"
-    protocol = "http"
+    method       = "get"
+    path         = "/"
+    protocol     = "http"
 
 [[vm]]
-  memory = "512mb"
+  memory   = "256mb"
   cpu_kind = "shared"
-  cpus = 1

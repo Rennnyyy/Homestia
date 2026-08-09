@@ -7,18 +7,30 @@
   <Target Name="BuildAngularFrontend" BeforeTargets="BeforeBuild"
           Condition="'$(SkipAngularBuild)' != 'true'">
     <PropertyGroup>
-      <WebDir>$(MSBuildProjectDirectory)/../Web</WebDir>
+      <WebDir>$(MSBuildProjectDirectory)/../Web/App</WebDir>
       <WwwRootDir>$(MSBuildProjectDirectory)/wwwroot</WwwRootDir>
     </PropertyGroup>
 
-    <!-- Clean old wwwroot output and static web assets cache -->
+    <!-- Pre-flight: Node.js must be available -->
+    <Exec Command="node --version"
+          ContinueOnError="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low">
+      <Output TaskParameter="ExitCode" PropertyName="_NodeExitCode" />
+    </Exec>
+    <Error Condition="'$(_NodeExitCode)' != '0'"
+           Text="Node.js is not installed or not on PATH. Install Node.js 22+ from https://nodejs.org and retry.&#xA;Or skip the Angular build with: dotnet build -p:SkipAngularBuild=true" />
+
+    <!-- Clean old wwwroot output and ALL static web assets cache files.
+         The SDK caches paths in obj/*/staticwebassets* — stale entries referencing
+         the browser/ subdirectory (before flattening) cause intermittent failures. -->
     <RemoveDir Directories="$(WwwRootDir)" Condition="Exists('$(WwwRootDir)')" />
     <MakeDir Directories="$(WwwRootDir)" />
-    <!-- Wipe static web assets manifest so .NET re-scans fresh wwwroot -->
-    <Delete Files="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets.build.json"
-            Condition="Exists('$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets.build.json')" />
-    <Delete Files="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets.pack.json"
-            Condition="Exists('$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets.pack.json')" />
+    <RemoveDir Directories="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets" />
+    <ItemGroup>
+      <_StaleAssetManifests Include="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets*" />
+    </ItemGroup>
+    <Delete Files="@(_StaleAssetManifests)" />
 
     <Message Importance="high" Text="──────────────────────────────────────────────" />
     <Message Importance="high" Text="🔨 Building Angular frontend..." />
@@ -26,14 +38,22 @@
     <Message Importance="high" Text="   Output : $(WwwRootDir)" />
     <Message Importance="high" Text="──────────────────────────────────────────────" />
 
-    <!-- npm install (only if node_modules missing) -->
+    <!-- Restore: npm ci when lock file exists (CI / reproducible), npm install otherwise -->
+    <Exec Command="npm ci" WorkingDirectory="$(WebDir)"
+          Condition="Exists('$(WebDir)/package-lock.json')" />
     <Exec Command="npm install" WorkingDirectory="$(WebDir)"
-          Condition="Exists('$(WebDir)/package.json') And !Exists('$(WebDir)/node_modules')" />
+          Condition="!Exists('$(WebDir)/package-lock.json') And Exists('$(WebDir)/package.json')" />
 
-    <!-- ng build -->
-    <Exec Command="npx ng build --output-path $(WwwRootDir)"
+    <!-- ng build — output goes to wwwroot/ per angular.json outputPath -->
+    <Exec Command="npx ng build --configuration production"
           WorkingDirectory="$(WebDir)"
           Condition="Exists('$(WebDir)/package.json')" />
+
+    <!-- Angular 19+ outputs to a browser/ subdirectory. Flatten it into wwwroot/
+         so UseStaticFiles() serves index.html, scripts, and styles at root.
+         Uses shell (not MSBuild Move) to avoid static web assets manifest conflicts. -->
+    <Exec Command="cp -r $(WwwRootDir)/browser/* $(WwwRootDir)/ &amp;&amp; rm -rf $(WwwRootDir)/browser"
+          Condition="Exists('$(WwwRootDir)/browser')" />
 
     <Message Importance="high" Text="✅ Angular build complete." />
   </Target>

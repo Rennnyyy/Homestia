@@ -45,6 +45,8 @@ bld/
 **/.vscode
 # Node modules
 **/node_modules/
+# Angular CLI cache
+**/.angular/
 
 # Visual Studio 2017 auto generated files
 Generated\ Files/

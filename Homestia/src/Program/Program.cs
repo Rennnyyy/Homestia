@@ -112,6 +112,7 @@ var app = builder.Build();
 app.UseAgentTokenMiddleware();
 
 // ── Static files — serves the Angular facade in production ──────────────────
+// The MSBuild target flattens Angular's browser/ output into wwwroot/.
 app.UseStaticFiles();
 
 // Branch scope — isolates requests to a branch context.

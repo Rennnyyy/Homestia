@@ -1,60 +1,47 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Homestia — Multi-stage Docker build for Fly.io
+# Homestia — Docker build for Fly.io
 #
 # Build context: Katharsis/ (contains both Aletheia/SDK/ and Homestia/Homestia/)
+#
+# The MSBuild target BuildAngularFrontend (in Program.csproj) handles the
+# entire Angular build — npm ci + ng build — during dotnet publish.
+# No separate Node stage needed.
 #
 # Deploy:  bash Homestia/Homestia/deploy/deploy.sh
 # ══════════════════════════════════════════════════════════════════════════════
 
-# ── Stage 0: Angular frontend build ─────────────────────────────────────────
-FROM node:22-alpine AS angular-build
-WORKDIR /build
+# ── Stage 0: Build (SDK + Node.js for Angular) ──────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
-# Copy Web project with its full relative path so angular.json's
-# outputPath ("../Program/wwwroot") resolves correctly.
-COPY Homestia/Homestia/src/Web/package.json \
-     Homestia/Homestia/src/Web/package-lock.json \
-     Homestia/Homestia/src/Web/
+# Install Node.js 22 — required by the MSBuild Angular build target
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /build/Homestia/Homestia/src/Web
-# --legacy-peer-deps: works around Tailwind v3/v4 peer conflict
-# between @spartan-ng/brain (requires TW4) and project's tailwindcss@^3.4
-RUN npm ci --legacy-peer-deps
-
-# Copy remaining Web source (angular.json, src/, public/, tsconfig*.json, tailwind, postcss)
-COPY Homestia/Homestia/src/Web/ ./
-
-# Build Angular for production; output goes to ../Program/wwwroot per angular.json
-RUN npx ng build --configuration production
-
-# ── Stage 1: .NET publish ───────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
 WORKDIR /src
 
 # Copy the Aletheia SDK (referenced by Homestia via project references)
 COPY Aletheia/SDK/ Aletheia/SDK/
 
-# Copy the Homestia solution
+# Copy the Homestia solution (includes src/Web/App/ Angular source)
 COPY Homestia/Homestia/ Homestia/Homestia/
 
-# Copy Angular build output into the .NET wwwroot folder
-COPY --from=angular-build /build/Homestia/Homestia/src/Program/wwwroot/ \
-     Homestia/Homestia/src/Program/wwwroot/
-
-# Restore and publish the .NET host
+# Restore and publish — MSBuild BuildAngularFrontend target fires automatically,
+# building Angular into wwwroot/ before the .NET publish.
 WORKDIR /src/Homestia/Homestia
 RUN dotnet restore src/Program/Aletheia.Sdk.Program.csproj
 RUN dotnet publish src/Program/Aletheia.Sdk.Program.csproj \
     -c Release \
     -o /app \
-    -p:SkipAngularBuild=true \
     --no-restore
 
-# ── Stage 2: Production runtime ─────────────────────────────────────────────
+# ── Stage 1: Production runtime ─────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-COPY --from=dotnet-build /app ./
+COPY --from=build /app ./
 
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production

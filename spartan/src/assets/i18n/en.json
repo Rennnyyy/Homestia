@@ -9,5 +9,8 @@
   "home.i18nDesc": "Multi-language support powered by Transloco.",
   "home.signals": "Angular Signals",
   "home.signalsDesc": "Modern reactive state management built into Angular.",
-  "lang.switch": "Switch to German"
+  "lang.switch": "Switch to German",
+  "nav.home": "Home",
+  "nav.properties": "Properties",
+  "nav.tenants": "Tenants"
 }

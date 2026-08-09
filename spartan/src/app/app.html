@@ -1,3 +1,44 @@
-<main class="min-h-screen">
-  <router-outlet />
-</main>
+<div class="h-screen flex flex-col">
+  <!-- Header -->
+  <header class="border-b border-border bg-background/80 backdrop-blur-sm shrink-0 z-50">
+    <div class="flex items-center px-6 py-3 gap-2">
+      <div class="flex items-center gap-3">
+        <svg lucideHouse class="size-7 text-primary"></svg>
+        <h1 class="text-2xl font-bold tracking-tight text-foreground">
+          {{ 'app.title' | transloco }}
+        </h1>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <app-theme-picker />
+
+      <button
+        hlmBtn
+        variant="ghost"
+        size="icon-xs"
+        (click)="toggleLang()"
+        class="text-muted-foreground hover:text-foreground text-xs font-medium"
+      >
+        {{ currentLang() === 'en' ? 'EN' : 'DE' }}
+      </button>
+
+      <button
+        hlmBtn
+        variant="ghost"
+        size="icon-sm"
+        class="ml-2 rounded-full size-8 bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20"
+      >
+        RR
+      </button>
+    </div>
+  </header>
+
+  <!-- Body: sidebar + content -->
+  <div class="flex flex-1 overflow-hidden">
+    <app-sidebar />
+    <main class="flex-1 overflow-y-auto bg-background">
+      <router-outlet />
+    </main>
+  </div>
+</div>

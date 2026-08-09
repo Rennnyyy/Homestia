@@ -9,5 +9,8 @@
   "home.i18nDesc": "Mehrsprachige Unterstützung durch Transloco.",
   "home.signals": "Angular Signals",
   "home.signalsDesc": "Moderne reaktive Zustandsverwaltung in Angular integriert.",
-  "lang.switch": "Zu Englisch wechseln"
+  "lang.switch": "Zu Englisch wechseln",
+  "nav.home": "Start",
+  "nav.properties": "Immobilien",
+  "nav.tenants": "Mieter"
 }

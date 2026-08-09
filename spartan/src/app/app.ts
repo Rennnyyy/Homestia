@@ -1,10 +1,25 @@
-import { Component } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { LucideHouse } from '@lucide/angular';
+import { ThemePicker } from './shared/components/theme-picker';
+import { Sidebar } from './shared/components/sidebar/sidebar';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  standalone: true,
+  imports: [RouterOutlet, TranslocoPipe, HlmButton, LucideHouse, ThemePicker, Sidebar],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App {}
+export class App {
+  private readonly transloco = inject(TranslocoService);
+  readonly currentLang = signal(this.transloco.getActiveLang());
+
+  toggleLang(): void {
+    const next = this.currentLang() === 'en' ? 'de' : 'en';
+    this.transloco.setActiveLang(next);
+    this.currentLang.set(next);
+  }
+}

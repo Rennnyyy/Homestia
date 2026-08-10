@@ -1,0 +1,23 @@
+// Dynamic Entity Form — layout and animations only.
+// Input styling uses inline Tailwind utilities (Tailwind v4 CLI doesn't process component SCSS).
+
+:host {
+  display: block;
+}
+
+// ── IRI popover ──────────────────────────────────────────────────────────
+
+@keyframes iri-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.iri-popover {
+  animation: iri-pop-in 0.15s ease-out;
+}

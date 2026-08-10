@@ -10,7 +10,9 @@
     "prebuild": "npm run tailwind:build",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "generate-entities": "node scripts/generate-entities.mjs",
+    "generate-entities:full": "node scripts/generate-entities.mjs --with-enum-values"
   },
   "private": true,
   "packageManager": "npm@11.19.0",

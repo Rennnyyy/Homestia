@@ -1,0 +1,66 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Dynamic Entity Form — core field rendering.
+     No chrome — embed anywhere: inside a card, a dialog, or inline.
+     ═══════════════════════════════════════════════════════════════════════ -->
+@if (visibleProperties().length === 0) {
+  <p class="text-muted-foreground text-sm text-center py-8">{{ 'dynamicForm.noFields' | transloco }}</p>
+}
+
+@for (prop of visibleProperties(); track trackByName($index, prop)) {
+  @let renderer = rendererFor(prop);
+  @let fieldId = entity().predicatePath + '-' + prop.name;
+
+  <div class="flex flex-col gap-1.5">
+    <label [for]="fieldId" class="text-sm font-medium text-foreground">
+      {{ labelKey(prop) | transloco }}
+      @if (prop.isCollection) {<span class="text-xs text-muted-foreground ml-1">(list)</span>}
+    </label>
+
+    <!-- Text -->
+    @if (renderer.template === 'text') {
+      <input [id]="fieldId" type="text"
+        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="isView()" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
+    }
+
+    <!-- Number -->
+    @if (renderer.template === 'number') {
+      <input [id]="fieldId" [type]="renderer.inputType ?? 'number'"
+        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="isView()" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
+    }
+
+    <!-- Checkbox -->
+    @if (renderer.template === 'checkbox') {
+      <div class="flex items-center gap-2 h-10">
+        <input [id]="fieldId" type="checkbox"
+          class="size-4 rounded border-input text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          [disabled]="isView()" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
+        <label [for]="fieldId" class="text-sm text-muted-foreground cursor-pointer select-none">
+          {{ formData()[prop.name] ? ('common.yes' | transloco) : ('common.no' | transloco) }}
+        </label>
+      </div>
+    }
+
+    <!-- Date -->
+    @if (renderer.template === 'date') {
+      <input [id]="fieldId" [type]="renderer.inputType ?? 'date'"
+        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="isView()" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
+    }
+
+    <!-- Select / EntityRef (single) -->
+    @if (renderer.template === 'select' && !prop.isCollection) {
+      <input [id]="fieldId" type="text"
+        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="isView()" [placeholder]="'fields.placeholder.entityRef' | transloco" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
+    }
+
+    <!-- Select / EntityRefCollection (multi) -->
+    @if (renderer.template === 'select' && prop.isCollection) {
+      <textarea [id]="fieldId" rows="2"
+        class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+        [disabled]="isView()" [placeholder]="'fields.placeholder.entityRef' | transloco" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event"></textarea>
+    }
+  </div>
+}

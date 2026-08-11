@@ -9,6 +9,8 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { lastValueFrom } from 'rxjs';
+import { AletheiaHttpClient } from '../../services/aletheia-http-client';
 import {
   FieldRendererRegistry,
   FieldRendererConfig,
@@ -28,6 +30,16 @@ import type { EntityInfo, EntityPropertyInfo } from '../../services/aletheia-htt
 })
 export class DynamicEntityFormComponent {
   private readonly registry = inject(FieldRendererRegistry);
+  private readonly aletheia = inject(AletheiaHttpClient);
+
+  // ── Option caching for EntityRef dropdowns ─────────────────────────────
+
+  /** Cached options per entity path. { iri, displayValue } arrays. */
+  private readonly optionsCache = new Map<string, { iri: string; displayValue: string }[]>();
+  private readonly optionsLoading = signal<Set<string>>(new Set());
+
+  /** Public signal for template consumption: path → options array. */
+  readonly options = signal<Map<string, { iri: string; displayValue: string }[]>>(new Map());
 
   // ── Inputs ──────────────────────────────────────────────────────────────
 
@@ -39,6 +51,9 @@ export class DynamicEntityFormComponent {
 
   /** Current entity data (null / empty object for create). */
   readonly value = input<Record<string, unknown> | null>(null);
+
+  /** Optional: subset of property names to show, in display order. */
+  readonly fieldNames = input<string[] | null>(null);
 
   // ── Outputs ─────────────────────────────────────────────────────────────
 
@@ -52,13 +67,20 @@ export class DynamicEntityFormComponent {
 
   // ── Derived ─────────────────────────────────────────────────────────────
 
-  /** Properties to display — all, except @id on create. */
+  /** Properties to display — filtered by fieldNames input if provided. */
   readonly visibleProperties = computed<EntityPropertyInfo[]>(() => {
     const props = this.entity().properties;
-    if (this.mode() === 'create') {
-      return props.filter((p) => p.name !== '@id');
+    const names = this.fieldNames();
+    let filtered = this.mode() === 'create'
+      ? props.filter((p) => p.name !== '@id')
+      : props;
+
+    if (names && names.length > 0) {
+      const map = new Map(filtered.map((p) => [p.name, p]));
+      filtered = names.map((n) => map.get(n)).filter((p): p is EntityPropertyInfo => !!p);
     }
-    return props;
+
+    return filtered;
   });
 
   readonly isView = computed(() => this.mode() === 'view');
@@ -86,6 +108,16 @@ export class DynamicEntityFormComponent {
         this.formData.set(data ? { ...data } : {});
       }
     });
+
+    // Auto-load options for EntityRef properties
+    effect(() => {
+      const props = this.visibleProperties();
+      for (const p of props) {
+        if (p.type === 'EntityRef' && p.targetEntityPath && !this.optionsCache.has(p.targetEntityPath)) {
+          this.loadOptions(p.targetEntityPath);
+        }
+      }
+    });
   }
 
   // ── Public API ──────────────────────────────────────────────────────────
@@ -103,6 +135,38 @@ export class DynamicEntityFormComponent {
   /** Track-by for @for loops. */
   trackByName(_: number, prop: EntityPropertyInfo): string {
     return prop.name;
+  }
+
+  /** Get the dropdown options for an EntityRef property. */
+  optionsFor(prop: EntityPropertyInfo): { iri: string; displayValue: string }[] {
+    if (!prop.targetEntityPath) return [];
+    // Read from the signal to make this template-reactive
+    const map = this.options();
+    return map.get(prop.targetEntityPath) ?? [];
+  }
+
+  private async loadOptions(entityPath: string): Promise<void> {
+    if (this.optionsCache.has(entityPath)) return;
+
+    const loading = this.optionsLoading();
+    if (loading.has(entityPath)) return;
+
+    loading.add(entityPath);
+    this.optionsLoading.set(new Set(loading));
+
+    try {
+      const res = await lastValueFrom(this.aletheia.list<{ key?: string; displayName?: string; iri?: string }>(entityPath));
+      const items = (res.items ?? []).map((item) => ({
+        iri: item.iri ?? '',
+        displayValue: item.displayName ?? item.key ?? '',
+      }));
+      this.optionsCache.set(entityPath, items);
+    } finally {
+      loading.delete(entityPath);
+      this.optionsLoading.set(new Set(loading));
+      // Trigger signal update
+      this.options.set(new Map(this.optionsCache));
+    }
   }
 
   // ── Actions ─────────────────────────────────────────────────────────────

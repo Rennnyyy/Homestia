@@ -17,8 +17,12 @@ export type { EntityInfo, EntityPropertyInfo, CapabilityDefinition };
  * Map a raw EntityDefinition from the SDK to the simplified EntityInfo
  * used by the dynamic form. Owning relations with isCollection=true are
  * treated as collection properties.
+ *
+ * @param def The raw entity definition.
+ * @param entityPathByName Optional map from entity name to entity path,
+ *                         used to resolve targetEntityPath for EntityRef properties.
  */
-function toEntityInfo(def: EntityDefinition): EntityInfo {
+function toEntityInfo(def: EntityDefinition, entityPathByName?: Map<string, string>): EntityInfo {
   const relationMap = new Map<string, EntityRelationDefinition>();
   for (const r of def.owningRelations) {
     relationMap.set(r.propertyName, r);
@@ -26,11 +30,15 @@ function toEntityInfo(def: EntityDefinition): EntityInfo {
 
   const properties: EntityPropertyInfo[] = def.properties.map((p) => {
     const rel = relationMap.get(p.propertyName);
-    return {
+    const prop: EntityPropertyInfo = {
       name: p.propertyName,
       type: p.clrType,
       isCollection: rel?.isCollection ?? false,
     };
+    if (rel && entityPathByName) {
+      prop.targetEntityPath = entityPathByName.get(rel.relatedEntityName);
+    }
+    return prop;
   });
 
   // Add owning relations that don't have a corresponding scalar property
@@ -41,11 +49,15 @@ function toEntityInfo(def: EntityDefinition): EntityInfo {
   // scalar property. Let's add those too.
   for (const r of def.owningRelations) {
     if (!def.properties.some((p) => p.propertyName === r.propertyName)) {
-      properties.push({
+      const prop: EntityPropertyInfo = {
         name: r.propertyName,
         type: 'EntityRef',
         isCollection: r.isCollection,
-      });
+      };
+      if (entityPathByName) {
+        prop.targetEntityPath = entityPathByName.get(r.relatedEntityName);
+      }
+      properties.push(prop);
     }
   }
 
@@ -122,7 +134,15 @@ export class AletheiaModelService {
     this.error.set(null);
 
     return this.aletheia.exploreEntities().pipe(
-      tap((res) => this.entities.set((res.items ?? []).map(toEntityInfo))),
+      tap((res) => {
+        const definitions = res.items ?? [];
+        // Build name → entityPath lookup for resolving EntityRef targets
+        const entityPathByName = new Map<string, string>();
+        for (const d of definitions) {
+          entityPathByName.set(d.name, d.entityPath);
+        }
+        this.entities.set(definitions.map((d) => toEntityInfo(d, entityPathByName)));
+      }),
       switchMap(() => this.aletheia.exploreCapabilities()),
       tap((res) => {
         this.capabilities.set(res.items ?? []);

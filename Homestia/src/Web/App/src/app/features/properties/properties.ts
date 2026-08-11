@@ -1,7 +1,8 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, viewChild } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { LucideBuilding, LucidePlus, LucideRefreshCw, LucideChevronRight } from '@lucide/angular';
+import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
 import { AletheiaHttpClient } from '../../shared/services/aletheia-http-client';
 import { DynamicEntityFormComponent } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
 import { DynamicEntityTableComponent } from '../../shared/components/dynamic-entity-table/dynamic-entity-table.component';
@@ -22,6 +23,7 @@ type PageMode = 'list' | 'create';
     LucideChevronRight,
     DynamicEntityFormComponent,
     DynamicEntityTableComponent,
+    ...HlmAccordionImports,
   ],
   template: `
     <div class="max-w-6xl mx-auto px-6">
@@ -55,7 +57,7 @@ type PageMode = 'list' | 'create';
 
       <!-- Create mode: subtext -->
       @if (mode() === 'create') {
-        <p style="font-size: 14px; color: var(--muted-foreground); margin-bottom: 10px;">{{ 'nav.properties.createSubtext' | transloco }}</p>
+        <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.createSubtext' | transloco }}</p>
       }
 
       <!-- List mode: table -->
@@ -69,19 +71,33 @@ type PageMode = 'list' | 'create';
         />
       }
 
-      <!-- Create mode: form -->
+      <!-- Create mode: form in accordion -->
       @if (mode() === 'create') {
-        <app-dynamic-entity-form
-          #form
-          [entity]="entity"
-          [mode]="'create'"
-          (saved)="onCreate($event)"
-        />
+        <hlm-accordion class="block mt-2 border border-border rounded-lg overflow-hidden">
+          <hlm-accordion-item [isOpened]="true">
+            <hlm-accordion-trigger [triggerClass]="'border-b border-border py-2 hover:bg-muted/50 hover:no-underline items-center'">
+              <div class="flex items-center gap-2 text-foreground">
+                <svg lucideBuilding class="size-[30px] pl-2.5"></svg>
+                <span class="text-lg font-semibold">{{ 'nav.properties.accordionDetails' | transloco }}</span>
+              </div>
+            </hlm-accordion-trigger>
+            <hlm-accordion-content>
+              <div class="px-4" style="margin-top: 20px;">
+                <app-dynamic-entity-form
+                  [entity]="entity"
+                  [mode]="'create'"
+                  [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']"
+                  (saved)="onCreate($event)"
+                />
+              </div>
+            </hlm-accordion-content>
+          </hlm-accordion-item>
+        </hlm-accordion>
         <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
-          <button hlmBtn variant="outline" (click)="exitCreate()">
+          <button hlmBtn variant="outline" class="text-foreground" (click)="exitCreate()">
             {{ 'common.cancel' | transloco }}
           </button>
-          <button hlmBtn (click)="form.save()">
+          <button hlmBtn (click)="formRef()?.save()">
             {{ 'nav.properties.save' | transloco }}
           </button>
         </div>
@@ -93,6 +109,7 @@ export class Properties implements OnInit {
   private readonly aletheia = inject(AletheiaHttpClient);
 
   readonly entity = PropertyEntity;
+  readonly formRef = viewChild(DynamicEntityFormComponent);
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);

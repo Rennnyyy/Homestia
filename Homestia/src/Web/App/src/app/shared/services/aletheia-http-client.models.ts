@@ -135,4 +135,6 @@ export interface EntityPropertyInfo {
   name: string;
   type: string;
   isCollection: boolean;
+  /** For EntityRef properties, the API path of the target entity (e.g. "property-types"). */
+  targetEntityPath?: string;
 }

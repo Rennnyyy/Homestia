@@ -10,7 +10,7 @@
   @let renderer = rendererFor(prop);
   @let fieldId = entity().predicatePath + '-' + prop.name;
 
-  <div class="flex flex-col gap-1.5">
+  <div class="flex flex-col gap-1.5 mb-[15px]">
     <label [for]="fieldId" class="text-sm font-medium text-foreground">
       {{ labelKey(prop) | transloco }}
       @if (prop.isCollection) {<span class="text-xs text-muted-foreground ml-1">(list)</span>}
@@ -51,9 +51,21 @@
 
     <!-- Select / EntityRef (single) -->
     @if (renderer.template === 'select' && !prop.isCollection) {
-      <input [id]="fieldId" type="text"
-        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        [disabled]="isView()" [placeholder]="'fields.placeholder.entityRef' | transloco" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
+      @let opts = optionsFor(prop);
+      @if (opts.length > 0) {
+        <select [id]="fieldId"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          [disabled]="isView()" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event">
+          <option value="">{{ 'fields.placeholder.select' | transloco }}</option>
+          @for (opt of opts; track opt.iri) {
+            <option [value]="opt.iri">{{ opt.displayValue }}</option>
+          }
+        </select>
+      } @else {
+        <input [id]="fieldId" type="text"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          [disabled]="isView()" [placeholder]="'fields.placeholder.entityRef' | transloco" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
+      }
     }
 
     <!-- Select / EntityRefCollection (multi) -->

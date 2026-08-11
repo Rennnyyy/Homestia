@@ -1,21 +1,10 @@
 <div class="h-screen flex flex-col">
-  <!-- Header -->
-  <header class="border-b border-border bg-card shrink-0 z-50">
+  <!-- Header (desktop) -->
+  <header class="border-b border-border bg-card shrink-0 z-50 hidden md:block">
     <div class="flex items-center px-6 py-3 gap-2">
-      <!-- Burger (mobile only) -->
-      <button
-        hlmBtn
-        variant="ghost"
-        size="icon-sm"
-        class="md:hidden -ml-2 text-muted-foreground hover:text-foreground shrink-0"
-        (click)="sidebarOpen.set(true)"
-      >
-        <svg lucideMenu class="size-5"></svg>
-      </button>
-
       <div class="flex items-center gap-3">
-        <svg lucideHouse class="hidden md:block size-7 text-primary shrink-0"></svg>
-        <h1 class="text-lg md:text-2xl font-bold tracking-tight text-foreground">
+        <svg lucideHouse class="size-7 text-primary shrink-0"></svg>
+        <h1 class="text-2xl font-bold tracking-tight text-foreground">
           {{ 'app.title' | transloco }}
         </h1>
       </div>
@@ -49,10 +38,36 @@
   <div class="flex flex-1 overflow-hidden">
     <app-sidebar
       [mobileOpen]="sidebarOpen()"
+      [currentLang]="currentLang()"
       (mobileOpenChange)="sidebarOpen.set($event)"
+      (toggleLang)="toggleLang()"
     />
     <main class="flex-1 overflow-y-auto bg-background">
       <router-outlet />
     </main>
   </div>
+
+  <!-- Mobile footer navigation -->
+  <footer class="md:hidden border-t border-border bg-card shrink-0 z-50">
+    <div class="flex items-center justify-evenly" style="padding: 10px 0;">
+      <button
+        hlmBtn
+        variant="ghost"
+        class="text-muted-foreground hover:text-foreground"
+        (click)="sidebarOpen.set(true)"
+        style="padding: 10px;"
+      >
+        <svg lucideMenu class="size-7"></svg>
+      </button>
+      <a routerLink="/" routerLinkActive="text-primary" [routerLinkActiveOptions]="{ exact: true }" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px;">
+        <svg lucideHouse class="size-7"></svg>
+      </a>
+      <a routerLink="/properties" routerLinkActive="text-primary" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px;">
+        <svg lucideBuilding class="size-7"></svg>
+      </a>
+      <a routerLink="/tenants" routerLinkActive="text-primary" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px;">
+        <svg lucideUsers class="size-7"></svg>
+      </a>
+    </div>
+  </footer>
 </div>

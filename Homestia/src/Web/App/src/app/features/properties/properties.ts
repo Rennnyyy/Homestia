@@ -34,9 +34,9 @@ type PageMode = 'list' | 'create' | 'edit';
   template: `
     <div class="max-w-6xl mx-auto px-6">
       <!-- Header: breadcrumb + actions -->
-      <div class="flex items-center" style="padding: 15px 0 20px 0; min-height: 70px;">
+      <div class="flex items-center properties-header" style="padding: 15px 0 20px 0; min-height: 70px;">
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 font-bold text-foreground" style="font-size: 24px; line-height: 1;">
+        <div class="flex items-center gap-2 font-bold text-foreground properties-breadcrumb" style="font-size: 24px; line-height: 1;">
           <svg lucideBuilding class="size-6"></svg>
           <span>{{ 'nav.properties' | transloco }}</span>
           @if (mode() === 'create') {
@@ -53,7 +53,7 @@ type PageMode = 'list' | 'create' | 'edit';
 
         <!-- Actions (list mode only) -->
         @if (mode() === 'list') {
-          <div class="flex items-center gap-1">
+          <div class="hidden md:flex items-center gap-1 properties-actions">
             <button hlmBtn size="sm" (click)="enterCreate()">
               <svg lucidePlus class="size-4 mr-1"></svg>
               {{ 'nav.properties.create' | transloco }}
@@ -94,6 +94,16 @@ type PageMode = 'list' | 'create' | 'edit';
             (confirmed)="onDelete()"
             (cancelled)="confirmingDelete.set(false); deletingItem.set(null)" />
         }
+      }
+
+      <!-- Mobile-only Add Property button (below table) -->
+      @if (mode() === 'list') {
+        <div class="md:hidden" style="margin-top: 24px;">
+          <button hlmBtn size="sm" (click)="enterCreate()">
+            <svg lucidePlus class="size-4 mr-1"></svg>
+            {{ 'nav.properties.create' | transloco }}
+          </button>
+        </div>
       }
 
       <!-- Create mode: form in accordion -->
@@ -256,6 +266,38 @@ type PageMode = 'list' | 'create' | 'edit';
       <!-- End edit mode -->
     </div>
   `,
+  styles: [`
+    @media (max-width: 767px) {
+      :host {
+        display: block;
+        padding-top: 32px;
+      }
+      .properties-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        margin-bottom: 32px !important;
+        min-height: auto !important;
+        padding: 0 !important;
+      }
+      .properties-breadcrumb {
+        gap: 12px !important;
+        font-size: 30px !important;
+      }
+      .properties-breadcrumb svg[lucideBuilding] {
+        width: 32px !important;
+        height: 32px !important;
+        color: var(--primary) !important;
+      }
+      .properties-breadcrumb svg[lucideChevronRight] {
+        width: 32px !important;
+        height: 32px !important;
+      }
+      .properties-actions {
+        margin-top: 8px !important;
+      }
+    }
+  `],
 })
 export class Properties implements OnInit {
   private readonly aletheia = inject(AletheiaHttpClient);

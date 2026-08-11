@@ -1,15 +1,15 @@
 import { Component, signal, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
-import { LucideHouse, LucideMenu } from '@lucide/angular';
+import { LucideHouse, LucideMenu, LucideBuilding, LucideUsers } from '@lucide/angular';
 import { ThemePicker } from './shared/components/theme-picker';
 import { Sidebar } from './shared/components/sidebar/sidebar';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TranslocoPipe, HlmButton, LucideHouse, LucideMenu, ThemePicker, Sidebar],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, HlmButton, LucideHouse, LucideMenu, LucideBuilding, LucideUsers, ThemePicker, Sidebar],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

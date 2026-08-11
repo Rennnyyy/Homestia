@@ -15,20 +15,24 @@
   [class.md:w-56]="!collapsed()"
   [class.-translate-x-full]="!mobileOpen()"
 >
-  <!-- Mobile header: Menu label + close button -->
-  <div class="flex items-center h-14 px-3 md:hidden">
-    <span class="text-lg font-medium text-foreground">{{ 'nav.menu' | transloco }}</span>
+  <!-- Mobile header: theme + language (right-aligned) -->
+  <div class="flex items-center h-14 px-3 md:hidden gap-1">
+    <span class="text-lg font-medium text-primary">{{ 'nav.menu' | transloco }}</span>
     <div class="flex-1"></div>
+    <app-theme-picker />
     <button
       hlmBtn
       variant="ghost"
-      size="icon-sm"
-      (click)="closeMobile()"
-      class="text-muted-foreground hover:text-foreground"
+      size="icon-xs"
+      (click)="toggleLang.emit()"
+      class="text-muted-foreground hover:text-foreground text-xs font-medium"
     >
-      <svg lucideX class="size-4"></svg>
+      {{ currentLang() === 'en' ? 'EN' : 'DE' }}
     </button>
   </div>
+
+  <!-- Divider -->
+  <div class="border-t border-border mx-3 md:hidden"></div>
 
   <!-- Nav items -->
   <nav class="flex flex-col gap-0.5 p-2 pt-1 md:pt-2 flex-1">
@@ -56,14 +60,25 @@
     }
   </nav>
 
-  <!-- Desktop collapse toggle (bottom, hidden on mobile) -->
-  <div class="hidden md:flex items-center h-14 px-3 border-t border-border shrink-0">
+  <!-- Bottom bar: close on mobile, collapse on desktop -->
+  <div class="flex items-center h-14 px-3 border-t border-border shrink-0">
+    <button
+      hlmBtn
+      variant="ghost"
+      size="icon-sm"
+      (click)="closeMobile()"
+      class="md:hidden text-muted-foreground hover:text-foreground"
+    >
+      <svg lucideX class="size-5"></svg>
+    </button>
+
+    <!-- Desktop collapse toggle -->
     <button
       hlmBtn
       variant="ghost"
       size="icon-sm"
       (click)="toggleCollapse()"
-      class="text-muted-foreground hover:text-foreground shrink-0"
+      class="hidden md:flex text-muted-foreground hover:text-foreground"
     >
       @if (collapsed()) {
         <svg lucidePanelLeft class="size-4"></svg>
@@ -72,7 +87,7 @@
       }
     </button>
     @if (!collapsed()) {
-      <span class="ml-2 text-sm font-medium text-foreground truncate">{{ 'nav.menu' | transloco }}</span>
+      <span class="hidden md:block ml-2 text-sm font-medium text-foreground truncate">{{ 'nav.menu' | transloco }}</span>
     }
   </div>
 </aside>

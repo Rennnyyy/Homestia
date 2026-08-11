@@ -104,8 +104,12 @@ export class DynamicEntityFormComponent {
           init[p.name] = this.defaultForType(p);
         }
         this.formData.set(init);
+      } else if (data) {
+        // Edit / view: work directly on the source object so that two-way
+        // bound mutations flow back to the parent (e.g. room forms in accordions).
+        this.formData.set(data);
       } else {
-        this.formData.set(data ? { ...data } : {});
+        this.formData.set({});
       }
     });
 

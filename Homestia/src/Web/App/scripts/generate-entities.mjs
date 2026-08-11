@@ -30,8 +30,19 @@ const REST_PATH_OVERRIDES = {
   inventoryItem: 'inventory-items',
   commonArea: 'common-areas',
   landlord: 'landlords',
+  room: 'rooms',
   studio: 'studios',
   agent: 'agents',
+};
+
+// ── Inheritance map (child predicatePath → parent predicatePath) ─────
+// When sample inference fails (no items in DB), inherited properties
+// are resolved from the parent entity's definition instead.
+const INHERITANCE_MAP = {
+  room: 'segmentations',
+  commonArea: 'segmentations',
+  studio: 'segmentations',
+  property: 'segmentations',
 };
 
 function restPath(def) {
@@ -73,7 +84,7 @@ function generateEntityFile(def, enumValues, extraProps) {
 
   if (extraProps && extraProps.length > 0) {
     for (const p of extraProps) {
-      ifaceProps.push(`  /** Inherited — inferred from API response. */`);
+      ifaceProps.push(`  /** Inherited — resolved from entity hierarchy. */`);
       ifaceProps.push(`  ${p.name}: ${tsType(p.type, p.isCollection)};`);
     }
   }
@@ -195,7 +206,46 @@ async function main() {
             }
           }
         }
-      } catch (err) { /* no items yet — skip */ }
+      } catch (err) {
+        console.warn(`  ⚠ ${def.name} — cannot infer inherited properties (${err.message ?? err})`);
+      }
+    }
+
+    // ── Inheritance-based fallback ───────────────────────────────────
+    // For entities whose sample inference failed, resolve inherited
+    // properties from the parent entity's definition.
+    for (const def of nonEnums) {
+      if (inferredProps.has(def.predicatePath)) continue; // already resolved via sample
+
+      const parentPath = INHERITANCE_MAP[def.predicatePath];
+      if (!parentPath) continue;
+
+      const parentDef = items.find((d) => d.predicatePath === parentPath);
+      if (!parentDef) {
+        console.warn(`  ⚠ ${def.name} — parent entity "${parentPath}" not found in definitions`);
+        continue;
+      }
+
+      const ownNames = new Set([
+        ...def.properties.map((p) => p.propertyName.toLowerCase()),
+        ...def.owningRelations.map((r) => r.propertyName.toLowerCase()),
+      ]);
+
+      const inherited = [];
+      // Collect parent's own properties (not relations — those are already inherited via the API)
+      for (const p of parentDef.properties) {
+        if (ownNames.has(p.propertyName.toLowerCase())) continue;
+        inherited.push({
+          name: toCamelCase(p.propertyName),
+          type: p.clrType,
+          isCollection: false,
+        });
+      }
+
+      if (inherited.length > 0) {
+        inferredProps.set(def.predicatePath, inherited);
+        console.log(`  ✓ ${def.name} — +${inherited.length} inherited from ${parentDef.name} (${inherited.map((e) => e.name).join(', ')})`);
+      }
     }
   }
 

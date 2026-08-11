@@ -1,4 +1,4 @@
-// Auto-generated from http://localhost:5001/api/entities/entity-definitions — do not edit manually.
+// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
 // Entity: Property  |  predicatePath: "property"  |  enum: false
 
 import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
@@ -16,11 +16,11 @@ export interface Property {
   rentalModel: unknown;
   /** The entity's unique IRI. */
   iri: string;
-  /** Inherited — inferred from API response. */
+  /** Inherited — resolved from entity hierarchy. */
   segmentedInto: string | null[];
-  /** Inherited — inferred from API response. */
+  /** Inherited — resolved from entity hierarchy. */
   name: string;
-  /** Inherited — inferred from API response. */
+  /** Inherited — resolved from entity hierarchy. */
   isCommonArea: boolean;
 }
 

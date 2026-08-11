@@ -1,4 +1,4 @@
-// Auto-generated from http://localhost:5001/api/entities/entity-definitions — do not edit manually.
+// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
 // Entity: FurnishingStatus  |  predicatePath: "furnishingStatus"  |  enum: true
 
 import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
@@ -26,15 +26,3 @@ export const FurnishingStatusEntity: EntityInfo = {
     { name: 'displayName', type: 'String', isCollection: false },
   ],
 };
-
-// ── Enumeration values ─────────────────────────────────────────────────
-
-/** Valid keys for this enumeration. */
-export const FurnishingStatusValues = {
-  "unfurnished": "Unfurnished",
-  "partially-furnished": "Partially Furnished",
-  "fully-furnished": "Fully Furnished",
-} as const;
-
-/** Union type of valid keys. */
-export type FurnishingStatusKey = keyof typeof FurnishingStatusValues;

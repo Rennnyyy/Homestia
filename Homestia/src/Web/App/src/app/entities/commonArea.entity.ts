@@ -1,4 +1,4 @@
-// Auto-generated from http://localhost:5001/api/entities/entity-definitions — do not edit manually.
+// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
 // Entity: CommonArea  |  predicatePath: "commonArea"  |  enum: false
 
 import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
@@ -12,6 +12,10 @@ export interface CommonArea {
   isPartOf: unknown;
   /** The entity's unique IRI. */
   iri: string;
+  /** Inherited — resolved from entity hierarchy. */
+  isCommonArea: boolean;
+  /** Inherited — resolved from entity hierarchy. */
+  name: string;
 }
 
 // ── Dynamic form definition ───────────────────────────────────────────────
@@ -24,5 +28,7 @@ export const CommonAreaEntity: EntityInfo = {
   properties: [
     { name: 'inventory', type: 'EntityRef', isCollection: true },
     { name: 'isPartOf', type: 'EntityRef', isCollection: false },
+    { name: 'isCommonArea', type: 'Boolean', isCollection: false },
+    { name: 'name', type: 'String', isCollection: false },
   ],
 };

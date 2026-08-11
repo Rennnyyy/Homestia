@@ -1,13 +1,16 @@
 import { Component, inject, signal, computed, OnInit, viewChild } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
-import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash } from '@lucide/angular';
+import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
 import { AletheiaHttpClient } from '../../shared/services/aletheia-http-client';
+import { EntitySyncService } from '../../shared/services/entity-sync.service';
 import { DynamicEntityFormComponent } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
 import { DynamicEntityTableComponent, type TableAction } from '../../shared/components/dynamic-entity-table/dynamic-entity-table.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PropertyEntity, type Property } from '../../entities/property.entity';
+import { RoomEntity } from '../../entities/room.entity';
 import type { AletheiaCollection } from '../../shared/services/aletheia-http-client.models';
 
 type PageMode = 'list' | 'create' | 'edit';
@@ -22,6 +25,7 @@ type PageMode = 'list' | 'create' | 'edit';
     LucidePlus,
     LucideChevronRight,
     LucideTrash,
+    LucideDoorOpen,
     DynamicEntityFormComponent,
     DynamicEntityTableComponent,
     ConfirmDialogComponent,
@@ -114,6 +118,44 @@ type PageMode = 'list' | 'create' | 'edit';
             </hlm-accordion-content>
           </hlm-accordion-item>
         </hlm-accordion>
+
+        <!-- Rooms section -->
+        @if (rooms().length > 0) {
+          <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
+            @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
+              <hlm-accordion-item style="border-bottom: 1px solid var(--border);">
+                <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
+                  <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
+                    <svg lucideDoorOpen class="size-[30px]"></svg>
+                    <span>{{ 'nav.properties.roomBreadcrumb' | transloco }}</span>
+                    <svg lucideChevronRight class="size-5"></svg>
+                    <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
+                  </div>
+                  <div class="flex-1"></div>
+                  <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="margin-right: 8px;">
+                    <svg lucideTrash style="width: 30px; height: 30px;"></svg>
+                  </button>
+                </hlm-accordion-trigger>
+                <hlm-accordion-content>
+                  <div class="px-4" style="margin-top: 15px;">
+                    <app-dynamic-entity-form
+                      [entity]="RoomEntity"
+                      [mode]="'edit'"
+                      [value]="room"
+                      [fieldNames]="['name', 'furnishingStatus', 'roomStatus']" (saved)="updateRoom(i, $event)" />
+                  </div>
+                </hlm-accordion-content>
+              </hlm-accordion-item>
+            }
+          </hlm-accordion>
+        }
+        <div style="display: flex; justify-content: flex-start; margin-top: 8px;">
+          <button hlmBtn variant="default" size="sm" (click)="addRoom()">
+            <svg lucidePlus class="size-4 mr-1"></svg>
+            {{ 'nav.properties.addRoom' | transloco }}
+          </button>
+        </div>
+
         <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
           <button hlmBtn variant="outline" class="text-foreground" (click)="exitCreate()">
             {{ 'common.cancel' | transloco }}
@@ -147,6 +189,44 @@ type PageMode = 'list' | 'create' | 'edit';
             </hlm-accordion-content>
           </hlm-accordion-item>
         </hlm-accordion>
+
+        <!-- Rooms section (edit mode) -->
+        @if (rooms().length > 0) {
+          <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
+            @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
+              <hlm-accordion-item style="border-bottom: 1px solid var(--border);">
+                <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
+                  <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
+                    <svg lucideDoorOpen class="size-[30px]"></svg>
+                    <span>{{ 'nav.properties.roomBreadcrumb' | transloco }}</span>
+                    <svg lucideChevronRight class="size-5"></svg>
+                    <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
+                  </div>
+                  <div class="flex-1"></div>
+                  <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="margin-right: 8px;">
+                    <svg lucideTrash style="width: 30px; height: 30px;"></svg>
+                  </button>
+                </hlm-accordion-trigger>
+                <hlm-accordion-content>
+                  <div class="px-4" style="margin-top: 15px;">
+                    <app-dynamic-entity-form
+                      [entity]="RoomEntity"
+                      [mode]="'edit'"
+                      [value]="room"
+                      [fieldNames]="['name', 'furnishingStatus', 'roomStatus']" (saved)="updateRoom(i, $event)" />
+                  </div>
+                </hlm-accordion-content>
+              </hlm-accordion-item>
+            }
+          </hlm-accordion>
+        }
+        <div style="display: flex; justify-content: flex-start; margin-top: 8px;">
+          <button hlmBtn variant="default" size="sm" (click)="addRoom()">
+            <svg lucidePlus class="size-4 mr-1"></svg>
+            {{ 'nav.properties.addRoom' | transloco }}
+          </button>
+        </div>
+
         <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
           <button hlmBtn variant="outline" class="text-destructive hover:bg-destructive/10 border-destructive/30" (click)="deletingItem.set(editingItem()); confirmingDelete.set(true)">
             <svg lucideTrash class="size-4 mr-1"></svg>
@@ -179,8 +259,10 @@ type PageMode = 'list' | 'create' | 'edit';
 })
 export class Properties implements OnInit {
   private readonly aletheia = inject(AletheiaHttpClient);
+  private readonly sync = inject(EntitySyncService);
 
   readonly entity = PropertyEntity;
+  readonly RoomEntity = RoomEntity;
   readonly formRef = viewChild(DynamicEntityFormComponent);
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);
@@ -190,6 +272,9 @@ export class Properties implements OnInit {
   readonly deletingItem = signal<Record<string, unknown> | null>(null);
 
   readonly editingItem = signal<Record<string, unknown> | null>(null);
+  readonly rooms = signal<Record<string, unknown>[]>([]);
+  readonly originalRooms = signal<Record<string, unknown>[]>([]);
+  readonly openRoomIndices = signal<Set<number>>(new Set());
 
   readonly rowActions: TableAction[] = [
     { label: 'Edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
@@ -217,11 +302,11 @@ export class Properties implements OnInit {
 
   enterCreate(): void {
     this.editingItem.set(null);
+    this.rooms.set([]);
     this.mode.set('create');
   }
 
   enterEdit(item: Record<string, unknown>): void {
-    // Normalize EntityRef values to IRIs for the form
     const normalized: Record<string, unknown> = { ...item };
     for (const [key, value] of Object.entries(normalized)) {
       if (typeof value === 'object' && value !== null && 'iri' in value) {
@@ -229,7 +314,27 @@ export class Properties implements OnInit {
       }
     }
     this.editingItem.set(normalized);
+    this.rooms.set([]);
+    this.originalRooms.set([]);
     this.mode.set('edit');
+
+    // Load existing rooms from segmentedInto (inherited from Segmentation)
+    const children = item['segmentedInto'];
+    if (Array.isArray(children) && children.length > 0) {
+      const roomIRIs: string[] = children.map((c: unknown) => {
+        if (typeof c === 'object' && c !== null && 'iri' in (c as object)) return (c as { iri: string }).iri;
+        if (typeof c === 'string') return c;
+        return '';
+      }).filter(Boolean);
+
+      if (roomIRIs.length > 0) {
+        const fetches = roomIRIs.map((iri) => this.aletheia.get<Record<string, unknown>>(RoomEntity.entityPath!, iri));
+        forkJoin(fetches).subscribe((loadedRooms) => {
+          this.rooms.set(loadedRooms as Record<string, unknown>[]);
+          this.originalRooms.set(structuredClone(loadedRooms) as Record<string, unknown>[]);
+        });
+      }
+    }
   }
 
   exitCreate(): void {
@@ -244,11 +349,18 @@ export class Properties implements OnInit {
     if (!item?.['iri']) return;
     this.loading.set(true);
     this.error.set(null);
-    this.aletheia.delete(this.entity.entityPath!, item['iri'] as string).subscribe({
+
+    this.sync.deleteWithChildren({
+      parentPath: this.entity.entityPath!,
+      parentIRI: item['iri'] as string,
+      childPath: RoomEntity.entityPath!,
+      children: this.rooms(),
+    }).subscribe({
       next: () => {
         this.confirmingDelete.set(false);
         this.deletingItem.set(null);
         this.editingItem.set(null);
+        this.rooms.set([]);
         this.mode.set('list');
         this.refresh();
       },
@@ -262,10 +374,18 @@ export class Properties implements OnInit {
   onCreate(data: Record<string, unknown>): void {
     this.loading.set(true);
     this.error.set(null);
-    this.aletheia.create(this.entity.entityPath!, data).subscribe({
+
+    this.sync.saveWithChildren({
+      parentPath: this.entity.entityPath!,
+      parentData: data,
+      childPath: RoomEntity.entityPath!,
+      childParentField: 'isPartOf',
+      children: this.rooms(),
+    }).subscribe({
       next: () => {
         this.mode.set('list');
         this.editingItem.set(null);
+        this.rooms.set([]);
         this.refresh();
       },
       error: (err) => {
@@ -280,10 +400,21 @@ export class Properties implements OnInit {
     if (!item?.['iri']) return;
     this.loading.set(true);
     this.error.set(null);
-    this.aletheia.update(this.entity.entityPath!, item['iri'] as string, data).subscribe({
+
+    this.sync.saveWithChildren({
+      parentPath: this.entity.entityPath!,
+      parentData: data,
+      parentIRI: item['iri'] as string,
+      childPath: RoomEntity.entityPath!,
+      childParentField: 'isPartOf',
+      children: this.rooms(),
+      originalChildren: this.originalRooms(),
+    }).subscribe({
       next: () => {
         this.mode.set('list');
         this.editingItem.set(null);
+        this.rooms.set([]);
+        this.originalRooms.set([]);
         this.refresh();
       },
       error: (err) => {
@@ -295,5 +426,17 @@ export class Properties implements OnInit {
 
   onRowClick(item: Record<string, unknown>): void {
     this.enterEdit(item);
+  }
+
+  addRoom(): void {
+    this.rooms.update((r) => [...r, { name: '', location: '', furnishingStatus: '', roomStatus: '' }]);
+  }
+
+  removeRoom(index: number): void {
+    this.rooms.update((r) => r.filter((_, i) => i !== index));
+  }
+
+  updateRoom(index: number, data: Record<string, unknown>): void {
+    this.rooms.update((r) => r.map((room, i) => i === index ? { ...room, ...data } : room));
   }
 }

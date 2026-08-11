@@ -1,4 +1,4 @@
-// Auto-generated from http://localhost:5001/api/entities/entity-definitions — do not edit manually.
+// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
 // Entity: Landlord  |  predicatePath: "landlords"  |  enum: false
 
 import type { EntityInfo } from '../shared/services/aletheia-http-client.models';

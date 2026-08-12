@@ -1,4 +1,4 @@
-<div class="h-screen flex flex-col">
+<div class="flex flex-col overflow-hidden" style="height: 100dvh;">
   <!-- Header (desktop) -->
   <header class="border-b border-border bg-card shrink-0 z-50 hidden md:block">
     <div class="flex items-center px-6 py-3 gap-2">
@@ -54,18 +54,18 @@
         hlmBtn
         variant="ghost"
         class="text-muted-foreground hover:text-foreground"
-        (click)="sidebarOpen.set(true)"
-        style="padding: 10px;"
+        (click)="toggleSidebar()"
+        style="padding: 10px 20px;"
       >
         <svg lucideMenu class="size-7"></svg>
       </button>
-      <a routerLink="/" routerLinkActive="text-primary" [routerLinkActiveOptions]="{ exact: true }" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px;">
+      <a routerLink="/" routerLinkActive="text-primary" [routerLinkActiveOptions]="{ exact: true }" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px 20px;">
         <svg lucideHouse class="size-7"></svg>
       </a>
-      <a routerLink="/properties" routerLinkActive="text-primary" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px;">
+      <a routerLink="/properties" routerLinkActive="text-primary" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px 20px;">
         <svg lucideBuilding class="size-7"></svg>
       </a>
-      <a routerLink="/tenants" routerLinkActive="text-primary" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px;">
+      <a routerLink="/tenants" routerLinkActive="text-primary" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px 20px;">
         <svg lucideUsers class="size-7"></svg>
       </a>
     </div>

@@ -23,4 +23,8 @@ export class App {
     this.transloco.setActiveLang(next);
     this.currentLang.set(next);
   }
+
+  toggleSidebar(): void {
+    this.sidebarOpen.update(open => !open);
+  }
 }

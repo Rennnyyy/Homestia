@@ -10,5 +10,10 @@ html {
 
 body {
   margin: 0;
+  /* 100vh = large viewport (Chrome mobile treats vh as if the address bar
+     were hidden). When the bar is visible, a 100vh-tall body is taller than
+     the screen by exactly the bar height — creating that "scrollable by the
+     address bar amount" overflow. Use the dynamic viewport unit instead. */
   min-height: 100vh;
+  min-height: 100dvh;
 }

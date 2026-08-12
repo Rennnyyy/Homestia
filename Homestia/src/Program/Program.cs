@@ -49,7 +49,16 @@ using Aletheia.Sdk.Program.Entities.RealEstate;
 // SERVICE CONFIGURATION
 // ══════════════════════════════════════════════════════════════════════════════
 
-var builder = WebApplication.CreateBuilder(args);
+// Angular 19+ outputs to wwwroot/browser/. Point the web root there so
+// UseStaticFiles and MapFallbackToFile serve the Angular app directly —
+// no flatten step needed, avoiding static web assets manifest conflicts.
+// Must be set via WebApplicationOptions: .NET 10 rejects changing the web
+// root through WebApplicationBuilder.WebHost settings at runtime.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "browser")
+});
 
 // Core: Aspects are always required — they power the gatekeeper validation system.
 builder.Services.AddAspects();
@@ -112,7 +121,8 @@ var app = builder.Build();
 app.UseAgentTokenMiddleware();
 
 // ── Static files — serves the Angular facade in production ──────────────────
-// The MSBuild target flattens Angular's browser/ output into wwwroot/.
+// Web root is set to wwwroot/browser/ so UseStaticFiles finds index.html,
+// scripts, and assets directly — no flatten step needed.
 app.UseStaticFiles();
 
 // Branch scope — isolates requests to a branch context.

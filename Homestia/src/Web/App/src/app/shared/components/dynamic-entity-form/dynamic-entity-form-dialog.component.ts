@@ -35,7 +35,7 @@ import type { EntityInfo } from '../../services/aletheia-http-client.models';
 
     <!-- Dialog card -->
     <div class="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4">
-      <div hlmCard class="flex flex-col w-full max-w-2xl max-h-[80vh] bg-background rounded-lg shadow-2xl border-border">
+      <div hlmCard class="flex flex-col w-full max-w-2xl max-h-[80dvh] bg-background rounded-lg shadow-2xl border-border">
         <!-- Header -->
         <header class="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
           <span hlmBadge

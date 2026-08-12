@@ -27,9 +27,13 @@ cd "$WORKSPACE_ROOT"
 
 echo ""
 echo "▶ Deploying Homestia…"
+# --depot=false: use Fly's own remote builders instead of Depot.
+# Depot intermittently fails with 401 "ensure depot builder failed" even
+# with valid auth — the legacy builder avoids that auth path entirely.
 fly deploy \
     --config "$FLY_CONFIG" \
-    --strategy immediate
+    --strategy immediate \
+    --depot=false
 
 HOSTNAME="$(fly status --config "$FLY_CONFIG" --json | jq -r '.Hostname')"
 URL="https://${HOSTNAME}"

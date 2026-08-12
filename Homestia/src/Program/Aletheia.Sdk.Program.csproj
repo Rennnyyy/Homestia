@@ -21,14 +21,24 @@
     <Error Condition="'$(_NodeExitCode)' != '0'"
            Text="Node.js is not installed or not on PATH. Install Node.js 22+ from https://nodejs.org and retry.&#xA;Or skip the Angular build with: dotnet build -p:SkipAngularBuild=true" />
 
+    <!-- Capture load-time wwwroot Content items BEFORE deleting the folder.
+         MSBuild's Remove glob expands against the filesystem, so it cannot
+         remove items whose files no longer exist — capture identities first
+         and remove them exactly after the Angular build regenerates wwwroot. -->
+    <ItemGroup>
+      <_StaleWwwrootContent Include="@(Content)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('wwwroot'))" />
+    </ItemGroup>
+
     <!-- Clean old wwwroot output and ALL static web assets cache files.
-         The SDK caches paths in obj/*/staticwebassets* — stale entries referencing
-         the browser/ subdirectory (before flattening) cause intermittent failures. -->
+         The SDK caches paths in obj/*/staticwebassets* — stale entries cause
+         intermittent resolution failures during publish. -->
     <RemoveDir Directories="$(WwwRootDir)" Condition="Exists('$(WwwRootDir)')" />
     <MakeDir Directories="$(WwwRootDir)" />
     <RemoveDir Directories="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets" />
     <ItemGroup>
-      <_StaleAssetManifests Include="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets*" />
+      <_StaleAssetManifests Include="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets*;
+                                   $(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/*.dswa.cache.json;
+                                   $(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/swae*" />
     </ItemGroup>
     <Delete Files="@(_StaleAssetManifests)" />
 
@@ -49,11 +59,20 @@
           WorkingDirectory="$(WebDir)"
           Condition="Exists('$(WebDir)/package.json')" />
 
-    <!-- Angular 19+ outputs to a browser/ subdirectory. Flatten it into wwwroot/
-         so UseStaticFiles() serves index.html, scripts, and styles at root.
-         Uses shell (not MSBuild Move) to avoid static web assets manifest conflicts. -->
-    <Exec Command="cp -r $(WwwRootDir)/browser/* $(WwwRootDir)/ &amp;&amp; rm -rf $(WwwRootDir)/browser"
-          Condition="Exists('$(WwwRootDir)/browser')" />
+    <!-- Angular 19+ outputs to a browser/ subdirectory; Program.cs serves
+         wwwroot/browser/ directly via the web root — no flattening needed.
+
+         Refresh Content items here: the SDK globs wwwroot/** into @(Content)
+         at project load — BEFORE this target runs. Re-declaring them after the
+         Angular build ensures dotnet publish copies the fresh files and
+         DefineStaticWebAssets resolves current paths (avoids stale references
+         when Angular emits new hashed chunk filenames). -->
+    <ItemGroup>
+      <Content Remove="@(_StaleWwwrootContent)" />
+      <Content Include="wwwroot/**"
+               ExcludeFromSingleFile="true"
+               CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
 
     <Message Importance="high" Text="✅ Angular build complete." />
   </Target>

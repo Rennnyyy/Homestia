@@ -2,7 +2,7 @@ import { Component, inject, signal, computed, OnInit, viewChild } from '@angular
 import { forkJoin } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
-import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen } from '@lucide/angular';
+import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen, LucideCheck } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
 import { AletheiaHttpClient } from '../../shared/services/aletheia-http-client';
 import { EntitySyncService } from '../../shared/services/entity-sync.service';
@@ -14,6 +14,12 @@ import { RoomEntity } from '../../entities/room.entity';
 import type { AletheiaCollection } from '../../shared/services/aletheia-http-client.models';
 
 type PageMode = 'list' | 'create' | 'edit';
+type CreateStep = 'details' | 'room' | 'review';
+
+interface CreateStepDef {
+  id: CreateStep;
+  labelKey: string;
+}
 
 @Component({
   selector: 'app-properties',
@@ -26,6 +32,7 @@ type PageMode = 'list' | 'create' | 'edit';
     LucideChevronRight,
     LucideTrash,
     LucideDoorOpen,
+    LucideCheck,
     DynamicEntityFormComponent,
     DynamicEntityTableComponent,
     ConfirmDialogComponent,
@@ -36,11 +43,11 @@ type PageMode = 'list' | 'create' | 'edit';
       <!-- Header: breadcrumb + actions -->
       <div class="flex items-center properties-header" style="padding: 15px 0 20px 0; min-height: 70px;">
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 font-bold text-foreground properties-breadcrumb" style="font-size: 24px; line-height: 1;">
+        <div class="flex items-center gap-2 font-bold text-foreground properties-breadcrumb" style="font-size: 24px; line-height: 1;" [class.creating]="mode() === 'create'">
           <svg lucideBuilding class="size-6"></svg>
-          <span>{{ 'nav.properties' | transloco }}</span>
+          <span class="properties-base-label">{{ 'nav.properties' | transloco }}</span>
           @if (mode() === 'create') {
-            <svg lucideChevronRight class="size-6"></svg>
+            <svg lucideChevronRight class="size-6 properties-base-label"></svg>
             <span class="text-foreground">{{ 'nav.properties.createBreadcrumb' | transloco }}</span>
           }
           @if (mode() === 'edit') {
@@ -62,9 +69,9 @@ type PageMode = 'list' | 'create' | 'edit';
         }
       </div>
 
-      <!-- Create/Edit mode: subtext -->
+      <!-- Create/Edit mode: subtext (desktop only) -->
       @if (mode() === 'create') {
-        <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.createSubtext' | transloco }}</p>
+        <p class="hidden md:block" style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.createSubtext' | transloco }}</p>
       }
       @if (mode() === 'edit') {
         <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.editSubtext' | transloco }}</p>
@@ -106,73 +113,221 @@ type PageMode = 'list' | 'create' | 'edit';
         </div>
       }
 
-      <!-- Create mode: form in accordion -->
+      <!-- Create mode (desktop): form in accordion -->
       @if (mode() === 'create') {
-        <hlm-accordion class="block mt-2 border border-border rounded-lg overflow-hidden">
-          <hlm-accordion-item [isOpened]="true">
-            <hlm-accordion-trigger [triggerClass]="'border-b border-border py-2 hover:bg-muted/50 hover:no-underline items-center'">
-              <div class="flex items-center gap-2 text-foreground">
-                <svg lucideBuilding class="size-[30px] pl-2.5"></svg>
-                <span class="text-lg font-semibold">{{ 'nav.properties.accordionDetails' | transloco }}</span>
+        <div class="hidden md:block">
+          <hlm-accordion class="block mt-2 border border-border rounded-lg overflow-hidden">
+            <hlm-accordion-item [isOpened]="true">
+              <hlm-accordion-trigger [triggerClass]="'border-b border-border py-2 hover:bg-muted/50 hover:no-underline items-center'">
+                <div class="flex items-center gap-2 text-foreground">
+                  <svg lucideBuilding class="size-[30px] pl-2.5"></svg>
+                  <span class="text-lg font-semibold">{{ 'nav.properties.accordionDetails' | transloco }}</span>
+                </div>
+              </hlm-accordion-trigger>
+              <hlm-accordion-content>
+                <div class="px-4" style="margin-top: 20px;">
+                  <app-dynamic-entity-form
+                    [entity]="entity"
+                    [mode]="'create'"
+                    [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']"
+                    (saved)="onCreate($event)"
+                  />
+                </div>
+              </hlm-accordion-content>
+            </hlm-accordion-item>
+          </hlm-accordion>
+
+          <!-- Rooms section -->
+          @if (rooms().length > 0) {
+            <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
+              @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
+                <hlm-accordion-item style="border-bottom: 1px solid var(--border);">
+                  <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
+                    <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
+                      <svg lucideDoorOpen class="size-[30px]"></svg>
+                      <span>{{ 'nav.properties.roomBreadcrumb' | transloco }}</span>
+                      <svg lucideChevronRight class="size-5"></svg>
+                      <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
+                    </div>
+                    <div class="flex-1"></div>
+                    <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="margin-right: 8px;">
+                      <svg lucideTrash style="width: 30px; height: 30px;"></svg>
+                    </button>
+                  </hlm-accordion-trigger>
+                  <hlm-accordion-content>
+                    <div class="px-4" style="margin-top: 15px;">
+                      <app-dynamic-entity-form
+                        [entity]="RoomEntity"
+                        [mode]="'edit'"
+                        [value]="room"
+                        [fieldNames]="['name', 'furnishingStatus', 'roomStatus']" (saved)="updateRoom(i, $event)" />
+                    </div>
+                  </hlm-accordion-content>
+                </hlm-accordion-item>
+              }
+            </hlm-accordion>
+          }
+          <div style="display: flex; justify-content: flex-start; margin-top: 8px;">
+            <button hlmBtn variant="default" size="sm" (click)="addRoom()">
+              <svg lucidePlus class="size-4 mr-1"></svg>
+              {{ 'nav.properties.addRoom' | transloco }}
+            </button>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+            <button hlmBtn variant="outline" class="text-foreground" (click)="exitCreate()">
+              {{ 'common.cancel' | transloco }}
+            </button>
+            <button hlmBtn (click)="formRef()?.save()">
+              {{ 'nav.properties.save' | transloco }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Create mode (mobile): stepper wizard -->
+      @if (mode() === 'create') {
+        <div class="md:hidden">
+          <!-- Stepper -->
+          <div class="flex items-center justify-center" style="margin-bottom: 24px;">
+            @for (step of createSteps; track step.id; let i = $index; let last = $last) {
+              <div class="flex items-center">
+                <div class="flex items-center gap-1.5"
+                     [class.text-primary]="stepIndex(createStep()) >= i"
+                     [class.text-muted-foreground]="stepIndex(createStep()) < i">
+                  <div class="size-6 rounded-full flex items-center justify-center text-xs font-semibold border"
+                       [class.bg-primary]="stepIndex(createStep()) >= i"
+                       [class.text-primary-foreground]="stepIndex(createStep()) >= i"
+                       [class.border-primary]="stepIndex(createStep()) >= i"
+                       [class.border-border]="stepIndex(createStep()) < i">
+                    @if (stepIndex(createStep()) > i) {
+                      <svg lucideCheck class="size-3.5"></svg>
+                    } @else {
+                      {{ i + 1 }}
+                    }
+                  </div>
+                  <span class="text-xs font-medium">{{ step.labelKey | transloco }}</span>
+                </div>
+                @if (!last) {
+                  <div class="h-px w-5 mx-2"
+                       [class.bg-primary]="stepIndex(createStep()) > i"
+                       [class.bg-border]="stepIndex(createStep()) <= i"></div>
+                }
               </div>
-            </hlm-accordion-trigger>
-            <hlm-accordion-content>
-              <div class="px-4" style="margin-top: 20px;">
+            }
+          </div>
+
+          <!-- Step 1: Property details -->
+          <div [class.hidden]="createStep() !== 'details'">
+            <div class="border border-border rounded-lg px-4" style="padding-top: 12px;">
+              <app-dynamic-entity-form
+                #mobileDetailsForm
+                [entity]="entity"
+                [mode]="'create'"
+                [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']"
+                (saved)="pendingProperty.set($event)"
+              />
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+              <button hlmBtn variant="outline" class="text-foreground" (click)="savePropertyToReview()">
+                {{ 'nav.properties.save' | transloco }}
+              </button>
+              <button hlmBtn (click)="addRoomAndNext()">
+                <svg lucidePlus class="size-4 mr-1"></svg>
+                {{ 'nav.properties.addRoom' | transloco }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: Room -->
+          <div [class.hidden]="createStep() !== 'room'">
+            @if (rooms().length > 0) {
+              <div class="border border-border rounded-lg px-4" style="padding-top: 12px;">
+                <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-bottom: 12px;">
+                  <svg lucideDoorOpen class="size-6"></svg>
+                  <span>{{ 'nav.properties.roomBreadcrumb' | transloco }}</span>
+                  <svg lucideChevronRight class="size-5"></svg>
+                  <span>{{ rooms()[rooms().length - 1]['name'] || ('nav.properties.roomNew' | transloco) }}</span>
+                </div>
+                <app-dynamic-entity-form
+                  [entity]="RoomEntity"
+                  [mode]="'edit'"
+                  [value]="rooms()[rooms().length - 1]"
+                  [fieldNames]="['name', 'furnishingStatus', 'roomStatus']"
+                  (saved)="updateRoom(rooms().length - 1, $event)" />
+              </div>
+            }
+            <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 24px;">
+              <button hlmBtn variant="outline" class="text-foreground" (click)="backToDetails()">
+                {{ 'common.cancel' | transloco }}
+              </button>
+              <div class="flex" style="gap: 8px;">
+                <button hlmBtn (click)="nextRoom()">
+                  {{ 'nav.properties.nextRoom' | transloco }}
+                </button>
+                <button hlmBtn (click)="finishToReview()">
+                  {{ 'nav.properties.finish' | transloco }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Review (details + rooms as in edit mode) -->
+          <div [class.hidden]="createStep() !== 'review'">
+            <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.reviewSubtext' | transloco }}</p>
+            @if (pendingProperty()) {
+              <div class="border border-border rounded-lg px-4" style="padding-top: 12px;">
                 <app-dynamic-entity-form
                   [entity]="entity"
-                  [mode]="'create'"
-                  [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']"
-                  (saved)="onCreate($event)"
-                />
+                  [mode]="'edit'"
+                  [value]="pendingProperty()"
+                  [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']" />
               </div>
-            </hlm-accordion-content>
-          </hlm-accordion-item>
-        </hlm-accordion>
-
-        <!-- Rooms section -->
-        @if (rooms().length > 0) {
-          <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
-            @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
-              <hlm-accordion-item style="border-bottom: 1px solid var(--border);">
-                <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
-                  <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
-                    <svg lucideDoorOpen class="size-[30px]"></svg>
-                    <span>{{ 'nav.properties.roomBreadcrumb' | transloco }}</span>
-                    <svg lucideChevronRight class="size-5"></svg>
-                    <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
-                  </div>
-                  <div class="flex-1"></div>
-                  <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="margin-right: 8px;">
-                    <svg lucideTrash style="width: 30px; height: 30px;"></svg>
-                  </button>
-                </hlm-accordion-trigger>
-                <hlm-accordion-content>
-                  <div class="px-4" style="margin-top: 15px;">
-                    <app-dynamic-entity-form
-                      [entity]="RoomEntity"
-                      [mode]="'edit'"
-                      [value]="room"
-                      [fieldNames]="['name', 'furnishingStatus', 'roomStatus']" (saved)="updateRoom(i, $event)" />
-                  </div>
-                </hlm-accordion-content>
-              </hlm-accordion-item>
             }
-          </hlm-accordion>
-        }
-        <div style="display: flex; justify-content: flex-start; margin-top: 8px;">
-          <button hlmBtn variant="default" size="sm" (click)="addRoom()">
-            <svg lucidePlus class="size-4 mr-1"></svg>
-            {{ 'nav.properties.addRoom' | transloco }}
-          </button>
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
-          <button hlmBtn variant="outline" class="text-foreground" (click)="exitCreate()">
-            {{ 'common.cancel' | transloco }}
-          </button>
-          <button hlmBtn (click)="formRef()?.save()">
-            {{ 'nav.properties.save' | transloco }}
-          </button>
+            @if (rooms().length > 0) {
+              <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
+                @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
+                  <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [isOpened]="openRoomIndices().has(i)">
+                    <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
+                      <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
+                        <svg lucideDoorOpen class="size-[30px]"></svg>
+                        <span>{{ 'nav.properties.roomBreadcrumb' | transloco }}</span>
+                        <svg lucideChevronRight class="size-5"></svg>
+                        <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
+                      </div>
+                      <div class="flex-1"></div>
+                      <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="margin-right: 8px;">
+                        <svg lucideTrash style="width: 30px; height: 30px;"></svg>
+                      </button>
+                    </hlm-accordion-trigger>
+                    <hlm-accordion-content>
+                      <div class="px-4" style="margin-top: 15px;">
+                        <app-dynamic-entity-form
+                          [entity]="RoomEntity"
+                          [mode]="'edit'"
+                          [value]="room"
+                          [fieldNames]="['name', 'furnishingStatus', 'roomStatus']" (saved)="updateRoom(i, $event)" />
+                      </div>
+                    </hlm-accordion-content>
+                  </hlm-accordion-item>
+                }
+              </hlm-accordion>
+            }
+            <div style="display: flex; justify-content: flex-start; margin-top: 8px;">
+              <button hlmBtn variant="default" size="sm" (click)="addRoomInline()">
+                <svg lucidePlus class="size-4 mr-1"></svg>
+                {{ 'nav.properties.addRoom' | transloco }}
+              </button>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+              <button hlmBtn variant="outline" class="text-foreground" (click)="backToDetails()">
+                {{ 'common.cancel' | transloco }}
+              </button>
+              <button hlmBtn (click)="finalSave()">
+                {{ 'common.save' | transloco }}
+              </button>
+            </div>
+          </div>
         </div>
       }
 
@@ -296,6 +451,10 @@ type PageMode = 'list' | 'create' | 'edit';
       .properties-actions {
         margin-top: 8px !important;
       }
+      /* In create mode on mobile, show only the icon + "New Property" */
+      .creating .properties-base-label {
+        display: none !important;
+      }
     }
   `],
 })
@@ -317,6 +476,16 @@ export class Properties implements OnInit {
   readonly rooms = signal<Record<string, unknown>[]>([]);
   readonly originalRooms = signal<Record<string, unknown>[]>([]);
   readonly openRoomIndices = signal<Set<number>>(new Set());
+
+  // ── Mobile create wizard state ──────────────────────────────────────────
+  readonly createSteps: CreateStepDef[] = [
+    { id: 'details', labelKey: 'nav.properties.stepDetails' },
+    { id: 'room', labelKey: 'nav.properties.stepRooms' },
+    { id: 'review', labelKey: 'nav.properties.stepReview' },
+  ];
+  readonly createStep = signal<CreateStep>('details');
+  readonly pendingProperty = signal<Record<string, unknown> | null>(null);
+  readonly mobileDetailsForm = viewChild<DynamicEntityFormComponent>('mobileDetailsForm');
 
   readonly rowActions: TableAction[] = [
     { label: 'Edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
@@ -345,6 +514,9 @@ export class Properties implements OnInit {
   enterCreate(): void {
     this.editingItem.set(null);
     this.rooms.set([]);
+    this.pendingProperty.set(null);
+    this.createStep.set('details');
+    this.openRoomIndices.set(new Set());
     this.mode.set('create');
   }
 
@@ -383,6 +555,9 @@ export class Properties implements OnInit {
     this.editingItem.set(null);
     this.deletingItem.set(null);
     this.confirmingDelete.set(false);
+    this.pendingProperty.set(null);
+    this.createStep.set('details');
+    this.openRoomIndices.set(new Set());
     this.mode.set('list');
   }
 
@@ -480,5 +655,55 @@ export class Properties implements OnInit {
 
   updateRoom(index: number, data: Record<string, unknown>): void {
     this.rooms.update((r) => r.map((room, i) => i === index ? { ...room, ...data } : room));
+  }
+
+  // ── Mobile create wizard ─────────────────────────────────────────────────
+
+  stepIndex(id: CreateStep): number {
+    return this.createSteps.findIndex((s) => s.id === id);
+  }
+
+  /** Capture details form data and jump to the review step. */
+  savePropertyToReview(): void {
+    this.mobileDetailsForm()?.save();
+    this.createStep.set('review');
+  }
+
+  /** Add a fresh room and move to the room step. */
+  addRoomAndNext(): void {
+    this.addRoom();
+    this.createStep.set('room');
+  }
+
+  /** Append another room — the room step auto-displays the newest one. */
+  nextRoom(): void {
+    this.addRoom();
+  }
+
+  /** Capture details form data and jump to the review step. */
+  finishToReview(): void {
+    this.mobileDetailsForm()?.save();
+    this.createStep.set('review');
+  }
+
+  /** Return from the room or review step to the details step. */
+  backToDetails(): void {
+    this.createStep.set('details');
+  }
+
+  /** Add a room directly in the review step and expand its accordion item. */
+  addRoomInline(): void {
+    const newIndex = this.rooms().length;
+    this.addRoom();
+    this.openRoomIndices.update((open) => {
+      const next = new Set(open);
+      next.add(newIndex);
+      return next;
+    });
+  }
+
+  /** Persist the drafted property and its rooms. */
+  finalSave(): void {
+    this.onCreate(this.pendingProperty() ?? {});
   }
 }

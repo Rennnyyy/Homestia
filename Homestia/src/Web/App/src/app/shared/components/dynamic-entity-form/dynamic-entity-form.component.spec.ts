@@ -10,6 +10,7 @@ import { provideTransloco, TranslocoLoader } from '@jsverse/transloco';
 import { of } from 'rxjs';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DynamicEntityFormComponent } from './dynamic-entity-form.component';
+import type { ShapeViolation } from '../../../core/shapes';
 import type { EntityInfo } from '../../services/aletheia-http-client.models';
 
 /** Inline mock loader — returns empty translations so keys render as-is. */
@@ -29,6 +30,7 @@ class MockTranslocoLoader implements TranslocoLoader {
       [entity]="entity()"
       [mode]="mode()"
       [value]="value()"
+      [violations]="violations()"
       (saved)="onSaved($event)"
       (cancelled)="onCancelled()"
     />
@@ -42,6 +44,7 @@ class TestHost {
   });
   readonly mode = signal<'view' | 'edit' | 'create'>('view');
   readonly value = signal<Record<string, unknown> | null>(null);
+  readonly violations = signal<ShapeViolation[]>([]);
 
   savedData: Record<string, unknown> | null = null;
   cancelledCount = 0;
@@ -235,5 +238,26 @@ describe('DynamicEntityFormComponent', () => {
 
     const el: HTMLElement = host.nativeElement;
     expect(el.textContent).toContain('dynamicForm.noFields');
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // External violations (composite validation)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  it('renders external per-field violations passed by the parent', () => {
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.entity.set(makeEntity());
+    host.componentInstance.mode.set('edit');
+    host.componentInstance.value.set({ address: '123 Main' });
+    host.componentInstance.violations.set([
+      { jsonPath: 'address', key: 'address', message: 'The address is invalid.', severity: 'Violation' },
+      { jsonPath: 'rooms[0].name', key: 'name', message: 'Not for this form.', severity: 'Violation' },
+    ]);
+    host.detectChanges();
+
+    const el: HTMLElement = host.nativeElement;
+    expect(el.textContent).toContain('The address is invalid.');
+    // Nested violations with a dot path belong to child forms, not this one.
+    expect(el.textContent).not.toContain('Not for this form.');
   });
 });

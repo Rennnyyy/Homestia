@@ -87,13 +87,13 @@
   </PropertyGroup>
 
   <!--
-    Program slices — Capabilities, Entities, and Aspects are separate projects.
-    The Program host only wires them together and serves HTTP.
+    Program slices — Capabilities and Entities are separate projects.
+    The Program host wires them together, hosts the view registrations,
+    and serves HTTP.
   -->
   <ItemGroup>
     <ProjectReference Include="../Capabilities/Aletheia.Sdk.Program.Capabilities.csproj" />
     <ProjectReference Include="../Entities/Aletheia.Sdk.Program.Entities.csproj" />
-    <ProjectReference Include="../Aspects/Aletheia.Sdk.Program.Aspects.csproj" />
   </ItemGroup>
 
   <!--

@@ -74,5 +74,10 @@
         class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
         [disabled]="isView()" [placeholder]="'fields.placeholder.entityRef' | transloco" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event"></textarea>
     }
+
+    <!-- SHACL violation for this field (sh:message is an i18n key) -->
+    @if (fieldErrors()[prop.name] || externalFieldErrors()[prop.name]) {
+      <p class="text-[0.8rem] font-medium text-destructive -mt-1">{{ (fieldErrors()[prop.name] || externalFieldErrors()[prop.name]) | transloco }}</p>
+    }
   </div>
 }

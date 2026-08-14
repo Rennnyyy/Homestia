@@ -1,0 +1,127 @@
+using Aletheia.Sdk.Aspects.Abstractions.Contracts;
+using Aletheia.Sdk.Aspects.View;
+
+namespace Aletheia.Sdk.Program.Aspects;
+
+/// <summary>
+/// Frontend-purpose views — the <c>ShapeMirror</c> definitions of Homestia.
+/// <br/><br/>
+/// These views are <strong>not</strong> enforcement aspects: the backend's
+/// operation aspects remain the authoritative protection. Registered as the
+/// SDK's view family, they are served by the exploration endpoints
+/// (<c>GET api/entities/aspect-definitions/{iri}/view</c>) so the browser
+/// validates against the exact Turtle the Program holds. The SDK validates
+/// the Turtle syntax at registration — malformed views fail fast.
+/// <list type="bullet">
+/// <item><description><strong>Validation feedback</strong> — form values are
+/// validated in the browser before they are sent.</description></item>
+/// <item><description><strong>View configuration</strong> — each
+/// <c>sh:property</c> is a JSON key; <c>sh:order</c> defines field and column
+/// order; <c>sh:message</c> holds an i18n key.</description></item>
+/// </list>
+/// </summary>
+public static class ViewAspects
+{
+    /// <summary>Predicate namespace — local names are the JSON keys.</summary>
+    public const string PredicateNamespace = "https://www.aletheia.arkenforge.de/predicates/homestia/";
+
+    /// <summary>IRI of the Property shape (composite root for rooms).</summary>
+    public const string PropertyShapeIri = "urn:aletheia:homestia:shapes:property";
+
+    /// <summary>IRI of the Room shape (nested via <c>sh:node</c>).</summary>
+    public const string RoomShapeIri = "urn:aletheia:homestia:shapes:room";
+
+    /// <summary>
+    /// Property shape: <c>name</c> and <c>address</c> required, <c>propertyType</c>
+    /// must be an IRI reference, <c>rentalModel</c> optional, and <c>rooms</c>
+    /// recursively validated against the Room shape — one graph, one pass.
+    /// </summary>
+    public const string PropertyTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix homestia: <https://www.aletheia.arkenforge.de/predicates/homestia/> .
+
+        <urn:aletheia:homestia:shapes:property>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Property> ;
+            sh:property [
+                sh:path homestia:name ; sh:order 1 ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.property.name" ;
+            ] ;
+            sh:property [
+                sh:path homestia:address ; sh:order 2 ;
+                sh:minCount 1 ; sh:minLength 5 ; sh:datatype xsd:string ;
+                sh:message "shape.property.address" ;
+            ] ;
+            sh:property [
+                sh:path homestia:propertyType ; sh:order 3 ;
+                sh:minCount 1 ; sh:nodeKind sh:IRI ;
+                sh:message "shape.property.propertyType" ;
+            ] ;
+            sh:property [
+                sh:path homestia:rentalModel ; sh:order 4 ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.property.rentalModel" ;
+            ] ;
+            sh:property [
+                sh:path homestia:rooms ; sh:order 5 ;
+                sh:node <urn:aletheia:homestia:shapes:room> ;
+                sh:message "shape.property.rooms" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Room shape: <c>name</c> and a numeric <c>roomSize</c> (1–1000 m²) required,
+    /// optional <c>location</c>, and IRI references for <c>furnishingStatus</c>
+    /// and <c>roomStatus</c>.
+    /// </summary>
+    public const string RoomTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix homestia: <https://www.aletheia.arkenforge.de/predicates/homestia/> .
+
+        <urn:aletheia:homestia:shapes:room>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Room> ;
+            sh:property [
+                sh:path homestia:name ; sh:order 1 ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.room.name" ;
+            ] ;
+            sh:property [
+                sh:path homestia:location ; sh:order 2 ;
+                sh:minLength 2 ; sh:datatype xsd:string ;
+                sh:message "shape.room.location" ;
+            ] ;
+            sh:property [
+                sh:path homestia:roomSize ; sh:order 3 ;
+                sh:minCount 1 ; sh:datatype xsd:decimal ;
+                sh:minInclusive 1 ; sh:maxInclusive 1000 ;
+                sh:message "shape.room.roomSize" ;
+            ] ;
+            sh:property [
+                sh:path homestia:furnishingStatus ; sh:order 4 ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.room.furnishingStatus" ;
+            ] ;
+            sh:property [
+                sh:path homestia:roomStatus ; sh:order 5 ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.room.roomStatus" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Registers every frontend view into the SDK's aspect store. The SDK
+    /// validates the Turtle syntax at registration. Must run before the
+    /// store's first resolve (it seals), alongside the other registrations.
+    /// </summary>
+    public static void RegisterViews(IAspectStore store)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+
+        store.RegisterView(new InlineTtlViewAspect(PropertyShapeIri, PropertyTtl));
+        store.RegisterView(new InlineTtlViewAspect(RoomShapeIri, RoomTtl));
+    }
+}

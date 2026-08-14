@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>Aletheia.Sdk.Program.Aspects.Tests</RootNamespace>
+    <RootNamespace>Aletheia.Sdk.Program.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
@@ -25,7 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/Aspects/Aletheia.Sdk.Program.Aspects.csproj" />
+    <!-- The Program host carries the aspect registrations, TTL validation,
+         and the frontend shape definitions. Tests run with
+         -p:SkipAngularBuild=true so the Angular facade is not rebuilt. -->
+    <ProjectReference Include="../../src/Program/Aletheia.Sdk.Program.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects/Aletheia.Sdk.Aspects.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects.Abstractions/Aletheia.Sdk.Aspects.Abstractions.csproj" />
   </ItemGroup>

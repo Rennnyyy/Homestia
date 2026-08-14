@@ -1,9 +1,10 @@
-import { Component, input, output, computed, model, signal, HostListener } from '@angular/core';
+import { Component, input, output, computed, model, signal, HostListener, effect, inject } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmCard } from '@spartan-ng/helm/card';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { FormsModule } from '@angular/forms';
+import { ShaclValidatorService } from '../../../core/shapes';
 import {
   LucidePencil, LucideTrash, LucideEye,
   LucideMoreHorizontal, LucidePlus, LucideDownload,
@@ -133,6 +134,8 @@ const ICONS: Record<string, unknown> = {
   styles: [`:host { display: block; }`],
 })
 export class DynamicEntityTableComponent {
+  private readonly validator = inject(ShaclValidatorService);
+
   readonly entity = input.required<EntityInfo>();
   readonly items = input.required<any[]>();
   readonly loading = input(false);
@@ -155,15 +158,41 @@ export class DynamicEntityTableComponent {
   /** Current visible column set (two-way bindable for persistence). */
   readonly visibleColumns = model<string[]>([]);
 
+  /** Optional: frontend shape key — its sh:property keys are the columns. */
+  readonly shapeKey = input<string | null>(null);
+  /** Shape-driven JSON keys in display order (null = no shape / not loaded). */
+  private readonly shapeKeys = signal<string[] | null>(null);
+
+  constructor() {
+    // Load the shape schema once when a shape key is provided — keys absent
+    // from the shape are not available as columns.
+    effect(() => {
+      const key = this.shapeKey();
+      if (!key) {
+        this.shapeKeys.set(null);
+        return;
+      }
+      this.validator.loadSchema(key)
+        .then((schema) => this.shapeKeys.set(schema.keys.map((k) => k.key)))
+        .catch(() => this.shapeKeys.set(null));
+    });
+  }
+
   readonly pickerOpen = signal(false);
 
   /** All available columns in the defined order. */
   readonly allColumns = computed<EntityPropertyInfo[]>(() => {
     const props = this.entity().properties;
     const names = this.columnNames();
+    const shapeKeys = this.shapeKeys();
+    const map = new Map(props.map((p) => [p.name, p]));
     if (names && names.length > 0) {
-      const map = new Map(props.map((p) => [p.name, p]));
       return names.map((n) => map.get(n)).filter((p): p is EntityPropertyInfo => !!p);
+    }
+    if (shapeKeys && shapeKeys.length > 0) {
+      // The shape's sh:property order IS the column order; keys without a
+      // matching entity property (like `rooms`) are dropped.
+      return shapeKeys.map((n) => map.get(n)).filter((p): p is EntityPropertyInfo => !!p);
     }
     return props;
   });

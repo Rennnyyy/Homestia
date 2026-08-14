@@ -11,6 +11,8 @@ import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { lastValueFrom } from 'rxjs';
 import { AletheiaHttpClient } from '../../services/aletheia-http-client';
+import { ShaclValidatorService } from '../../../core/shapes';
+import type { ShapeViolation } from '../../../core/shapes';
 import {
   FieldRendererRegistry,
   FieldRendererConfig,
@@ -31,6 +33,7 @@ import type { EntityInfo, EntityPropertyInfo } from '../../services/aletheia-htt
 export class DynamicEntityFormComponent {
   private readonly registry = inject(FieldRendererRegistry);
   private readonly aletheia = inject(AletheiaHttpClient);
+  private readonly validator = inject(ShaclValidatorService);
 
   // ── Option caching for EntityRef dropdowns ─────────────────────────────
 
@@ -55,6 +58,12 @@ export class DynamicEntityFormComponent {
   /** Optional: subset of property names to show, in display order. */
   readonly fieldNames = input<string[] | null>(null);
 
+  /** Optional: frontend shape key — drives field order and SHACL validation. */
+  readonly shapeKey = input<string | null>(null);
+
+  /** External violations targeting this form (scoped by the parent). */
+  readonly violations = input<ShapeViolation[]>([]);
+
   // ── Outputs ─────────────────────────────────────────────────────────────
 
   readonly saved = output<Record<string, unknown>>();
@@ -65,12 +74,33 @@ export class DynamicEntityFormComponent {
   /** Local mutable copy of the form data (two-way bound). */
   readonly formData = signal<Record<string, unknown>>({});
 
+  /** Per-field SHACL violations from this form's own save, keyed by JSON key. */
+  readonly fieldErrors = signal<Record<string, string>>({});
+
+  /** External per-field violations (composite validation), keyed by JSON key. */
+  readonly externalFieldErrors = computed<Record<string, string>>(() => {
+    const errors: Record<string, string> = {};
+    for (const violation of this.violations()) {
+      if (violation.key && !violation.jsonPath.includes('.')) {
+        errors[violation.key] = violation.message;
+      }
+    }
+    return errors;
+  });
+
+  /** True while the SHACL engine is running. */
+  readonly validating = signal(false);
+
+  /** Shape-driven JSON keys in display order (null = no shape / not loaded). */
+  private readonly shapeKeys = signal<string[] | null>(null);
+
   // ── Derived ─────────────────────────────────────────────────────────────
 
-  /** Properties to display — filtered by fieldNames input if provided. */
+  /** Properties to display — filtered by fieldNames or the shape's keys. */
   readonly visibleProperties = computed<EntityPropertyInfo[]>(() => {
     const props = this.entity().properties;
     const names = this.fieldNames();
+    const shapeKeys = this.shapeKeys();
     let filtered = this.mode() === 'create'
       ? props.filter((p) => p.name !== '@id')
       : props;
@@ -78,6 +108,10 @@ export class DynamicEntityFormComponent {
     if (names && names.length > 0) {
       const map = new Map(filtered.map((p) => [p.name, p]));
       filtered = names.map((n) => map.get(n)).filter((p): p is EntityPropertyInfo => !!p);
+    } else if (shapeKeys && shapeKeys.length > 0) {
+      // Keys absent from the shape are not rendered — the shape IS the form.
+      const map = new Map(filtered.map((p) => [p.name, p]));
+      filtered = shapeKeys.map((n) => map.get(n)).filter((p): p is EntityPropertyInfo => !!p);
     }
 
     return filtered;
@@ -121,6 +155,18 @@ export class DynamicEntityFormComponent {
           this.loadOptions(p.targetEntityPath);
         }
       }
+    });
+
+    // Load the shape schema once when a shape key is provided.
+    effect(() => {
+      const key = this.shapeKey();
+      if (!key) {
+        this.shapeKeys.set(null);
+        return;
+      }
+      this.validator.loadSchema(key)
+        .then((schema) => this.shapeKeys.set(schema.keys.map((k) => k.key)))
+        .catch(() => this.shapeKeys.set(null));
     });
   }
 
@@ -175,8 +221,37 @@ export class DynamicEntityFormComponent {
 
   // ── Actions ─────────────────────────────────────────────────────────────
 
-  save(): void {
-    this.saved.emit({ ...this.formData() });
+  /**
+   * Validates against the shape (when provided) and emits `saved` only when
+   * the value conforms. Returns true when the save went through.
+   */
+  async save(): Promise<boolean> {
+    const key = this.shapeKey();
+    if (!key || this.isView()) {
+      this.saved.emit({ ...this.formData() });
+      return true;
+    }
+
+    this.validating.set(true);
+    try {
+      const violations = await this.validator.validate(key, this.formData());
+      if (violations.length > 0) {
+        const errors: Record<string, string> = {};
+        for (const violation of violations) {
+          if (violation.key && !violation.jsonPath.includes('.')) {
+            errors[violation.key] = violation.message;
+          }
+        }
+        this.fieldErrors.set(errors);
+        return false;
+      }
+
+      this.fieldErrors.set({});
+      this.saved.emit({ ...this.formData() });
+      return true;
+    } finally {
+      this.validating.set(false);
+    }
   }
 
   cancel(): void {

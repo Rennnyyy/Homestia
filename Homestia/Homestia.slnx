@@ -11,9 +11,6 @@
   <Folder Name="/src/Entities/">
     <Project Path="src/Entities/Aletheia.Sdk.Program.Entities.csproj" />
   </Folder>
-  <Folder Name="/src/Aspects/">
-    <Project Path="src/Aspects/Aletheia.Sdk.Program.Aspects.csproj" />
-  </Folder>
 
   <!-- Test projects -->
   <Folder Name="/tests/" />
@@ -23,8 +20,8 @@
   <Folder Name="/tests/Entities.Tests/">
     <Project Path="tests/Entities.Tests/Aletheia.Sdk.Program.Entities.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/Aspects.Tests/">
-    <Project Path="tests/Aspects.Tests/Aletheia.Sdk.Program.Aspects.Tests.csproj" />
+  <Folder Name="/tests/Program.Tests/">
+    <Project Path="tests/Program.Tests/Aletheia.Sdk.Program.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Bruno.Tests/">
     <Project Path="tests/Bruno.Tests/Aletheia.Sdk.Program.Bruno.Tests.csproj" />

@@ -131,12 +131,12 @@ if (branching)
     app.UseBranchScope();
 }
 
-// ── Register aspects ────────────────────────────────────────────────────────
+// ── Register views ──────────────────────────────────────────────────────────
 var aspectStore = app.Services.GetRequiredService<IAspectStore>();
-CapabilityAspects.RegisterCapabilityAspects(aspectStore);
-OperationAspects.RegisterOperationAspects(aspectStore);
-QueryAspects.RegisterQueryAspects(aspectStore);
-ObjectAspects.RegisterObjectAspects(aspectStore);
+
+// Frontend views — registered into the SDK's view family and served by the
+// exploration endpoint api/entities/aspect-definitions/{iri}/view.
+ViewAspects.RegisterViews(aspectStore);
 
 // ── Map endpoints ───────────────────────────────────────────────────────────
 

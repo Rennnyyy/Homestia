@@ -11,6 +11,12 @@ import { DynamicEntityTableComponent, type TableAction } from '../../shared/comp
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PropertyEntity, type Property } from '../../entities/property.entity';
 import { RoomEntity } from '../../entities/room.entity';
+import {
+  ShaclValidatorService,
+  PROPERTY_SHAPE_IRI,
+  ROOM_SHAPE_IRI,
+  type ShapeViolation,
+} from '../../core/shapes';
 import type { AletheiaCollection } from '../../shared/services/aletheia-http-client.models';
 
 type PageMode = 'list' | 'create' | 'edit';
@@ -84,7 +90,7 @@ interface CreateStepDef {
           [items]="items()"
           [loading]="loading()"
           [error]="error()"
-          [columnNames]="['name', 'address']"
+          [shapeKey]="PROPERTY_SHAPE_KEY"
           [defaultVisibleColumns]="['name', 'address']"
           [emptyMessage]="'nav.properties.empty'"
           [actions]="rowActions"
@@ -129,8 +135,8 @@ interface CreateStepDef {
                   <app-dynamic-entity-form
                     [entity]="entity"
                     [mode]="'create'"
-                    [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']"
-                    (saved)="onCreate($event)"
+                    [shapeKey]="PROPERTY_SHAPE_KEY"
+                    (saved)="onPropertySaved($event)"
                   />
                 </div>
               </hlm-accordion-content>
@@ -141,7 +147,7 @@ interface CreateStepDef {
           @if (rooms().length > 0) {
             <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
               @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
-                <hlm-accordion-item style="border-bottom: 1px solid var(--border);">
+                <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [class.room-invalid]="roomHasViolations(i)">
                   <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
                     <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
                       <svg lucideDoorOpen class="size-[30px]"></svg>
@@ -160,7 +166,7 @@ interface CreateStepDef {
                         [entity]="RoomEntity"
                         [mode]="'edit'"
                         [value]="room"
-                        [fieldNames]="['name', 'furnishingStatus', 'roomStatus']" (saved)="updateRoom(i, $event)" />
+                        [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                     </div>
                   </hlm-accordion-content>
                 </hlm-accordion-item>
@@ -224,7 +230,7 @@ interface CreateStepDef {
                 #mobileDetailsForm
                 [entity]="entity"
                 [mode]="'create'"
-                [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']"
+                [shapeKey]="PROPERTY_SHAPE_KEY"
                 (saved)="pendingProperty.set($event)"
               />
             </div>
@@ -242,7 +248,7 @@ interface CreateStepDef {
           <!-- Step 2: Room -->
           <div [class.hidden]="createStep() !== 'room'">
             @if (rooms().length > 0) {
-              <div class="border border-border rounded-lg px-4" style="padding-top: 12px;">
+              <div class="border border-border rounded-lg px-4" style="padding-top: 12px;" [class.room-invalid]="roomHasViolations(rooms().length - 1)">
                 <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-bottom: 12px;">
                   <svg lucideDoorOpen class="size-6"></svg>
                   <span>{{ 'nav.properties.roomBreadcrumb' | transloco }}</span>
@@ -253,7 +259,8 @@ interface CreateStepDef {
                   [entity]="RoomEntity"
                   [mode]="'edit'"
                   [value]="rooms()[rooms().length - 1]"
-                  [fieldNames]="['name', 'furnishingStatus', 'roomStatus']"
+                  [shapeKey]="ROOM_SHAPE_KEY"
+                  [violations]="violationsForRoom(rooms().length - 1)"
                   (saved)="updateRoom(rooms().length - 1, $event)" />
               </div>
             }
@@ -281,13 +288,13 @@ interface CreateStepDef {
                   [entity]="entity"
                   [mode]="'edit'"
                   [value]="pendingProperty()"
-                  [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']" />
+                  [shapeKey]="PROPERTY_SHAPE_KEY" />
               </div>
             }
             @if (rooms().length > 0) {
               <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
                 @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
-                  <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [isOpened]="openRoomIndices().has(i)">
+                  <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [isOpened]="openRoomIndices().has(i)" [class.room-invalid]="roomHasViolations(i)">
                     <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
                       <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
                         <svg lucideDoorOpen class="size-[30px]"></svg>
@@ -306,7 +313,7 @@ interface CreateStepDef {
                           [entity]="RoomEntity"
                           [mode]="'edit'"
                           [value]="room"
-                          [fieldNames]="['name', 'furnishingStatus', 'roomStatus']" (saved)="updateRoom(i, $event)" />
+                          [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                       </div>
                     </hlm-accordion-content>
                   </hlm-accordion-item>
@@ -347,8 +354,8 @@ interface CreateStepDef {
                   [entity]="entity"
                   [mode]="'edit'"
                   [value]="editingItem()"
-                  [fieldNames]="['name', 'address', 'propertyType', 'rentalModel']"
-                  (saved)="onUpdate($event)"
+                  [shapeKey]="PROPERTY_SHAPE_KEY"
+                  (saved)="onPropertySaved($event)"
                 />
               </div>
             </hlm-accordion-content>
@@ -359,7 +366,7 @@ interface CreateStepDef {
         @if (rooms().length > 0) {
           <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
             @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
-              <hlm-accordion-item style="border-bottom: 1px solid var(--border);">
+              <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [class.room-invalid]="roomHasViolations(i)">
                 <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
                   <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
                     <svg lucideDoorOpen class="size-[30px]"></svg>
@@ -378,7 +385,7 @@ interface CreateStepDef {
                       [entity]="RoomEntity"
                       [mode]="'edit'"
                       [value]="room"
-                      [fieldNames]="['name', 'furnishingStatus', 'roomStatus']" (saved)="updateRoom(i, $event)" />
+                      [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                   </div>
                 </hlm-accordion-content>
               </hlm-accordion-item>
@@ -422,6 +429,12 @@ interface CreateStepDef {
     </div>
   `,
   styles: [`
+    /* A room carrying SHACL violations — red outline. */
+    .room-invalid {
+      border: 1px solid var(--destructive) !important;
+      border-radius: 6px;
+      box-shadow: 0 0 0 1px var(--destructive);
+    }
     @media (max-width: 767px) {
       :host {
         display: block;
@@ -461,9 +474,12 @@ interface CreateStepDef {
 export class Properties implements OnInit {
   private readonly aletheia = inject(AletheiaHttpClient);
   private readonly sync = inject(EntitySyncService);
+  private readonly validator = inject(ShaclValidatorService);
 
   readonly entity = PropertyEntity;
   readonly RoomEntity = RoomEntity;
+  readonly PROPERTY_SHAPE_KEY = PROPERTY_SHAPE_IRI;
+  readonly ROOM_SHAPE_KEY = ROOM_SHAPE_IRI;
   readonly formRef = viewChild(DynamicEntityFormComponent);
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);
@@ -476,6 +492,9 @@ export class Properties implements OnInit {
   readonly rooms = signal<Record<string, unknown>[]>([]);
   readonly originalRooms = signal<Record<string, unknown>[]>([]);
   readonly openRoomIndices = signal<Set<number>>(new Set());
+
+  /** Composite SHACL violations for the property + rooms tree. */
+  readonly validationErrors = signal<ShapeViolation[]>([]);
 
   // ── Mobile create wizard state ──────────────────────────────────────────
   readonly createSteps: CreateStepDef[] = [
@@ -517,6 +536,7 @@ export class Properties implements OnInit {
     this.pendingProperty.set(null);
     this.createStep.set('details');
     this.openRoomIndices.set(new Set());
+    this.validationErrors.set([]);
     this.mode.set('create');
   }
 
@@ -530,6 +550,7 @@ export class Properties implements OnInit {
     this.editingItem.set(normalized);
     this.rooms.set([]);
     this.originalRooms.set([]);
+    this.validationErrors.set([]);
     this.mode.set('edit');
 
     // Load existing rooms from segmentedInto (inherited from Segmentation)
@@ -558,6 +579,7 @@ export class Properties implements OnInit {
     this.pendingProperty.set(null);
     this.createStep.set('details');
     this.openRoomIndices.set(new Set());
+    this.validationErrors.set([]);
     this.mode.set('list');
   }
 
@@ -586,6 +608,26 @@ export class Properties implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  /**
+   * Entry point for every property save: validates the property AND its
+   * rooms as one SHACL graph before anything is sent to the backend.
+   */
+  async onPropertySaved(data: Record<string, unknown>): Promise<void> {
+    this.validationErrors.set([]);
+    const violations = await this.validator.validateComposite(
+      PROPERTY_SHAPE_IRI,
+      data,
+      { shapeKey: ROOM_SHAPE_IRI, config: { key: 'rooms' }, values: this.rooms() },
+    );
+    if (violations.length > 0) {
+      this.validationErrors.set(violations);
+      return;
+    }
+
+    if (this.mode() === 'create') this.onCreate(data);
+    else this.onUpdate(data);
   }
 
   onCreate(data: Record<string, unknown>): void {
@@ -646,7 +688,10 @@ export class Properties implements OnInit {
   }
 
   addRoom(): void {
-    this.rooms.update((r) => [...r, { name: '', location: '', furnishingStatus: '', roomStatus: '' }]);
+    this.rooms.update((r) => [
+      ...r,
+      { name: '', location: '', roomSize: null, furnishingStatus: '', roomStatus: '' },
+    ]);
   }
 
   removeRoom(index: number): void {
@@ -657,6 +702,20 @@ export class Properties implements OnInit {
     this.rooms.update((r) => r.map((room, i) => i === index ? { ...room, ...data } : room));
   }
 
+  /** Composite violations scoped to one room, with the `rooms[i].` prefix stripped. */
+  violationsForRoom(index: number): ShapeViolation[] {
+    const prefix = `rooms[${index}].`;
+    return this.validationErrors()
+      .filter((violation) => violation.jsonPath.startsWith(prefix))
+      .map((violation) => ({ ...violation, jsonPath: violation.jsonPath.slice(prefix.length) }));
+  }
+
+  /** True when the room at the given index carries violations — outline it red. */
+  roomHasViolations(index: number): boolean {
+    const prefix = `rooms[${index}].`;
+    return this.validationErrors().some((violation) => violation.jsonPath.startsWith(prefix));
+  }
+
   // ── Mobile create wizard ─────────────────────────────────────────────────
 
   stepIndex(id: CreateStep): number {
@@ -664,9 +723,9 @@ export class Properties implements OnInit {
   }
 
   /** Capture details form data and jump to the review step. */
-  savePropertyToReview(): void {
-    this.mobileDetailsForm()?.save();
-    this.createStep.set('review');
+  async savePropertyToReview(): Promise<void> {
+    const ok = await this.mobileDetailsForm()?.save();
+    if (ok) this.createStep.set('review');
   }
 
   /** Add a fresh room and move to the room step. */
@@ -681,9 +740,9 @@ export class Properties implements OnInit {
   }
 
   /** Capture details form data and jump to the review step. */
-  finishToReview(): void {
-    this.mobileDetailsForm()?.save();
-    this.createStep.set('review');
+  async finishToReview(): Promise<void> {
+    const ok = await this.mobileDetailsForm()?.save();
+    if (ok) this.createStep.set('review');
   }
 
   /** Return from the room or review step to the details step. */
@@ -702,8 +761,19 @@ export class Properties implements OnInit {
     });
   }
 
-  /** Persist the drafted property and its rooms. */
-  finalSave(): void {
-    this.onCreate(this.pendingProperty() ?? {});
+  /** Persist the drafted property and its rooms — composite-validated. */
+  async finalSave(): Promise<void> {
+    const data = this.pendingProperty() ?? {};
+    this.validationErrors.set([]);
+    const violations = await this.validator.validateComposite(
+      PROPERTY_SHAPE_IRI,
+      data,
+      { shapeKey: ROOM_SHAPE_IRI, config: { key: 'rooms' }, values: this.rooms() },
+    );
+    if (violations.length > 0) {
+      this.validationErrors.set(violations);
+      return;
+    }
+    this.onCreate(data);
   }
 }

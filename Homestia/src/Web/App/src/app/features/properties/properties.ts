@@ -9,6 +9,7 @@ import { EntitySyncService } from '../../shared/services/entity-sync.service';
 import { DynamicEntityFormComponent } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
 import { DynamicEntityTableComponent, type TableAction } from '../../shared/components/dynamic-entity-table/dynamic-entity-table.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { AiAssistantPanelComponent } from '../../shared/components/ai-assistant-panel/ai-assistant-panel.component';
 import { PropertyEntity, type Property } from '../../entities/property.entity';
 import { RoomEntity } from '../../entities/room.entity';
 import {
@@ -42,6 +43,7 @@ interface CreateStepDef {
     DynamicEntityFormComponent,
     DynamicEntityTableComponent,
     ConfirmDialogComponent,
+    AiAssistantPanelComponent,
     ...HlmAccordionImports,
   ],
   template: `
@@ -81,6 +83,16 @@ interface CreateStepDef {
       }
       @if (mode() === 'edit') {
         <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.editSubtext' | transloco }}</p>
+      }
+
+      <!-- AI assistant — fill the form by chat (A) or photos (B) -->
+      @if (mode() === 'create' || (mode() === 'edit' && editingItem())) {
+        <app-ai-assistant-panel
+          [textScenarioKey]="mode() === 'create' ? AI_SCENARIO_CREATE_TEXT : AI_SCENARIO_EDIT_TEXT"
+          [photosScenarioKey]="mode() === 'create' ? AI_SCENARIO_CREATE_PHOTOS : AI_SCENARIO_EDIT_PHOTOS"
+          [context]="aiContext()"
+          (proposal)="applyAiProposal($event)"
+        />
       }
 
       <!-- List mode: table -->
@@ -134,7 +146,8 @@ interface CreateStepDef {
                 <div class="px-4" style="margin-top: 20px;">
                   <app-dynamic-entity-form
                     [entity]="entity"
-                    [mode]="'create'"
+                    [mode]="pendingProperty() ? 'edit' : 'create'"
+                    [value]="pendingProperty()"
                     [shapeKey]="PROPERTY_SHAPE_KEY"
                     (saved)="onPropertySaved($event)"
                   />
@@ -482,6 +495,10 @@ export class Properties implements OnInit {
   readonly RoomEntity = RoomEntity;
   readonly PROPERTY_SHAPE_KEY = PROPERTY_SHAPE_IRI;
   readonly ROOM_SHAPE_KEY = ROOM_SHAPE_IRI;
+  readonly AI_SCENARIO_CREATE_TEXT = 'property.create.text';
+  readonly AI_SCENARIO_CREATE_PHOTOS = 'property.create.photos';
+  readonly AI_SCENARIO_EDIT_TEXT = 'property.edit.text';
+  readonly AI_SCENARIO_EDIT_PHOTOS = 'property.edit.photos';
   readonly formRef = viewChild(DynamicEntityFormComponent);
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);
@@ -516,6 +533,39 @@ export class Properties implements OnInit {
 
   ngOnInit(): void {
     this.refresh();
+  }
+
+  /** Current form context sent to the AI — existing values for edit, empty for create. */
+  readonly aiContext = computed<Record<string, unknown>>(() => {
+    if (this.mode() === 'edit' && this.editingItem()) {
+      return { ...this.editingItem(), rooms: this.rooms() };
+    }
+    return {};
+  });
+
+  /**
+   * Applies the AI's validated form proposal: property fields land in
+   * pendingProperty (create review) or merge into editingItem (edit); rooms
+   * populate the room list.
+   */
+  applyAiProposal(data: Record<string, unknown>): void {
+    const { rooms: proposedRooms, ...propertyData } = data;
+    const rooms = Array.isArray(proposedRooms)
+      ? proposedRooms.map((room) => ({ ...(room as Record<string, unknown>) }))
+      : [];
+
+    if (this.mode() === 'edit' && this.editingItem()) {
+      this.editingItem.set({ ...this.editingItem()!, ...propertyData });
+      if (rooms.length > 0) {
+        this.rooms.set(rooms);
+        this.originalRooms.set(structuredClone(rooms) as Record<string, unknown>[]);
+      }
+      return;
+    }
+
+    this.pendingProperty.set({ ...propertyData });
+    this.rooms.set(rooms);
+    this.createStep.set('review');
   }
 
   refresh(): void {

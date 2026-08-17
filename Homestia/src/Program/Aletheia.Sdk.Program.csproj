@@ -100,6 +100,8 @@
     Aletheia SDK — host-level slices needed for HTTP wiring.
   -->
   <ItemGroup>
+    <ProjectReference Include="../../../../Aletheia/SDK/src/AI/Aletheia.Sdk.AI.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/AI.Http/Aletheia.Sdk.AI.Http.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects/Aletheia.Sdk.Aspects.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects.Abstractions/Aletheia.Sdk.Aspects.Abstractions.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects.Entity/Aletheia.Sdk.Aspects.Entity.csproj" />

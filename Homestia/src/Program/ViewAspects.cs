@@ -4,17 +4,19 @@ using Aletheia.Sdk.Aspects.View;
 namespace Aletheia.Sdk.Program.Aspects;
 
 /// <summary>
-/// Frontend-purpose views — the <c>ShapeMirror</c> definitions of Homestia.
+/// Frontend-purpose views — the form shapes of Homestia.
 /// <br/><br/>
 /// These views are <strong>not</strong> enforcement aspects: the backend's
 /// operation aspects remain the authoritative protection. Registered as the
 /// SDK's view family, they are served by the exploration endpoints
-/// (<c>GET api/entities/aspect-definitions/{iri}/view</c>) so the browser
-/// validates against the exact Turtle the Program holds. The SDK validates
-/// the Turtle syntax at registration — malformed views fail fast.
+/// (<c>GET api/entities/aspect-definitions/{iri}/view</c>) and judged on
+/// demand by the view aspect engine
+/// (<c>POST api/entities/aspect-definitions/{iri}/validate</c>) — the browser
+/// sends form values, the backend reports findings of every severity mapped
+/// to JSON paths. Registration fails fast on malformed views.
 /// <list type="bullet">
 /// <item><description><strong>Validation feedback</strong> — form values are
-/// validated in the browser before they are sent.</description></item>
+/// validated by the backend view engine before they are sent.</description></item>
 /// <item><description><strong>View configuration</strong> — each
 /// <c>sh:property</c> is a JSON key; <c>sh:order</c> defines field and column
 /// order; <c>sh:message</c> holds an i18n key.</description></item>
@@ -22,9 +24,6 @@ namespace Aletheia.Sdk.Program.Aspects;
 /// </summary>
 public static class ViewAspects
 {
-    /// <summary>Predicate namespace — local names are the JSON keys.</summary>
-    public const string PredicateNamespace = "https://www.aletheia.arkenforge.de/predicates/homestia/";
-
     /// <summary>IRI of the Property shape (composite root for rooms).</summary>
     public const string PropertyShapeIri = "urn:aletheia:homestia:shapes:property";
 
@@ -39,33 +38,33 @@ public static class ViewAspects
     public const string PropertyTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix homestia: <https://www.aletheia.arkenforge.de/predicates/homestia/> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
 
         <urn:aletheia:homestia:shapes:property>
             a sh:NodeShape ;
             sh:targetClass <urn:aletheia:homestia:Property> ;
             sh:property [
-                sh:path homestia:name ; sh:order 1 ;
+                sh:path json:name ; sh:order 1 ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.property.name" ;
             ] ;
             sh:property [
-                sh:path homestia:address ; sh:order 2 ;
+                sh:path json:address ; sh:order 2 ;
                 sh:minCount 1 ; sh:minLength 5 ; sh:datatype xsd:string ;
                 sh:message "shape.property.address" ;
             ] ;
             sh:property [
-                sh:path homestia:propertyType ; sh:order 3 ;
+                sh:path json:propertyType ; sh:order 3 ;
                 sh:minCount 1 ; sh:nodeKind sh:IRI ;
                 sh:message "shape.property.propertyType" ;
             ] ;
             sh:property [
-                sh:path homestia:rentalModel ; sh:order 4 ;
+                sh:path json:rentalModel ; sh:order 4 ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.property.rentalModel" ;
             ] ;
             sh:property [
-                sh:path homestia:rooms ; sh:order 5 ;
+                sh:path json:rooms ; sh:order 5 ;
                 sh:node <urn:aletheia:homestia:shapes:room> ;
                 sh:message "shape.property.rooms" ;
             ] .
@@ -79,34 +78,34 @@ public static class ViewAspects
     public const string RoomTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix homestia: <https://www.aletheia.arkenforge.de/predicates/homestia/> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
 
         <urn:aletheia:homestia:shapes:room>
             a sh:NodeShape ;
             sh:targetClass <urn:aletheia:homestia:Room> ;
             sh:property [
-                sh:path homestia:name ; sh:order 1 ;
+                sh:path json:name ; sh:order 1 ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.room.name" ;
             ] ;
             sh:property [
-                sh:path homestia:location ; sh:order 2 ;
+                sh:path json:location ; sh:order 2 ;
                 sh:minLength 2 ; sh:datatype xsd:string ;
                 sh:message "shape.room.location" ;
             ] ;
             sh:property [
-                sh:path homestia:roomSize ; sh:order 3 ;
+                sh:path json:roomSize ; sh:order 3 ;
                 sh:minCount 1 ; sh:datatype xsd:decimal ;
                 sh:minInclusive 1 ; sh:maxInclusive 1000 ;
                 sh:message "shape.room.roomSize" ;
             ] ;
             sh:property [
-                sh:path homestia:furnishingStatus ; sh:order 4 ;
+                sh:path json:furnishingStatus ; sh:order 4 ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.furnishingStatus" ;
             ] ;
             sh:property [
-                sh:path homestia:roomStatus ; sh:order 5 ;
+                sh:path json:roomStatus ; sh:order 5 ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.roomStatus" ;
             ] .

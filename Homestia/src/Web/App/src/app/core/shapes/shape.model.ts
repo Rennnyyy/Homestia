@@ -1,6 +1,6 @@
 /**
  * ShapeMirror domain models — the types exchanged between the shape client,
- * schema extraction, graph construction, and the SHACL validator.
+ * schema extraction, and the backend view validation endpoint.
  */
 
 /** Catalog metadata for one frontend shape (from GET /api/shapes). */
@@ -10,7 +10,7 @@ export interface ShapeInfo {
   etag: string;
 }
 
-/** A single validation violation, mapped back onto JSON form paths. */
+/** A single validation finding, mapped back onto JSON form paths. */
 export interface ShapeViolation {
   /** Full JSON path of the offending value, e.g. `rooms[0].roomSize`. */
   jsonPath: string;
@@ -46,23 +46,12 @@ export interface ShapeSchema {
   keyByName: ReadonlyMap<string, KeyConstraint>;
 }
 
-/** Configuration for one nested child collection in a composite graph. */
-export interface ChildConfig {
-  /** The JSON key under which children live on the parent (e.g. `rooms`). */
-  key: string;
-  /** The RDF class IRI each child node is typed with (falls back to the
-   * child shape's sh:targetClass when omitted). */
-  type?: string;
-}
-
-/** The result of building an RDF graph from a JSON value. */
-export interface DataGraph {
-  /** All quads of the value graph. */
-  quads: import('@rdfjs/types').Quad[];
-  /** The root focus node (typed with the root class). */
-  focusNode: import('@rdfjs/types').BlankNode;
-  /** Blank-node id → JSON path ('' for the root, `rooms[0]` for children). */
-  pathMap: ReadonlyMap<string, string>;
+/** The response of POST /api/entities/aspect-definitions/{iri}/validate. */
+export interface ViewValidationResponse {
+  /** False when any finding exists — SHACL semantics, warnings included. */
+  conforms: boolean;
+  /** Findings of every severity, mapped to JSON paths. */
+  findings: ShapeViolation[];
 }
 
 /** Root entity type IRIs used by the Homestia shapes. */

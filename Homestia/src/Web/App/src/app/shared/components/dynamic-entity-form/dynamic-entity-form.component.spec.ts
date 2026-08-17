@@ -5,6 +5,7 @@
  */
 import { Component, signal, Injectable } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
 import { provideTransloco, TranslocoLoader } from '@jsverse/transloco';
 import { of } from 'rxjs';
@@ -220,6 +221,33 @@ describe('DynamicEntityFormComponent', () => {
     expect(firstInput).toBeTruthy();
     // In edit mode, inputs should NOT have the disabled attribute
     expect(firstInput.hasAttribute('disabled')).toBe(false);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Number input value typing
+  // ═══════════════════════════════════════════════════════════════════════
+
+  it('emits a number for number inputs when saving', async () => {
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.entity.set(makeEntity());
+    host.componentInstance.mode.set('edit');
+    host.componentInstance.value.set({ address: '123 Main', roomCount: null });
+    host.detectChanges();
+
+    const input = host.nativeElement.querySelector('#properties-roomCount') as HTMLInputElement;
+    expect(input).toBeTruthy();
+
+    input.value = '7';
+    input.dispatchEvent(new Event('input'));
+    host.detectChanges();
+
+    const form = host.debugElement
+      .query(By.directive(DynamicEntityFormComponent))
+      .componentInstance as DynamicEntityFormComponent;
+    await form.save();
+
+    expect(host.componentInstance.savedData).toBeTruthy();
+    expect(host.componentInstance.savedData!['roomCount']).toBe(7);
   });
 
   // ═══════════════════════════════════════════════════════════════════════

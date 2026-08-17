@@ -37,13 +37,13 @@ describe('extractSchema', () => {
     expect(schema.keyByName.get('name')?.datatype).toBe('http://www.w3.org/2001/XMLSchema#string');
   });
 
-  it('ignores paths outside the Homestia namespace', () => {
+  it('ignores paths outside the canonical JSON namespace', () => {
     const ttl = `
       @prefix sh: <http://www.w3.org/ns/shacl#> .
       <urn:test:shape>
           a sh:NodeShape ;
           sh:property [ sh:path <urn:test:foreign> ; sh:order 1 ] ;
-          sh:property [ sh:path <https://www.aletheia.arkenforge.de/predicates/homestia/name> ; sh:order 2 ] .
+          sh:property [ sh:path <https://www.aletheia.arkenforge.de/json/name> ; sh:order 2 ] .
     `;
     const parser = new Parser({ format: 'text/turtle' });
     const schema = extractSchema(new Store(parser.parse(ttl)), 'urn:test:shape');

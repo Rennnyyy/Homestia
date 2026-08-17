@@ -256,6 +256,7 @@ interface CreateStepDef {
                   <span>{{ rooms()[rooms().length - 1]['name'] || ('nav.properties.roomNew' | transloco) }}</span>
                 </div>
                 <app-dynamic-entity-form
+                  #mobileRoomForm
                   [entity]="RoomEntity"
                   [mode]="'edit'"
                   [value]="rooms()[rooms().length - 1]"
@@ -288,7 +289,8 @@ interface CreateStepDef {
                   [entity]="entity"
                   [mode]="'edit'"
                   [value]="pendingProperty()"
-                  [shapeKey]="PROPERTY_SHAPE_KEY" />
+                  [shapeKey]="PROPERTY_SHAPE_KEY"
+                  [violations]="propertyViolations()" />
               </div>
             }
             @if (rooms().length > 0) {
@@ -505,6 +507,7 @@ export class Properties implements OnInit {
   readonly createStep = signal<CreateStep>('details');
   readonly pendingProperty = signal<Record<string, unknown> | null>(null);
   readonly mobileDetailsForm = viewChild<DynamicEntityFormComponent>('mobileDetailsForm');
+  readonly mobileRoomForm = viewChild<DynamicEntityFormComponent>('mobileRoomForm');
 
   readonly rowActions: TableAction[] = [
     { label: 'Edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
@@ -611,16 +614,15 @@ export class Properties implements OnInit {
   }
 
   /**
-   * Entry point for every property save: validates the property AND its
-   * rooms as one SHACL graph before anything is sent to the backend.
+   * Validates the property and its rooms through the backend view engine —
+   * one JSON document, one POST, before anything is persisted.
    */
   async onPropertySaved(data: Record<string, unknown>): Promise<void> {
     this.validationErrors.set([]);
-    const violations = await this.validator.validateComposite(
-      PROPERTY_SHAPE_IRI,
-      data,
-      { shapeKey: ROOM_SHAPE_IRI, config: { key: 'rooms' }, values: this.rooms() },
-    );
+    const violations = await this.validator.validate(PROPERTY_SHAPE_IRI, {
+      ...data,
+      rooms: this.rooms(),
+    });
     if (violations.length > 0) {
       this.validationErrors.set(violations);
       return;
@@ -716,32 +718,58 @@ export class Properties implements OnInit {
     return this.validationErrors().some((violation) => violation.jsonPath.startsWith(prefix));
   }
 
+  /** Composite violations scoped to the property itself (no rooms prefix). */
+  propertyViolations(): ShapeViolation[] {
+    return this.validationErrors().filter((violation) => !violation.jsonPath.startsWith('rooms['));
+  }
+
   // ── Mobile create wizard ─────────────────────────────────────────────────
 
   stepIndex(id: CreateStep): number {
     return this.createSteps.findIndex((s) => s.id === id);
   }
 
-  /** Capture details form data and jump to the review step. */
+  /**
+   * Validate the details form. On success the form emits `saved`, which
+   * stores the payload in `pendingProperty`. Returns whether it passed.
+   */
+  private async captureDetails(): Promise<boolean> {
+    const form = this.mobileDetailsForm();
+    if (!form) return false;
+    return form.save();
+  }
+
+  /** Validate the room form currently shown in the room step. */
+  private async captureCurrentRoom(): Promise<boolean> {
+    const form = this.mobileRoomForm();
+    if (!form) return false;
+    return form.save();
+  }
+
+  /** Validate the details step, capture the data, then jump to review. */
   async savePropertyToReview(): Promise<void> {
-    const ok = await this.mobileDetailsForm()?.save();
+    const ok = await this.captureDetails();
     if (ok) this.createStep.set('review');
   }
 
-  /** Add a fresh room and move to the room step. */
-  addRoomAndNext(): void {
+  /** Validate the details step, then add a fresh room and move to the room step. */
+  async addRoomAndNext(): Promise<void> {
+    const ok = await this.captureDetails();
+    if (!ok) return;
     this.addRoom();
     this.createStep.set('room');
   }
 
-  /** Append another room — the room step auto-displays the newest one. */
-  nextRoom(): void {
+  /** Validate the current room before appending another one. */
+  async nextRoom(): Promise<void> {
+    const ok = await this.captureCurrentRoom();
+    if (!ok) return;
     this.addRoom();
   }
 
-  /** Capture details form data and jump to the review step. */
+  /** Validate the current room, then jump to the review step. */
   async finishToReview(): Promise<void> {
-    const ok = await this.mobileDetailsForm()?.save();
+    const ok = await this.captureCurrentRoom();
     if (ok) this.createStep.set('review');
   }
 
@@ -761,15 +789,14 @@ export class Properties implements OnInit {
     });
   }
 
-  /** Persist the drafted property and its rooms — composite-validated. */
+  /** Persist the drafted property and its rooms — backend-validated. */
   async finalSave(): Promise<void> {
     const data = this.pendingProperty() ?? {};
     this.validationErrors.set([]);
-    const violations = await this.validator.validateComposite(
-      PROPERTY_SHAPE_IRI,
-      data,
-      { shapeKey: ROOM_SHAPE_IRI, config: { key: 'rooms' }, values: this.rooms() },
-    );
+    const violations = await this.validator.validate(PROPERTY_SHAPE_IRI, {
+      ...data,
+      rooms: this.rooms(),
+    });
     if (violations.length > 0) {
       this.validationErrors.set(violations);
       return;

@@ -1,11 +1,8 @@
 export { ShapeClientService } from './shape-client.service';
 export { ShaclValidatorService } from './shacl-validator.service';
 export { extractSchema } from './shape-schema';
-export { buildDataGraph } from './value-to-graph';
 export {
-  HOMESTIA_NS,
-  predicate,
-  typeNode,
+  JSON_NS,
   keyOfPath,
   localName,
 } from './rdf';
@@ -20,6 +17,5 @@ export type {
   ShapeViolation,
   KeyConstraint,
   ShapeSchema,
-  ChildConfig,
-  DataGraph,
+  ViewValidationResponse,
 } from './shape.model';

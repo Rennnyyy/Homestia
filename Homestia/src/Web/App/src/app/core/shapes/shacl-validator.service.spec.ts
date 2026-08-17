@@ -1,14 +1,17 @@
 import { TestBed } from '@angular/core/testing';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ShaclValidatorService } from './shacl-validator.service';
 import { ShapeClientService } from './shape-client.service';
 import { SHAPE_FIXTURES } from './shape.fixtures';
 
 const PROPERTY_SHAPE_IRI = 'urn:aletheia:homestia:shapes:property';
-const ROOM_SHAPE_IRI = 'urn:aletheia:homestia:shapes:room';
+const PROPERTY_VALIDATE_URL = `/api/entities/aspect-definitions/${encodeURIComponent(PROPERTY_SHAPE_IRI)}/validate`;
 
 describe('ShaclValidatorService', () => {
   let validator: ShaclValidatorService;
+  let httpMock: HttpTestingController;
 
   beforeEach(() => {
     const fakeClient = {
@@ -19,95 +22,70 @@ describe('ShaclValidatorService', () => {
       providers: [
         ShaclValidatorService,
         { provide: ShapeClientService, useValue: fakeClient },
+        provideHttpClient(),
+        provideHttpClientTesting(),
       ],
     });
     validator = TestBed.inject(ShaclValidatorService);
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
-  it('rejects a property with an empty name', async () => {
-    const violations = await validator.validate(PROPERTY_SHAPE_IRI, {
-      name: '',
-      address: 'Main Street 12',
-      propertyType: 'urn:types:apartment',
-    });
-
-    const nameViolation = violations.find((v) => v.jsonPath === 'name');
-    expect(nameViolation?.message).toBe('shape.property.name');
+  afterEach(() => {
+    httpMock.verify();
   });
 
-  it('rejects a property without a property type', async () => {
-    const violations = await validator.validate(PROPERTY_SHAPE_IRI, {
-      name: 'Homely House',
-      address: 'Main Street 12',
-      propertyType: '',
-    });
+  it('posts the form value to the backend validate endpoint', async () => {
+    const value = { name: 'Homely House', address: 'Main Street 12' };
 
-    const typeViolation = violations.find((v) => v.jsonPath === 'propertyType');
-    expect(typeViolation?.message).toBe('shape.property.propertyType');
+    const promise = validator.validate(PROPERTY_SHAPE_IRI, value);
+
+    const request = httpMock.expectOne(PROPERTY_VALIDATE_URL);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(value);
+    request.flush({ conforms: true, findings: [] });
+
+    expect(await promise).toEqual([]);
   });
 
-  it('accepts a conforming property', async () => {
-    const violations = await validator.validate(PROPERTY_SHAPE_IRI, {
-      name: 'Homely House',
-      address: 'Main Street 12',
-      propertyType: 'urn:types:apartment',
-      rentalModel: '',
-    });
+  it('returns the findings reported by the backend', async () => {
+    const findings = [
+      { jsonPath: 'name', key: 'name', message: 'shape.property.name', severity: 'Violation' },
+      { jsonPath: 'rooms[0].roomSize', key: 'roomSize', message: 'shape.room.roomSize', severity: 'Violation' },
+    ];
 
-    expect(violations).toHaveLength(0);
-  });
+    const promise = validator.validate(PROPERTY_SHAPE_IRI, { name: '' });
 
-  it('rejects a room with a size outside the declared range', async () => {
-    const violations = await validator.validate(ROOM_SHAPE_IRI, {
-      name: 'Bedroom',
-      location: '',
-      roomSize: 2500,
-    });
+    httpMock.expectOne(PROPERTY_VALIDATE_URL).flush({ conforms: false, findings });
 
-    const sizeViolation = violations.find((v) => v.jsonPath === 'roomSize');
-    expect(sizeViolation?.message).toBe('shape.room.roomSize');
-  });
-
-  it('validates property and rooms as one composite graph', async () => {
-    const violations = await validator.validateComposite(
-      PROPERTY_SHAPE_IRI,
-      { name: 'Homely House', address: 'Main Street 12', propertyType: 'urn:types:apartment' },
-      {
-        shapeKey: ROOM_SHAPE_IRI,
-        config: { key: 'rooms' },
-        values: [{ name: '', location: '', roomSize: 14, furnishingStatus: '', roomStatus: '' }],
-      },
-    );
-
-    expect(violations.find((v) => v.jsonPath === 'rooms[0].name')?.message).toBe(
-      'shape.room.name',
+    const violations = await promise;
+    expect(violations).toEqual(findings);
+    expect(violations.find((v) => v.jsonPath === 'rooms[0].roomSize')?.message).toBe(
+      'shape.room.roomSize',
     );
   });
 
-  it('accepts a valid composite with multiple rooms', async () => {
-    const violations = await validator.validateComposite(
-      PROPERTY_SHAPE_IRI,
-      { name: 'Homely House', address: 'Main Street 12', propertyType: 'urn:types:apartment' },
-      {
-        shapeKey: ROOM_SHAPE_IRI,
-        config: { key: 'rooms' },
-        values: [
-          { name: 'Bedroom', roomSize: 14 },
-          { name: 'Bath', roomSize: 6 },
-        ],
-      },
-    );
+  it('forwards warnings and infos untouched', async () => {
+    const findings = [
+      { jsonPath: 'rentalModel', key: 'rentalModel', message: 'shape.property.rentalModel', severity: 'Warning' },
+    ];
 
-    expect(violations).toHaveLength(0);
+    const promise = validator.validate(PROPERTY_SHAPE_IRI, { name: 'House' });
+
+    httpMock.expectOne(PROPERTY_VALIDATE_URL).flush({ conforms: false, findings });
+
+    expect(await promise).toEqual(findings);
   });
 
-  it('accepts a valid property with no rooms', async () => {
-    const violations = await validator.validateComposite(
-      PROPERTY_SHAPE_IRI,
-      { name: 'Homely House', address: 'Main Street 12', propertyType: 'urn:types:apartment' },
-      { shapeKey: ROOM_SHAPE_IRI, config: { key: 'rooms' }, values: [] },
-    );
+  it('extracts the rendering schema locally from the served Turtle', async () => {
+    const schema = await validator.loadSchema(PROPERTY_SHAPE_IRI);
 
-    expect(violations).toHaveLength(0);
+    expect(schema.keys.map((k) => k.key)).toEqual([
+      'name',
+      'address',
+      'propertyType',
+      'rentalModel',
+      'rooms',
+    ]);
+    expect(schema.targetClasses).toEqual(['urn:aletheia:homestia:Property']);
   });
 });

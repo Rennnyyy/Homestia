@@ -54,8 +54,10 @@
     <Exec Command="npm install" WorkingDirectory="$(WebDir)"
           Condition="!Exists('$(WebDir)/package-lock.json') And Exists('$(WebDir)/package.json')" />
 
-    <!-- ng build — output goes to wwwroot/ per angular.json outputPath -->
-    <Exec Command="npx ng build --configuration production"
+    <!-- npm run build: the prebuild hook generates src/generated/tailwind.css
+         (required by angular.json global styles), then runs ng build. Output
+         goes to wwwroot/ per angular.json outputPath. -->
+    <Exec Command="npm run build -- --configuration production"
           WorkingDirectory="$(WebDir)"
           Condition="Exists('$(WebDir)/package.json')" />
 

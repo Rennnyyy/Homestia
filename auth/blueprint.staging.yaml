@@ -1,0 +1,20 @@
+version: 1
+entries:
+  - model: authentik_providers_proxy.proxyprovider
+    id: app-provider
+    identifiers:
+      name: __APP_SLUG__-staging
+    attrs:
+      name: __APP_SLUG__-staging
+      mode: forward_single
+      external_host: https://__APP_SLUG__.staging.katharsis.digital
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+  - model: authentik_core.application
+    id: app-application
+    identifiers:
+      slug: __APP_SLUG__-staging
+    attrs:
+      name: __APP_SLUG__ staging
+      slug: __APP_SLUG__-staging
+      provider: !KeyOf app-provider

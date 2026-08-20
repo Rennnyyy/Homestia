@@ -1,0 +1,13 @@
+services:
+  app:
+    environment:
+      APP_ENV: staging
+      APP_MESSAGE: "Hello from ${APP_SLUG} (staging)"
+    env_file: .env.staging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${APP_SLUG}-staging.rule=Host(`${APP_SLUG}.staging.katharsis.digital`)"
+      - "traefik.http.routers.${APP_SLUG}-staging.entrypoints=websecure"
+      - "traefik.http.routers.${APP_SLUG}-staging.tls.certresolver=myresolver"
+      - "traefik.http.routers.${APP_SLUG}-staging.middlewares=authentik@docker"
+      - "traefik.http.services.${APP_SLUG}-staging.loadbalancer.server.port=8080"

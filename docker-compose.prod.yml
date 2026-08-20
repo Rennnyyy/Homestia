@@ -1,0 +1,13 @@
+services:
+  app:
+    environment:
+      APP_ENV: prod
+      APP_MESSAGE: "Hello from ${APP_SLUG} (prod)"
+    env_file: .env.prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${APP_SLUG}-prod.rule=Host(`${APP_SLUG}.katharsis.digital`)"
+      - "traefik.http.routers.${APP_SLUG}-prod.entrypoints=websecure"
+      - "traefik.http.routers.${APP_SLUG}-prod.tls.certresolver=myresolver"
+      - "traefik.http.routers.${APP_SLUG}-prod.middlewares=authentik@docker"
+      - "traefik.http.services.${APP_SLUG}-prod.loadbalancer.server.port=8080"

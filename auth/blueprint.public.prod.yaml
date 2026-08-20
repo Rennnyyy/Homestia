@@ -1,0 +1,11 @@
+version: 1
+entries:
+  - model: authentik_core.application
+    id: app-application
+    identifiers:
+      slug: __APP_SLUG__-prod
+    attrs:
+      name: __APP_SLUG__ prod
+      slug: __APP_SLUG__-prod
+      meta_launch_url: https://__APP_SLUG__.katharsis.digital
+      meta_description: Not authenticated — public access, no login required.

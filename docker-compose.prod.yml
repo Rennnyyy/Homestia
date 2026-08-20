@@ -1,8 +1,8 @@
 services:
   app:
     environment:
-      APP_ENV: prod
-      APP_MESSAGE: "Hello from ${APP_SLUG} (prod)"
+      ASPNETCORE_ENVIRONMENT: Production
+      GraphDb__BaseUrl: http://graphdb:7200
     env_file: .env.prod
     labels:
       - "traefik.enable=true"

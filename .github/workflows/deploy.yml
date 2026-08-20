@@ -80,6 +80,10 @@ jobs:
           GHCR_PAT: ${{ secrets.GITHUB_TOKEN }}
           APP_VERSION: ${{ github.sha }}
           APP_PUBLIC: "false"
+          # GraphDB connection — DEPLOY_ prefix is stripped on the server.
+          DEPLOY_GraphDb__RepositoryId: ${{ secrets.DEPLOY_GraphDb__RepositoryId }}
+          DEPLOY_GraphDb__Username: ${{ secrets.DEPLOY_GraphDb__Username }}
+          DEPLOY_GraphDb__Password: ${{ secrets.DEPLOY_GraphDb__Password }}
         run: bash scripts/deploy.sh staging
 
   deploy-prod:
@@ -99,4 +103,8 @@ jobs:
           GHCR_PAT: ${{ secrets.GITHUB_TOKEN }}
           APP_VERSION: ${{ github.sha }}
           APP_PUBLIC: "false"
+          # GraphDB connection — DEPLOY_ prefix is stripped on the server.
+          DEPLOY_GraphDb__RepositoryId: ${{ secrets.DEPLOY_GraphDb__RepositoryId }}
+          DEPLOY_GraphDb__Username: ${{ secrets.DEPLOY_GraphDb__Username }}
+          DEPLOY_GraphDb__Password: ${{ secrets.DEPLOY_GraphDb__Password }}
         run: bash scripts/deploy.sh prod

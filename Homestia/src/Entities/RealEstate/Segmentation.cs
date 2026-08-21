@@ -6,8 +6,8 @@ namespace Aletheia.Sdk.Program.Entities.RealEstate;
 
 /// <summary>
 /// Segmentation — abstract base for any spatially-defined part of a property.
-/// <see cref="Property"/>, <see cref="Room"/>, and <see cref="CommonArea"/> all
-/// derive from this base, sharing a common identity space and the <c>Name</c> property.
+/// <see cref="Property"/> and <see cref="Room"/> derive from this base, sharing a
+/// common identity space and the <c>Name</c> property.
 /// </summary>
 [Entity(Path = "segmentations")]
 [Identity(IdentityGenerator.Random)]
@@ -23,4 +23,8 @@ public partial class Segmentation
     /// <summary>Owning: the property this segmentation belongs to.</summary>
     [Owning("isPartOf")]
     public partial EntityRef<Property>? IsPartOf { get; set; }
+
+    /// <summary>Agreements that include this segmentation — inverse of <see cref="RentalAgreement.Segmentations"/>.</summary>
+    [Inverse("Segmentations", "includesUsageOf")]
+    public partial EntityRefCollection<RentalAgreement> RentalAgreements { get; }
 }

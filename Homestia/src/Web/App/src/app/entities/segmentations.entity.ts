@@ -1,4 +1,4 @@
-// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
+// Auto-generated from http://localhost:5001/api/entities/entity-definitions — do not edit manually.
 // Entity: Segmentation  |  predicatePath: "segmentations"  |  enum: false
 
 import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
@@ -26,6 +26,6 @@ export const SegmentationsEntity: EntityInfo = {
   properties: [
     { name: 'isCommonArea', type: 'Boolean', isCollection: false },
     { name: 'name', type: 'String', isCollection: false },
-    { name: 'isPartOf', type: 'EntityRef', isCollection: false },
+    { name: 'isPartOf', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
   ],
 };

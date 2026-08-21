@@ -1,25 +1,25 @@
 // Auto-generated from http://localhost:5001/api/entities/entity-definitions — do not edit manually.
-// Entity: Landlord  |  predicatePath: "landlords"  |  enum: false
+// Entity: RentalAgreementDocument  |  predicatePath: "rentalAgreementDocument"  |  enum: false
 
 import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
 
 // ── API response interface ────────────────────────────────────────────────
 
-export interface Landlords {
-  /** representedBy → Agent */
-  agent: unknown;
+export interface RentalAgreementDocument {
+  /** description */
+  description: string;
   /** The entity's unique IRI. */
   iri: string;
 }
 
 // ── Dynamic form definition ───────────────────────────────────────────────
 
-/** Pass to &lt;app-dynamic-entity-form [entity]="LandlordsEntity"&gt; */
-export const LandlordsEntity: EntityInfo = {
-  entityPath: 'landlords',
-  predicatePath: 'landlords',
-  displayName: 'Landlord',
+/** Pass to &lt;app-dynamic-entity-form [entity]="RentalAgreementDocumentEntity"&gt; */
+export const RentalAgreementDocumentEntity: EntityInfo = {
+  entityPath: 'rental-agreement-documents',
+  predicatePath: 'rentalAgreementDocument',
+  displayName: 'RentalAgreementDocument',
   properties: [
-    { name: 'agent', type: 'EntityRef', isCollection: false, targetEntityPath: 'agents' },
+    { name: 'description', type: 'String', isCollection: false },
   ],
 };

@@ -14,6 +14,24 @@ namespace Aletheia.Authentication;
 [OperationEndpoints]
 public partial class Agent
 {
-    [Predicate("displayName")]
-    public string DisplayName { get; set; } = string.Empty;
+    [Predicate("firstName")]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Predicate("lastName")]
+    public string LastName { get; set; } = string.Empty;
+
+    [Predicate("nickname")]
+    public string Nickname { get; set; } = string.Empty;
+
+    [Predicate("birthday")]
+    public DateOnly Birthday { get; set; }
+
+    [Predicate("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [Predicate("phoneNumber")]
+    public string PhoneNumber { get; set; } = string.Empty;
+
+    [Predicate("address")]
+    public string Address { get; set; } = string.Empty;
 }

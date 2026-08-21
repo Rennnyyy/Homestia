@@ -1,4 +1,4 @@
-// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
+// Auto-generated from http://localhost:5001/api/entities/entity-definitions — do not edit manually.
 // Entity: Room  |  predicatePath: "room"  |  enum: false
 
 import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
@@ -12,8 +12,6 @@ export interface Room {
   roomSize: number;
   /** furnishingStatus → FurnishingStatus */
   furnishingStatus: unknown;
-  /** equippedWith → InventoryItem */
-  inventory: unknown[];
   /** isPartOf → Property */
   isPartOf: unknown;
   /** roomStatus → RoomStatus */
@@ -37,7 +35,6 @@ export const RoomEntity: EntityInfo = {
     { name: 'location', type: 'String', isCollection: false },
     { name: 'roomSize', type: 'Decimal', isCollection: false },
     { name: 'furnishingStatus', type: 'EntityRef', isCollection: false, targetEntityPath: 'furnishing-statuses' },
-    { name: 'inventory', type: 'EntityRef', isCollection: true, targetEntityPath: 'inventory-items' },
     { name: 'isPartOf', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
     { name: 'roomStatus', type: 'EntityRef', isCollection: false, targetEntityPath: 'room-statuses' },
     { name: 'isCommonArea', type: 'Boolean', isCollection: false },

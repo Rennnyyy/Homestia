@@ -1,4 +1,4 @@
-// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
+// Auto-generated from http://localhost:5001/api/entities/entity-definitions — do not edit manually.
 // Entity: Property  |  predicatePath: "property"  |  enum: false
 
 import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
@@ -8,6 +8,8 @@ import type { EntityInfo } from '../shared/services/aletheia-http-client.models'
 export interface Property {
   /** address */
   address: string;
+  /** ownedBy → Landlord */
+  ownedBy: unknown;
   /** isPartOf → Property */
   isPartOf: unknown;
   /** propertyType → PropertyType */
@@ -17,11 +19,9 @@ export interface Property {
   /** The entity's unique IRI. */
   iri: string;
   /** Inherited — resolved from entity hierarchy. */
-  segmentedInto: string | null[];
+  isCommonArea: boolean;
   /** Inherited — resolved from entity hierarchy. */
   name: string;
-  /** Inherited — resolved from entity hierarchy. */
-  isCommonArea: boolean;
 }
 
 // ── Dynamic form definition ───────────────────────────────────────────────
@@ -33,11 +33,11 @@ export const PropertyEntity: EntityInfo = {
   displayName: 'Property',
   properties: [
     { name: 'address', type: 'String', isCollection: false },
+    { name: 'ownedBy', type: 'EntityRef', isCollection: false, targetEntityPath: 'landlords' },
     { name: 'isPartOf', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
     { name: 'propertyType', type: 'EntityRef', isCollection: false, targetEntityPath: 'property-types' },
     { name: 'rentalModel', type: 'EntityRef', isCollection: false, targetEntityPath: 'rental-models' },
-    { name: 'segmentedInto', type: 'EntityRef', isCollection: true, targetEntityPath: 'segmentations' },
-    { name: 'name', type: 'String', isCollection: false },
     { name: 'isCommonArea', type: 'Boolean', isCollection: false },
+    { name: 'name', type: 'String', isCollection: false },
   ],
 };

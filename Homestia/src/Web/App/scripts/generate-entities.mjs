@@ -64,7 +64,7 @@ function toPascalCase(str) { return str.charAt(0).toUpperCase() + str.slice(1); 
 function toCamelCase(str) { return str.charAt(0).toLowerCase() + str.slice(1); }
 
 // ── Generate entity file ──────────────────────────────────────────────
-function generateEntityFile(def, enumValues, extraProps) {
+function generateEntityFile(def, enumValues, extraProps, targetPathByName) {
   const ifaceName = toPascalCase(def.predicatePath);
   const entityConstName = `${ifaceName}Entity`;
   const ifaceProps = [];
@@ -95,7 +95,8 @@ function generateEntityFile(def, enumValues, extraProps) {
     entityProps.push(`    { name: '${toCamelCase(p.propertyName)}', type: '${p.clrType}', isCollection: false },`);
   }
   for (const r of def.owningRelations) {
-    entityProps.push(`    { name: '${toCamelCase(r.propertyName)}', type: 'EntityRef', isCollection: ${r.isCollection} },`);
+    const targetPath = targetPathByName?.get(r.relatedEntityName) ?? r.relatedEntityName;
+    entityProps.push(`    { name: '${toCamelCase(r.propertyName)}', type: 'EntityRef', isCollection: ${r.isCollection}, targetEntityPath: '${targetPath}' },`);
   }
   if (extraProps && extraProps.length > 0) {
     for (const p of extraProps) {
@@ -261,12 +262,18 @@ async function main() {
     '',
   ];
 
+  const targetPathByName = new Map();
+  for (const def of items) {
+    targetPathByName.set(def.name, restPath(def));
+  }
+
   let count = 0;
   for (const def of items) {
     const content = generateEntityFile(
       def,
       enumValueMap.get(def.predicatePath) ?? null,
       inferredProps.get(def.predicatePath) ?? null,
+      targetPathByName,
     );
     const fileName = `${def.predicatePath}.entity.ts`;
     fs.writeFileSync(`${ENTITIES_DIR}${fileName}`, content, 'utf-8');

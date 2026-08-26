@@ -45,6 +45,12 @@ using Aletheia.Sdk.Program.Aspects;
 using Aletheia.Sdk.Program.Capabilities;
 using Aletheia.Sdk.Program.Entities.RealEstate;
 
+// ── AI — chat + scenario flows ─────────────────────────────────────────────
+using Aletheia.Sdk.AI.DependencyInjection;
+using Aletheia.Sdk.AI.Http;
+using Aletheia.Sdk.AI.Scenarios;
+using Aletheia.Sdk.Program.AI;
+
 // ══════════════════════════════════════════════════════════════════════════════
 // SERVICE CONFIGURATION
 // ══════════════════════════════════════════════════════════════════════════════
@@ -111,6 +117,11 @@ builder.Services.AddAspectsEntity();
 builder.Services.AddCapabilityEntity(typeof(GreetHandler).Assembly);
 builder.Services.AddEntityEntity(typeof(Property).Assembly);
 
+// AI — chat + scenario flows. Ontology and tools require the registries above.
+builder.Services.AddAIOntology();
+builder.Services.AddAITools();
+builder.Services.AddAI(builder.Configuration);
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MIDDLEWARE PIPELINE
 // ══════════════════════════════════════════════════════════════════════════════
@@ -138,6 +149,9 @@ var aspectStore = app.Services.GetRequiredService<IAspectStore>();
 // exploration endpoint api/entities/aspect-definitions/{iri}/view.
 ViewAspects.RegisterViews(aspectStore);
 
+// AI scenario flows — code-defined form-filling packs (property create/edit).
+AiScenarios.Register(app.Services.GetRequiredService<ScenarioRegistry>());
+
 // ── Map endpoints ───────────────────────────────────────────────────────────
 
 app.MapCapabilities();       // POST /api/capabilities/{name}
@@ -153,6 +167,9 @@ if (branching)
 app.MapEntityEntity();
 app.MapCapabilityEntity();
 app.MapAspectsEntity();
+
+// AI — SSE chat and scenario-flow endpoints.
+app.MapAiEndpoints();
 
 // ── SPA fallback — serves index.html for client-side routes ──────────────────
 app.MapFallbackToFile("index.html");

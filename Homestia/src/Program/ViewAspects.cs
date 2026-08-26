@@ -45,26 +45,31 @@ public static class ViewAspects
             sh:targetClass <urn:aletheia:homestia:Property> ;
             sh:property [
                 sh:path json:name ; sh:order 1 ;
+                sh:description "A short human-readable name for the property." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.property.name" ;
             ] ;
             sh:property [
                 sh:path json:address ; sh:order 2 ;
+                sh:description "The full postal address of the property." ;
                 sh:minCount 1 ; sh:minLength 5 ; sh:datatype xsd:string ;
                 sh:message "shape.property.address" ;
             ] ;
             sh:property [
                 sh:path json:propertyType ; sh:order 3 ;
+                sh:description "IRI reference to the property type; discover valid IRIs via the list tool." ;
                 sh:minCount 1 ; sh:nodeKind sh:IRI ;
                 sh:message "shape.property.propertyType" ;
             ] ;
             sh:property [
                 sh:path json:rentalModel ; sh:order 4 ;
+                sh:description "Optional IRI reference to the rental model." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.property.rentalModel" ;
             ] ;
             sh:property [
                 sh:path json:rooms ; sh:order 5 ;
+                sh:description "The rooms of this property; each validated against the room shape." ;
                 sh:node <urn:aletheia:homestia:shapes:room> ;
                 sh:message "shape.property.rooms" ;
             ] .
@@ -85,27 +90,32 @@ public static class ViewAspects
             sh:targetClass <urn:aletheia:homestia:Room> ;
             sh:property [
                 sh:path json:name ; sh:order 1 ;
+                sh:description "A short name for the room, e.g. 'Kitchen' or 'Room 1'." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.room.name" ;
             ] ;
             sh:property [
                 sh:path json:location ; sh:order 2 ;
+                sh:description "Optional location or floor within the property." ;
                 sh:minLength 2 ; sh:datatype xsd:string ;
                 sh:message "shape.room.location" ;
             ] ;
             sh:property [
                 sh:path json:roomSize ; sh:order 3 ;
+                sh:description "The room's area in square metres, between 1 and 1000." ;
                 sh:minCount 1 ; sh:datatype xsd:decimal ;
                 sh:minInclusive 1 ; sh:maxInclusive 1000 ;
                 sh:message "shape.room.roomSize" ;
             ] ;
             sh:property [
                 sh:path json:furnishingStatus ; sh:order 4 ;
+                sh:description "Optional IRI reference to the furnishing status." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.furnishingStatus" ;
             ] ;
             sh:property [
                 sh:path json:roomStatus ; sh:order 5 ;
+                sh:description "Optional IRI reference to the room status." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.roomStatus" ;
             ] .

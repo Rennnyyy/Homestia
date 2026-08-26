@@ -1,8 +1,8 @@
-import { Component, inject, signal, OnInit, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, viewChild } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
-import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen, LucideCheck, LucideSparkles } from '@lucide/angular';
+import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen, LucideCheck, LucideSparkles, LucideAlertTriangle } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
 import { AletheiaHttpClient } from '../../shared/services/aletheia-http-client';
 import { EntitySyncService } from '../../shared/services/entity-sync.service';
@@ -41,6 +41,7 @@ interface CreateStepDef {
     LucideDoorOpen,
     LucideCheck,
     LucideSparkles,
+    LucideAlertTriangle,
     DynamicEntityFormComponent,
     DynamicEntityTableComponent,
     ConfirmDialogComponent,
@@ -88,6 +89,28 @@ interface CreateStepDef {
       }
       @if (mode() === 'edit') {
         <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.editSubtext' | transloco }}</p>
+      }
+
+      <!-- Partial AI fill warning: the assistant may have left details blank -->
+      @if (aiWarnings().length > 0 && (mode() === 'create' || mode() === 'edit')) {
+        <div class="ai-fill-warning">
+          <div class="flex items-start gap-2">
+            <svg lucideAlertTriangle class="size-6 text-amber-500" style="flex-shrink: 0; margin-top: 2px;"></svg>
+            <div class="flex-1">
+              <p class="ai-fill-warning-title">{{ 'ai.warningTitle' | transloco }}</p>
+              <ul class="ai-fill-warning-list">
+                @for (violation of aiWarnings(); track $index) {
+                  <li>{{ violation.message | transloco }}</li>
+                }
+              </ul>
+              <p class="ai-fill-warning-hint">{{ 'ai.warningHint' | transloco }}</p>
+            </div>
+            <button hlmBtn size="sm" variant="outline" class="text-foreground" style="flex-shrink: 0;" (click)="reopenAiWizard()">
+              <svg lucideSparkles class="size-4 mr-1"></svg>
+              {{ 'ai.askAgain' | transloco }}
+            </button>
+          </div>
+        </div>
       }
 
       <!-- List mode: table -->
@@ -446,7 +469,17 @@ interface CreateStepDef {
         <app-ai-assistant-wizard
           [textScenarioKey]="AI_SCENARIO_CREATE_TEXT"
           [photosScenarioKey]="AI_SCENARIO_CREATE_PHOTOS"
+          [editTextScenarioKey]="AI_SCENARIO_EDIT_TEXT"
+          [editPhotosScenarioKey]="AI_SCENARIO_EDIT_PHOTOS"
+          [completeTextScenarioKey]="AI_SCENARIO_COMPLETE_TEXT"
+          [completePhotosScenarioKey]="AI_SCENARIO_COMPLETE_PHOTOS"
+          [intentTextScenarioKey]="AI_SCENARIO_INTENT_TEXT"
+          [intentPhotosScenarioKey]="AI_SCENARIO_INTENT_PHOTOS"
+          [existingProperties]="aiExistingProperties()"
+          [draft]="aiDraft()"
+          [draftIri]="aiDraftIri()"
           (proposal)="onAiProposal($event)"
+          (editIri)="aiEditIri.set($event)"
           (close)="aiWizardOpen.set(false)"
         />
       }
@@ -460,6 +493,34 @@ interface CreateStepDef {
       box-shadow: 0 0 0 1px var(--destructive);
     }
     /* The AI assistant entry button — friendly gradient, easy to spot. */
+    /* Partial AI fill warning — amber callout with the missing details. */
+    .ai-fill-warning {
+      border: 1px solid color-mix(in oklch, #f59e0b 45%, transparent);
+      background: color-mix(in oklch, #f59e0b 10%, transparent);
+      border-radius: 0.9rem;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 16px;
+    }
+    .ai-fill-warning-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--foreground);
+      margin: 0;
+    }
+    .ai-fill-warning-list {
+      margin: 0.4rem 0 0;
+      padding-left: 1.2rem;
+      color: var(--muted-foreground);
+      font-size: 0.98rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .ai-fill-warning-hint {
+      font-size: 0.92rem;
+      color: var(--muted-foreground);
+      margin: 0.4rem 0 0;
+    }
     .ai-magic-button {
       background: linear-gradient(135deg, oklch(0.541 0.281 293.009), oklch(0.623 0.214 259.815));
       color: #fff;
@@ -522,6 +583,12 @@ export class Properties implements OnInit {
   readonly ROOM_SHAPE_KEY = ROOM_SHAPE_IRI;
   readonly AI_SCENARIO_CREATE_TEXT = 'property.create.text';
   readonly AI_SCENARIO_CREATE_PHOTOS = 'property.create.photos';
+  readonly AI_SCENARIO_EDIT_TEXT = 'property.edit.text';
+  readonly AI_SCENARIO_EDIT_PHOTOS = 'property.edit.photos';
+  readonly AI_SCENARIO_COMPLETE_TEXT = 'property.complete.text';
+  readonly AI_SCENARIO_COMPLETE_PHOTOS = 'property.complete.photos';
+  readonly AI_SCENARIO_INTENT_TEXT = 'property.intent.text';
+  readonly AI_SCENARIO_INTENT_PHOTOS = 'property.intent.photos';
   readonly formRef = viewChild(DynamicEntityFormComponent);
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);
@@ -530,6 +597,40 @@ export class Properties implements OnInit {
   readonly confirmingDelete = signal(false);
   readonly deletingItem = signal<Record<string, unknown> | null>(null);
   readonly aiWizardOpen = signal(false);
+  readonly aiEditIri = signal<string | null>(null);
+  readonly aiWarnings = signal<ShapeViolation[]>([]);
+
+  /** Existing properties handed to the AI wizard for intent detection and edit picking. */
+  readonly aiExistingProperties = computed(() =>
+    this.items().map((p) => {
+      const record = p as unknown as Record<string, unknown>;
+      return {
+        ...record,
+        iri: (record['iri'] as string) ?? '',
+        name: (record['name'] as string) ?? '',
+        address: (record['address'] as string) ?? '',
+      };
+    }),
+  );
+
+  /**
+   * The in-progress draft handed to the wizard when the user taps "Ask again":
+   * the AI completes/corrects it (e.g. "add address …") instead of starting over.
+   */
+  readonly aiDraft = computed<Record<string, unknown> | null>(() => {
+    if (this.mode() === 'edit') {
+      return this.editingItem() ? { ...this.editingItem()!, rooms: this.rooms() } : null;
+    }
+    if (this.mode() === 'create') {
+      return this.pendingProperty() ? { ...this.pendingProperty()!, rooms: this.rooms() } : null;
+    }
+    return null;
+  });
+
+  /** The draft's property IRI when "Ask again" continues an existing edit. */
+  readonly aiDraftIri = computed<string | null>(() =>
+    this.mode() === 'edit' ? ((this.editingItem()?.['iri'] as string) ?? null) : null,
+  );
 
   readonly editingItem = signal<Record<string, unknown> | null>(null);
   readonly rooms = signal<Record<string, unknown>[]>([]);
@@ -565,20 +666,85 @@ export class Properties implements OnInit {
   }
 
   /**
-   * The AI wizard produced a validated proposal — enter create mode at the
-   * review step with the proposal pre-filled, ready for a final look.
+   * The AI wizard produced a proposal. When the AI detected an edit of an
+   * existing property, apply it in edit mode; otherwise create a new one.
+   * A partial fill is fine — missing details surface as a warning.
    */
-  onAiProposal(data: Record<string, unknown>): void {
+  async onAiProposal(data: Record<string, unknown>): Promise<void> {
     this.aiWizardOpen.set(false);
-    this.enterCreate();
-    this.applyAiProposal(data);
+    const iri = this.aiEditIri();
+    this.aiEditIri.set(null);
+    if (iri) {
+      await this.applyAiEditProposal(data, iri);
+    } else {
+      this.enterCreate();
+      await this.applyAiProposal(data);
+    }
+  }
+
+  /**
+   * Applies the AI's validated edit proposal to an existing property: field
+   * changes land on editingItem (edit mode) and rooms are refreshed — either
+   * from the proposal or from the property's existing segmentation.
+   */
+  async applyAiEditProposal(data: Record<string, unknown>, iri: string): Promise<void> {
+    const existing = this.items().find((p) => p['iri'] === iri);
+    if (!existing) {
+      // The property is gone — fall back to creating a new one.
+      this.enterCreate();
+      await this.applyAiProposal(data);
+      return;
+    }
+
+    const { rooms: proposedRooms, ...propertyData } = data;
+    const merged: Record<string, unknown> = { ...existing, ...propertyData, iri };
+    for (const [key, value] of Object.entries(merged)) {
+      if (typeof value === 'object' && value !== null && 'iri' in value) {
+        merged[key] = (value as { iri: string }).iri;
+      }
+    }
+    this.editingItem.set(merged);
+    this.originalRooms.set([]);
+    this.validationErrors.set([]);
+    this.openRoomIndices.set(new Set());
+    this.mode.set('edit');
+
+    if (Array.isArray(proposedRooms) && proposedRooms.length > 0) {
+      this.rooms.set(proposedRooms.map((room) => ({ ...(room as Record<string, unknown>) })));
+      this.originalRooms.set(structuredClone(this.rooms()));
+      await this.refreshAiWarnings(data);
+      return;
+    }
+
+    // No rooms in the proposal — load the existing ones as in enterEdit.
+    this.rooms.set([]);
+    const children = existing['segmentedInto'];
+    if (Array.isArray(children) && children.length > 0) {
+      const roomIRIs: string[] = children
+        .map((c: unknown) => {
+          if (typeof c === 'object' && c !== null && 'iri' in (c as object)) return (c as { iri: string }).iri;
+          if (typeof c === 'string') return c;
+          return '';
+        })
+        .filter(Boolean);
+      if (roomIRIs.length > 0) {
+        const fetches = roomIRIs.map((riri) =>
+          this.aletheia.get<Record<string, unknown>>(RoomEntity.entityPath!, riri),
+        );
+        forkJoin(fetches).subscribe((loadedRooms) => {
+          this.rooms.set(loadedRooms as Record<string, unknown>[]);
+          this.originalRooms.set(structuredClone(loadedRooms) as Record<string, unknown>[]);
+        });
+      }
+    }
+    await this.refreshAiWarnings(data);
   }
 
   /**
    * Applies the AI's validated create proposal: property fields land in
    * pendingProperty (review) and any rooms populate the room list.
    */
-  applyAiProposal(data: Record<string, unknown>): void {
+  async applyAiProposal(data: Record<string, unknown>): Promise<void> {
     const { rooms: proposedRooms, ...propertyData } = data;
     this.pendingProperty.set({ ...propertyData });
     this.rooms.set(
@@ -588,6 +754,24 @@ export class Properties implements OnInit {
     );
     this.createStep.set('review');
     this.mode.set('create');
+    await this.refreshAiWarnings(data);
+  }
+
+  /**
+   * The AI is allowed to fill only part of the form — validate the proposal
+   * against the strict shape and surface anything missing as a warning.
+   */
+  private async refreshAiWarnings(data: Record<string, unknown>): Promise<void> {
+    const violations = await this.validator.validate(PROPERTY_SHAPE_IRI, {
+      ...data,
+      rooms: this.rooms(),
+    });
+    this.aiWarnings.set(violations);
+  }
+
+  /** Lets the user chat / voice again to complete a partial fill. */
+  reopenAiWizard(): void {
+    this.aiWizardOpen.set(true);
   }
 
   refresh(): void {
@@ -612,6 +796,7 @@ export class Properties implements OnInit {
     this.createStep.set('details');
     this.openRoomIndices.set(new Set());
     this.validationErrors.set([]);
+    this.aiWarnings.set([]);
     this.mode.set('create');
   }
 
@@ -626,6 +811,7 @@ export class Properties implements OnInit {
     this.rooms.set([]);
     this.originalRooms.set([]);
     this.validationErrors.set([]);
+    this.aiWarnings.set([]);
     this.mode.set('edit');
 
     // Load existing rooms from segmentedInto (inherited from Segmentation)
@@ -655,6 +841,7 @@ export class Properties implements OnInit {
     this.createStep.set('details');
     this.openRoomIndices.set(new Set());
     this.validationErrors.set([]);
+    this.aiWarnings.set([]);
     this.mode.set('list');
   }
 

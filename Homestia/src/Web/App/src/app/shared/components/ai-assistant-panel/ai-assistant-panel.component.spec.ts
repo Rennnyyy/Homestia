@@ -13,7 +13,7 @@
  * logic runs deterministically in jsdom.
  */
 import { Injectable } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideTransloco, TranslocoLoader } from '@jsverse/transloco';
 import { of } from 'rxjs';
@@ -54,6 +54,7 @@ class FakeMediaRecorder {
 describe('AiAssistantPanelComponent — voice input', () => {
   let flowMock: { runScenario: ReturnType<typeof vi.fn> };
   let component: AiAssistantPanelComponent;
+  let fixture: ComponentFixture<AiAssistantPanelComponent>;
 
   beforeEach(async () => {
     // Stub browser media APIs.
@@ -78,7 +79,7 @@ describe('AiAssistantPanelComponent — voice input', () => {
       ],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(AiAssistantPanelComponent);
+    fixture = TestBed.createComponent(AiAssistantPanelComponent);
     fixture.componentRef.setInput('textScenarioKey', 'property.create.text');
     fixture.componentRef.setInput('photosScenarioKey', 'property.create.photos');
     component = fixture.componentInstance;
@@ -106,13 +107,10 @@ describe('AiAssistantPanelComponent — voice input', () => {
     expect(component.recording()).toBe(false);
   });
 
-  it('sends the recorded voice as an audio content part alongside text', async () => {
-    await component.onToggleRecord();
-    await component.onToggleRecord();
-    await vi.waitFor(() => expect(component.audio()).not.toBeNull());
-
-    component.prompt.set('near the park');
-    await component.submit();
+  it('stops recording and immediately sends the voice note (auto-send)', async () => {
+    await component.onToggleRecord(); // start
+    await component.onToggleRecord(); // stop → auto-send
+    await vi.waitFor(() => expect(flowMock.runScenario).toHaveBeenCalledTimes(1));
 
     const [scenarioKey, , parts] = flowMock.runScenario.mock.calls[0] as [
       string,
@@ -126,13 +124,117 @@ describe('AiAssistantPanelComponent — voice input', () => {
     expect(parts.find((p) => p.type === 'audio')?.url).toMatch(/^data:audio\/webm;base64,/);
   });
 
-  it('allows submitting with voice only (no text prompt)', async () => {
+  it('keeps the voice note attached after it is sent', async () => {
     await component.onToggleRecord();
     await component.onToggleRecord();
     await vi.waitFor(() => expect(component.audio()).not.toBeNull());
+    await vi.waitFor(() => expect(flowMock.runScenario).toHaveBeenCalledTimes(1));
 
+    expect(component.audio()!.mime).toBe('audio/webm');
+    expect(component.audio()!.duration).toBeGreaterThanOrEqual(0);
+    // The note stays attached after the flow settles so the user sees it was captured.
+    expect(component.audio()).not.toBeNull();
+  });
+
+  it('shows a friendly summary when the AI flow completes', async () => {
+    flowMock.runScenario.mockResolvedValueOnce({
+      kind: 'completed',
+      finalOutput: { name: 'Flat', address: 'Main St 1', rooms: [] },
+    });
+    component.prompt.set('a flat');
     await component.submit();
+    expect(component.failed()).toBe(false);
+    expect(component.summary()).toBeTruthy();
+  });
+
+  it('shows only a friendly summary when the AI flow fails', async () => {
+    flowMock.runScenario.mockResolvedValueOnce({
+      kind: 'error',
+      message: 'Step fill_form failed after 4 attempt(s): some raw error',
+    });
+    component.prompt.set('a flat');
+    await component.submit();
+    expect(component.failed()).toBe(true);
+    expect(component.summary()).toBeTruthy();
+    // The raw error text is never surfaced to the user.
+    expect(component.summary()).not.toContain('fill_form');
+  });
+
+  it('routes to the edit scenario when the AI detects an edit of an existing property', async () => {
+    fixture.componentRef.setInput('existingProperties', [
+      { iri: 'prop-1', name: 'Flat Berlin', address: 'Main St 1' },
+    ]);
+    fixture.componentRef.setInput('editTextScenarioKey', 'property.edit.text');
+    fixture.componentRef.setInput('intentTextScenarioKey', 'property.intent.text');
+
+    flowMock.runScenario
+      .mockResolvedValueOnce({ kind: 'completed', finalOutput: { intent: 'edit', propertyIri: 'prop-1' } })
+      .mockResolvedValueOnce({ kind: 'completed', finalOutput: { name: 'Edited Flat', address: 'Main St 1' } });
+
+    const emitted: (string | null)[] = [];
+    component.editIri.subscribe((value) => emitted.push(value));
+
+    component.prompt.set('change the rent of Flat Berlin');
+    await component.submit();
+
+    expect(flowMock.runScenario).toHaveBeenCalledTimes(2);
+    // First call = intent detection, second = the edit fill with the property as context.
+    const intentCall = flowMock.runScenario.mock.calls[0] as [string, Record<string, unknown>, AiContentPart[]];
+    const editCall = flowMock.runScenario.mock.calls[1] as [string, Record<string, unknown>, AiContentPart[]];
+    expect(intentCall[0]).toBe('property.intent.text');
+    expect(intentCall[1]).toEqual(
+      expect.objectContaining({ properties: [{ iri: 'prop-1', name: 'Flat Berlin', address: 'Main St 1' }] }),
+    );
+    expect(editCall[0]).toBe('property.edit.text');
+    expect(editCall[1]).toEqual(expect.objectContaining({ current: expect.objectContaining({ iri: 'prop-1' }) }));
+    expect(emitted).toEqual(['prop-1']);
+    expect(component.pickProperty()).toBe(false);
+  });
+
+  it('shows the property picker when an edit is intended but nothing matched', async () => {
+    fixture.componentRef.setInput('existingProperties', [
+      { iri: 'prop-1', name: 'Flat Berlin', address: 'Main St 1' },
+    ]);
+    fixture.componentRef.setInput('intentTextScenarioKey', 'property.intent.text');
+
+    flowMock.runScenario.mockResolvedValueOnce({
+      kind: 'completed',
+      finalOutput: { intent: 'edit', propertyIri: '' },
+    });
+
+    component.prompt.set('change something');
+    await component.submit();
+
     expect(flowMock.runScenario).toHaveBeenCalledTimes(1);
+    expect(component.pickProperty()).toBe(true);
+  });
+
+  it('continues a draft via the complete scenario when "Ask again" provides one', async () => {
+    fixture.componentRef.setInput('draft', { name: 'Sunny Studio', address: '', rooms: [] });
+    fixture.componentRef.setInput('draftIri', null);
+    fixture.componentRef.setInput('completeTextScenarioKey', 'property.complete.text');
+    fixture.componentRef.setInput('intentTextScenarioKey', 'property.intent.text');
+
+    flowMock.runScenario.mockResolvedValueOnce({
+      kind: 'completed',
+      finalOutput: { name: 'Sunny Studio', address: 'Main St 1', rooms: [] },
+    });
+
+    const emitted: (string | null)[] = [];
+    component.editIri.subscribe((value) => emitted.push(value));
+
+    component.prompt.set('add address Main St 1');
+    await component.submit();
+
+    // No intent detection call — the draft is a continuation, not create-vs-edit.
+    expect(flowMock.runScenario).toHaveBeenCalledTimes(1);
+    const call = flowMock.runScenario.mock.calls[0] as [string, Record<string, unknown>, AiContentPart[]];
+    expect(call[0]).toBe('property.complete.text');
+    expect(call[1]).toEqual(
+      expect.objectContaining({ current: expect.objectContaining({ name: 'Sunny Studio' }) }),
+    );
+    // A create draft has no property IRI → editIri stays null.
+    expect(emitted).toEqual([null]);
   });
 
   it('shows a friendly error when the microphone is unavailable', async () => {

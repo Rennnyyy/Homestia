@@ -1,10 +1,24 @@
 import { Component, ElementRef, inject, input, output, signal, viewChild, type OnDestroy } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslocoPipe } from '@jsverse/transloco';
-import { HlmButton } from '@spartan-ng/helm/button';
-import { LucideSparkles, LucideImage, LucideSend, LucideMic, LucideSquare, LucideVolume2, LucideX } from '@lucide/angular';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import {
+  LucideSparkles,
+  LucidePaperclip,
+  LucideMic,
+  LucideSquare,
+  LucideArrowUp,
+  LucideX,
+} from '@lucide/angular';
 import { AiFlowService, type AiContentPart, type AiFlowEvent } from '../../../core/ai/ai-flow.service';
+
+/** A property the AI can match against when deciding create vs edit. */
+export interface AiExistingProperty {
+  iri: string;
+  name?: string;
+  address?: string;
+  [key: string]: unknown;
+}
 
 /**
  * AiAssistantPanel — the visible face of AI-assisted form filling.
@@ -16,13 +30,32 @@ import { AiFlowService, type AiContentPart, type AiFlowEvent } from '../../../co
  * browser and sent to the backend as a raw audio content part with its real
  * media type — the SDK transcribes it and feeds the text into the flow.
  *
- * Typography and touch targets are sized for a 50+ audience: large text,
- * generous tap areas, high-contrast labels.
+ * The composer is ChatGPT-shaped but sized for a 50+ audience: a large text
+ * field with an attachment (paperclip) button and a microphone right next to
+ * it, and a round send button. Clicking the microphone starts recording —
+ * the composer shows a "Listening…" area with a live timer and an explicit
+ * Stop button. Stopping immediately sends the voice note; the final voice
+ * note is shown inside the composer so the user knows it was captured.
+ *
+ * Once the flow settles — success or failure — the panel shows a single
+ * plain-language summary of the outcome and nothing else: no raw token
+ * stream, no raw error text. Typography and touch targets stay oversized for
+ * a 50+ audience.
  */
 @Component({
   selector: 'app-ai-assistant-panel',
   standalone: true,
-  imports: [FormsModule, TranslocoPipe, HlmButton, NgTemplateOutlet, LucideSparkles, LucideImage, LucideSend],
+  imports: [
+    FormsModule,
+    TranslocoPipe,
+    NgTemplateOutlet,
+    LucideSparkles,
+    LucidePaperclip,
+    LucideMic,
+    LucideSquare,
+    LucideArrowUp,
+    LucideX,
+  ],
   template: `
     @if (framed()) {
       <div class="border border-border rounded-lg px-4 py-3" style="margin: 16px 0;">
@@ -33,104 +66,276 @@ import { AiFlowService, type AiContentPart, type AiFlowEvent } from '../../../co
     }
 
     <ng-template #content>
-      <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 20px; line-height: 1;">
-        <svg lucideSparkles class="size-6 text-primary"></svg>
-        <span>{{ 'ai.title' | transloco }}</span>
-      </div>
+      <div class="ai-panel">
+        <!-- Heading -->
+        <div class="ai-heading">
+          <svg lucideSparkles class="size-6 text-primary"></svg>
+          <span>{{ 'ai.title' | transloco }}</span>
+        </div>
 
-      <!-- Photo previews -->
-      @if (images().length > 0) {
-        <div class="flex flex-wrap gap-2" style="margin-top: 12px;">
-          @for (img of images(); track img.dataUrl; let i = $index) {
-            <div class="relative">
-              <img [src]="img.dataUrl" alt="" class="size-20 object-cover rounded border border-border" />
-              <button type="button" class="absolute -top-1.5 -right-1.5 size-6 rounded-full bg-destructive text-white text-sm leading-none" (click)="removeImage(i)">×</button>
+        <!-- Attached photos -->
+        @if (images().length > 0) {
+          <div class="ai-photos">
+            @for (img of images(); track img.dataUrl; let i = $index) {
+              <div class="relative">
+                <img [src]="img.dataUrl" alt="" class="size-20 object-cover rounded border border-border" />
+                <button type="button" class="ai-remove-chip" (click)="removeImage(i)" [attr.aria-label]="'ai.removePhoto' | transloco">×</button>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Recording error -->
+        @if (recordingError()) {
+          <p class="ai-error-text">{{ recordingError() | transloco }}</p>
+        }
+
+        <!-- Progress while the AI works -->
+        @if (running()) {
+          <div class="ai-progress">
+            <span class="animate-pulse">{{ status() | transloco }}</span>
+          </div>
+        }
+
+        <!-- Outcome summary — the only thing shown once the AI settles -->
+        @if (summary()) {
+          <div class="ai-summary" [class.ai-summary-error]="failed()">
+            <span class="ai-summary-icon" aria-hidden="true">
+              @if (failed()) {
+                <svg lucideX class="size-5"></svg>
+              } @else {
+                <svg lucideSparkles class="size-5"></svg>
+              }
+            </span>
+            <div>
+              <p class="ai-summary-text">{{ summary() }}</p>
+              @if (!failed()) {
+                <p class="ai-summary-hint">{{ 'ai.summaryHint' | transloco }}</p>
+              }
             </div>
-          }
-        </div>
-      }
+          </div>
+        }
 
-      <!-- Recording indicator -->
-      @if (recording()) {
-        <div class="flex items-center gap-2" style="margin-top: 12px;">
-          <span class="ai-recording-dot" aria-hidden="true"></span>
-          <span class="text-destructive" style="font-size: 1.05rem;">{{ 'ai.recording' | transloco }}</span>
-        </div>
-      }
+        <!-- Edit target picker (AI detected an edit but no property matched) -->
+        @if (pickProperty()) {
+          <div class="ai-pick">
+            <p class="ai-pick-title">{{ 'ai.pickPropertyTitle' | transloco }}</p>
+            <p class="ai-pick-hint">{{ 'ai.pickPropertyHint' | transloco }}</p>
+            <div class="ai-pick-list">
+              @for (p of existingProperties(); track p.iri) {
+                <button type="button" class="ai-pick-option" (click)="startEdit(p)">
+                  <span class="ai-pick-name">{{ p.name }}</span>
+                  @if (p.address) {
+                    <span class="ai-pick-address">{{ p.address }}</span>
+                  }
+                </button>
+              }
+            </div>
+            <button type="button" class="ai-pick-cancel" (click)="cancelPick()">
+              {{ 'ai.pickCancel' | transloco }}
+            </button>
+          </div>
+        }
 
-      <!-- Voice note preview -->
-      @if (audio()) {
-        <div class="flex items-center gap-2 rounded-md border border-border px-3 py-2" style="margin-top: 12px; background: var(--muted);">
-          <svg lucideMic class="size-5 text-primary"></svg>
-          <span class="text-foreground" style="font-size: 1rem;">{{ 'ai.voiceAdded' | transloco }}</span>
-          <span class="text-sm text-muted-foreground">{{ formatDuration(audio()!.duration) }}</span>
-          <button type="button" class="ai-voice-play" (click)="playAudio()" [attr.aria-label]="'ai.playVoice' | transloco">
-            <svg lucideVolume2 class="size-5"></svg>
-          </button>
-          <div class="flex-1"></div>
-          <button type="button" class="ai-voice-remove" (click)="removeAudio()" [attr.aria-label]="'ai.removeVoice' | transloco">
-            <svg lucideX class="size-5"></svg>
-          </button>
-        </div>
-      }
-
-      <!-- Recording error -->
-      @if (recordingError()) {
-        <p class="text-base text-destructive" style="margin-top: 10px; font-size: 1rem;">{{ recordingError() | transloco }}</p>
-      }
-
-      <!-- Prompt -->
-      <textarea
-        [(ngModel)]="prompt"
-        class="w-full border border-border rounded-md bg-transparent px-3 py-3 text-base text-foreground"
-        style="margin-top: 14px; min-height: 110px; font-size: 1.05rem;"
-        [placeholder]="'ai.placeholder' | transloco"
-        (keydown.meta.enter)="submit()"
-        (keydown.ctrl.enter)="submit()"
-      ></textarea>
-
-      <!-- Progress -->
-      @if (running()) {
-        <div class="flex items-center gap-2 text-base text-muted-foreground" style="margin-top: 10px;">
-          <span class="animate-pulse" style="font-size: 1.05rem;">{{ status() | transloco }}</span>
-        </div>
-      }
-      @if (stream()) {
-        <p class="text-sm text-muted-foreground truncate" style="margin-top: 8px;">{{ stream() }}</p>
-      }
-      @if (error()) {
-        <p class="text-base text-destructive" style="margin-top: 10px; font-size: 1rem;">{{ error() }}</p>
-      }
-      @if (done()) {
-        <p class="text-base text-primary" style="margin-top: 10px; font-size: 1rem;">{{ 'ai.applied' | transloco }}</p>
-      }
-
-      <!-- Actions -->
-      <div class="flex items-center gap-2" style="margin-top: 14px; flex-wrap: wrap;">
-        <button hlmBtn size="default" variant="outline" type="button" class="text-foreground" style="font-size: 1rem;" (click)="onToggleRecord()" [disabled]="running()">
+        <!-- Composer (ChatGPT-shaped, senior-friendly) -->
+        <div class="ai-composer" [class.ai-composer-recording]="recording()">
           @if (recording()) {
-            <svg lucideSquare class="size-5 mr-1 text-destructive"></svg>
-            {{ 'ai.stopRecording' | transloco }}
+            <!-- Listening state lives inside the composer -->
+            <div class="ai-input-area ai-listening">
+              <span class="ai-recording-dot" aria-hidden="true"></span>
+              <span class="ai-listening-label">{{ 'ai.listening' | transloco }}</span>
+              <div class="flex-1"></div>
+              <span class="ai-listening-timer">{{ formatDuration(recordingSeconds()) }}</span>
+              <button type="button" class="ai-listening-stop" (click)="onToggleRecord()" [attr.aria-label]="'ai.stopRecording' | transloco">
+                <svg lucideSquare class="size-4"></svg>
+                <span>{{ 'ai.stopRecording' | transloco }}</span>
+              </button>
+            </div>
+          } @else if (audio()) {
+            <!-- The final voice note lives inside the composer -->
+            <div class="ai-input-area ai-final-voice">
+              <svg lucideMic class="ai-final-voice-icon"></svg>
+              <span class="ai-final-voice-label">{{ 'ai.voiceAdded' | transloco }}</span>
+              <span class="ai-final-voice-duration">{{ formatDuration(audio()!.duration) }}</span>
+              <div class="flex-1"></div>
+              <button type="button" class="ai-voice-remove" (click)="removeAudio()" [attr.aria-label]="'ai.removeVoice' | transloco">
+                <svg lucideX class="size-5"></svg>
+              </button>
+            </div>
           } @else {
-            <svg lucideMic class="size-5 mr-1"></svg>
-            {{ 'ai.recordVoice' | transloco }}
+            <textarea
+              #composerInput
+              [(ngModel)]="prompt"
+              class="ai-composer-input"
+              [placeholder]="'ai.placeholder' | transloco"
+              (keydown.enter)="onSubmitKey($event)"
+              (input)="autosize()"
+            ></textarea>
           }
-        </button>
-        <button hlmBtn size="default" variant="outline" type="button" class="text-foreground" style="font-size: 1rem;" (click)="onSelectPhotos()" [disabled]="running()">
-          <svg lucideImage class="size-5 mr-1"></svg>
-          {{ 'ai.addPhotos' | transloco }}
-        </button>
-        <div class="flex-1"></div>
-        <button hlmBtn size="default" type="button" style="font-size: 1rem;" (click)="submit()" [disabled]="running() || (!prompt().trim() && images().length === 0 && !audio())">
-          <svg lucideSend class="size-5 mr-1"></svg>
-          {{ 'ai.send' | transloco }}
-        </button>
-      </div>
+          <div class="ai-composer-toolbar">
+            <button
+              type="button"
+              class="ai-icon-btn"
+              (click)="onSelectPhotos()"
+              [disabled]="running()"
+              [attr.aria-label]="'ai.attachPhotos' | transloco"
+              [title]="'ai.attachPhotos' | transloco"
+            >
+              <svg lucidePaperclip class="ai-icon-btn-svg"></svg>
+            </button>
 
-      <input #fileInput type="file" accept="image/*" multiple class="hidden" (change)="onFilesSelected($event)" />
+            <button
+              type="button"
+              class="ai-icon-btn"
+              [class.ai-mic-recording]="recording()"
+              (click)="onToggleRecord()"
+              [disabled]="running()"
+              [attr.aria-label]="recording() ? ('ai.stopRecording' | transloco) : ('ai.recordVoice' | transloco)"
+              [title]="recording() ? ('ai.stopRecording' | transloco) : ('ai.recordVoice' | transloco)"
+            >
+              @if (recording()) {
+                <svg lucideSquare class="ai-icon-btn-svg"></svg>
+              } @else {
+                <svg lucideMic class="ai-icon-btn-svg"></svg>
+              }
+            </button>
+
+            <div class="flex-1"></div>
+
+            <button
+              type="button"
+              class="ai-send-btn"
+              (click)="submit()"
+              [disabled]="!canSend()"
+              [attr.aria-label]="'ai.send' | transloco"
+              [title]="'ai.send' | transloco"
+            >
+              <svg lucideArrowUp class="ai-send-btn-svg"></svg>
+            </button>
+          </div>
+        </div>
+
+        <input #fileInput type="file" accept="image/*" multiple class="hidden" (change)="onFilesSelected($event)" />
+      </div>
     </ng-template>
   `,
   styles: [`
+    /* ── Layout ─────────────────────────────────────────────── */
+    .ai-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .ai-heading {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--foreground);
+    }
+
+    /* ── Attached photos ────────────────────────────────────── */
+    .ai-photos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .ai-remove-chip {
+      position: absolute;
+      top: -0.4rem;
+      right: -0.4rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 9999px;
+      border: none;
+      background: var(--destructive);
+      color: #fff;
+      font-size: 0.9rem;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    /* ── Composer input area: listening / final voice ───────── */
+    .ai-input-area {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-height: 52px;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.75rem;
+    }
+    .ai-listening {
+      border: 1px solid color-mix(in oklch, var(--destructive) 30%, transparent);
+      background: color-mix(in oklch, var(--destructive) 8%, transparent);
+    }
+    .ai-listening-label {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--destructive);
+    }
+    .ai-listening-timer {
+      font-size: 1rem;
+      color: var(--destructive);
+      font-variant-numeric: tabular-nums;
+    }
+    .ai-listening-stop {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      border: none;
+      background: var(--destructive);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.4rem 0.8rem;
+      border-radius: 9999px;
+      transition: filter 0.15s ease;
+    }
+    .ai-listening-stop:hover {
+      filter: brightness(1.08);
+    }
+    .ai-final-voice {
+      border: 1px solid var(--border);
+      background: var(--muted);
+    }
+    .ai-final-voice-icon {
+      width: 1.25rem;
+      height: 1.25rem;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+    .ai-final-voice-label {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--foreground);
+    }
+    .ai-final-voice-duration {
+      font-size: 0.9rem;
+      color: var(--muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+    .ai-voice-remove {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 9999px;
+      border: none;
+      background: transparent;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .ai-voice-remove:hover {
+      background: var(--secondary);
+      color: var(--destructive);
+    }
+
+    /* ── Recording pulse dot ────────────────────────────────── */
     .ai-recording-dot {
       width: 0.8rem;
       height: 0.8rem;
@@ -138,39 +343,285 @@ import { AiFlowService, type AiContentPart, type AiFlowEvent } from '../../../co
       background: var(--destructive);
       animation: aiPulse 1s ease-in-out infinite;
     }
+
+    /* ── Status lines ───────────────────────────────────────── */
+    .ai-error-text {
+      font-size: 1rem;
+      color: var(--destructive);
+      margin: 0;
+    }
+    .ai-progress {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.05rem;
+      color: var(--muted-foreground);
+    }
+
+    /* ── Outcome summary ────────────────────────────────────── */
+    .ai-summary {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      border: 1px solid color-mix(in oklch, var(--primary) 30%, transparent);
+      border-radius: 0.9rem;
+      background: color-mix(in oklch, var(--primary) 8%, transparent);
+      padding: 0.8rem 1rem;
+    }
+    .ai-summary-error {
+      border-color: color-mix(in oklch, var(--destructive) 35%, transparent);
+      background: color-mix(in oklch, var(--destructive) 8%, transparent);
+    }
+    .ai-summary-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 9999px;
+      flex-shrink: 0;
+      background: color-mix(in oklch, var(--primary) 20%, transparent);
+      color: var(--primary);
+    }
+    .ai-summary-error .ai-summary-icon {
+      background: color-mix(in oklch, var(--destructive) 18%, transparent);
+      color: var(--destructive);
+    }
+    .ai-summary-text {
+      font-size: 1.05rem;
+      line-height: 1.4;
+      color: var(--foreground);
+      margin: 0;
+    }
+    .ai-summary-hint {
+      font-size: 0.95rem;
+      color: var(--muted-foreground);
+      margin: 0.25rem 0 0;
+    }
+
+    /* ── Edit target picker ────────────────────────────────── */
+    .ai-pick {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 0.9rem;
+      background: var(--muted);
+      padding: 1rem;
+    }
+    .ai-pick-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--foreground);
+      margin: 0;
+    }
+    .ai-pick-hint {
+      font-size: 0.95rem;
+      color: var(--muted-foreground);
+      margin: 0 0 0.25rem;
+    }
+    .ai-pick-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .ai-pick-option {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.15rem;
+      text-align: left;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      background: var(--card);
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .ai-pick-option:hover {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 15%, transparent);
+    }
+    .ai-pick-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+    .ai-pick-address {
+      font-size: 0.95rem;
+      color: var(--muted-foreground);
+    }
+    .ai-pick-cancel {
+      align-self: flex-start;
+      border: none;
+      background: transparent;
+      color: var(--muted-foreground);
+      font-size: 0.95rem;
+      cursor: pointer;
+      padding: 0.35rem 0.5rem;
+      border-radius: 9999px;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .ai-pick-cancel:hover {
+      background: var(--secondary);
+      color: var(--foreground);
+    }
+
+    /* ── Composer (ChatGPT-shaped) ──────────────────────────── */
+    .ai-composer {
+      border: 2px solid var(--border);
+      border-radius: 1.25rem;
+      padding: 0.6rem 0.6rem 0.4rem;
+      background: var(--card);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .ai-composer:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 15%, transparent);
+    }
+    .ai-composer-recording {
+      border-color: var(--destructive);
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--destructive) 15%, transparent);
+    }
+    .ai-composer-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      background: transparent;
+      color: var(--foreground);
+      font-size: 1.05rem;
+      line-height: 1.5;
+      min-height: 52px;
+      max-height: 160px;
+      padding: 0.5rem 0.5rem 0.25rem;
+      font-family: inherit;
+    }
+    .ai-composer-input::placeholder {
+      color: var(--muted-foreground);
+    }
+    .ai-composer-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding-top: 0.4rem;
+    }
+    .ai-icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 9999px;
+      border: none;
+      background: transparent;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .ai-icon-btn:hover:not(:disabled) {
+      background: var(--secondary);
+      color: var(--foreground);
+    }
+    .ai-icon-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .ai-icon-btn-svg {
+      width: 1.35rem;
+      height: 1.35rem;
+    }
+    .ai-mic-recording {
+      color: #fff;
+      background: var(--destructive);
+      animation: aiMicPulse 1.2s ease-in-out infinite;
+    }
+    .ai-mic-recording:hover:not(:disabled) {
+      background: var(--destructive);
+      color: #fff;
+    }
+    .ai-mic-recording .ai-icon-btn-svg {
+      color: #fff;
+    }
+    .ai-send-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 9999px;
+      border: none;
+      background: linear-gradient(135deg, oklch(0.541 0.281 293.009), oklch(0.623 0.214 259.815));
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 14px -4px rgba(124, 58, 237, 0.5);
+      transition: filter 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+    }
+    .ai-send-btn:hover:not(:disabled) {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+    .ai-send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .ai-send-btn-svg {
+      width: 1.4rem;
+      height: 1.4rem;
+    }
+
+    /* ── Animations ─────────────────────────────────────────── */
     @keyframes aiPulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.25; }
     }
-    .ai-voice-play,
-    .ai-voice-remove {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 2.1rem;
-      height: 2.1rem;
-      border-radius: 9999px;
-      border: none;
-      background: transparent;
-      color: var(--foreground);
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .ai-voice-play:hover,
-    .ai-voice-remove:hover {
-      background: var(--secondary);
+    @keyframes aiMicPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+      50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
     }
   `],
 })
 export class AiAssistantPanelComponent implements OnDestroy {
   private readonly flow = inject(AiFlowService);
+  private readonly translate = inject(TranslocoService);
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  private readonly composerInput = viewChild<ElementRef<HTMLTextAreaElement>>('composerInput');
 
   /** Scenario key used for text-only requests. */
   readonly textScenarioKey = input.required<string>();
 
   /** Scenario key used when photos are attached. Falls back to the text key. */
   readonly photosScenarioKey = input<string>();
+
+  /** Scenario key used for editing an existing property from text. */
+  readonly editTextScenarioKey = input<string>();
+
+  /** Scenario key used for editing an existing property with photos. */
+  readonly editPhotosScenarioKey = input<string>();
+
+  /** Scenario key used to continue/correct an in-progress draft from text. */
+  readonly completeTextScenarioKey = input<string>();
+
+  /** Scenario key used to continue/correct an in-progress draft with photos. */
+  readonly completePhotosScenarioKey = input<string>();
+
+  /** Scenario key used to detect create-vs-edit intent from text/voice. */
+  readonly intentTextScenarioKey = input<string>();
+
+  /** Scenario key used to detect create-vs-edit intent with photos. */
+  readonly intentPhotosScenarioKey = input<string>();
+
+  /** Existing properties the AI can match against for edits. */
+  readonly existingProperties = input<AiExistingProperty[]>([]);
+
+  /** The in-progress draft to continue/correct (set by "Ask again"). */
+  readonly draft = input<Record<string, unknown> | null>(null);
+
+  /** The draft's property IRI when it is an existing edit (null for a create draft). */
+  readonly draftIri = input<string | null>(null);
 
   /** The current form context (existing values for edit; {} for create). */
   readonly context = input<Record<string, unknown>>({});
@@ -181,6 +632,9 @@ export class AiAssistantPanelComponent implements OnDestroy {
   /** Emits the validated form proposal when the flow completes. */
   readonly proposal = output<Record<string, unknown>>();
 
+  /** Emits the edited property's IRI (null when the flow was a create). */
+  readonly editIri = output<string | null>();
+
   /** Emits true while an AI request is running, false when it settles. */
   readonly busy = output<boolean>();
 
@@ -188,19 +642,27 @@ export class AiAssistantPanelComponent implements OnDestroy {
   readonly images = signal<{ name: string; dataUrl: string }[]>([]);
   readonly running = signal(false);
   readonly status = signal('ai.filling');
-  readonly stream = signal('');
-  readonly error = signal<string | null>(null);
-  readonly done = signal(false);
+  readonly summary = signal<string | null>(null);
+  readonly failed = signal(false);
+  readonly pickProperty = signal(false);
 
   // ── Voice recording state ────────────────────────────────────────────────
   readonly recording = signal(false);
   readonly recordingError = signal<string | null>(null);
+  readonly recordingSeconds = signal(0);
   readonly audio = signal<{ name: string; dataUrl: string; duration: number; mime: string } | null>(null);
   private mediaRecorder: MediaRecorder | null = null;
   private mediaStream: MediaStream | null = null;
   private mediaChunks: Blob[] = [];
   private recordingStartedAt = 0;
+  private recordingTimer: ReturnType<typeof setInterval> | null = null;
+  private pendingPick: { hasPhotos: boolean; parts: AiContentPart[]; input: Record<string, unknown> } | null = null;
   private destroyed = false;
+
+  /** True when there is something to send and no request is running. */
+  canSend(): boolean {
+    return !this.running() && (this.prompt().trim().length > 0 || this.images().length > 0 || !!this.audio());
+  }
 
   onSelectPhotos(): void {
     this.fileInput()?.nativeElement.click();
@@ -224,6 +686,7 @@ export class AiAssistantPanelComponent implements OnDestroy {
 
   /** Start or stop a voice recording (mic button toggle). */
   async onToggleRecord(): Promise<void> {
+    if (this.running()) return;
     if (this.recording()) {
       this.stopRecording();
       return;
@@ -234,6 +697,8 @@ export class AiAssistantPanelComponent implements OnDestroy {
   private async startRecording(): Promise<void> {
     if (this.running()) return;
     this.recordingError.set(null);
+    this.summary.set(null);
+    this.failed.set(false);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = pickSupportedAudioMimeType();
@@ -247,16 +712,19 @@ export class AiAssistantPanelComponent implements OnDestroy {
       this.mediaRecorder = recorder;
       this.mediaChunks = [];
       this.recordingStartedAt = Date.now();
+      this.recordingSeconds.set(0);
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) this.mediaChunks.push(event.data);
       };
       recorder.onstop = () => this.finishRecording(recorder, stream);
       recorder.onerror = () => {
         this.recording.set(false);
+        this.stopTimer();
         this.recordingError.set('ai.voiceError');
       };
       recorder.start();
       this.recording.set(true);
+      this.startTimer();
     } catch {
       this.recordingError.set('ai.voiceUnsupported');
     }
@@ -273,6 +741,7 @@ export class AiAssistantPanelComponent implements OnDestroy {
     this.mediaStream = null;
     this.mediaRecorder = null;
     this.recording.set(false);
+    this.stopTimer();
     if (this.destroyed) return;
 
     const duration = (Date.now() - this.recordingStartedAt) / 1000;
@@ -286,21 +755,29 @@ export class AiAssistantPanelComponent implements OnDestroy {
       // transcribes WebM/MP4/OGG directly; no client-side re-encode needed.
       const dataUrl = await blobToDataUrl(blob);
       this.audio.set({ name: audioFileName(mime), dataUrl, duration, mime });
+      // ChatGPT-like: stopping the recording immediately sends the voice note.
+      await this.submit();
     } catch {
       this.recordingError.set('ai.voiceError');
     }
   }
 
-  removeAudio(): void {
-    this.audio.set(null);
+  private startTimer(): void {
+    this.stopTimer();
+    this.recordingTimer = setInterval(() => {
+      this.recordingSeconds.set(Math.floor((Date.now() - this.recordingStartedAt) / 1000));
+    }, 250);
   }
 
-  /** Quick preview of the recorded voice note. */
-  playAudio(): void {
-    const audio = this.audio();
-    if (!audio) return;
-    const element = new Audio(audio.dataUrl);
-    void element.play().catch(() => undefined);
+  private stopTimer(): void {
+    if (this.recordingTimer !== null) {
+      clearInterval(this.recordingTimer);
+      this.recordingTimer = null;
+    }
+  }
+
+  removeAudio(): void {
+    this.audio.set(null);
   }
 
   formatDuration(seconds: number): string {
@@ -312,10 +789,27 @@ export class AiAssistantPanelComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.stopTimer();
     this.mediaStream?.getTracks().forEach((track) => track.stop());
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
+  }
+
+  /** Enter sends; Shift+Enter inserts a newline. */
+  onSubmitKey(event: Event): void {
+    const keyboardEvent = event as KeyboardEvent;
+    if (keyboardEvent.shiftKey) return;
+    event.preventDefault();
+    void this.submit();
+  }
+
+  /** Keep the composer height in step with its content. */
+  autosize(): void {
+    const el = this.composerInput()?.nativeElement;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 52), 160)}px`;
   }
 
   async submit(): Promise<void> {
@@ -325,50 +819,209 @@ export class AiAssistantPanelComponent implements OnDestroy {
     if (this.running() || (!prompt && images.length === 0 && !audio)) return;
 
     const hasPhotos = images.length > 0;
-    const scenarioKey = hasPhotos
-      ? (this.photosScenarioKey() ?? this.textScenarioKey())
-      : this.textScenarioKey();
-
-    this.running.set(true);
-    this.busy.emit(true);
-    this.done.set(false);
-    this.error.set(null);
-    this.stream.set('');
-    this.status.set(hasPhotos ? 'ai.analyzing' : 'ai.filling');
-
     const parts: AiContentPart[] = [
       ...images.map((img) => ({ type: 'image', url: img.dataUrl }) as AiContentPart),
       ...(audio ? [{ type: 'audio', url: audio.dataUrl, mime: audio.mime } as AiContentPart] : []),
     ];
     const input: Record<string, unknown> = { userPrompt: prompt, current: this.context() };
 
-    let outcome;
-    try {
-      outcome = await this.flow.runScenario(scenarioKey, input, parts, (evt) => this.handleEvent(evt));
-    } catch (err) {
-      this.running.set(false);
-      this.busy.emit(false);
-      this.status.set('ai.filling');
-      this.error.set(err instanceof Error ? err.message : 'ai.failed');
+    this.pickProperty.set(false);
+    this.pendingPick = null;
+    this.beginRun(hasPhotos);
+
+    // "Ask again" — continue/correct the in-progress draft: run the edit
+    // scenario (which preserves the draft's values) with the draft as context,
+    // so "add address …" completes it instead of starting over.
+    const draft = this.draft();
+    if (draft) {
+      // Dedicated complete scenario: applies the follow-up request on top of
+      // the draft ("add address …"), keeping everything already filled.
+      await this.runFlow(
+        hasPhotos,
+        parts,
+        { userPrompt: prompt, current: this.normalizePropertyForAi(draft) },
+        this.draftIri(),
+        'complete',
+      );
       return;
     }
 
-    this.running.set(false);
-    this.busy.emit(false);
-    this.status.set('ai.filling');
+    try {
+      // Figure out from the prompt (text or voice) whether this is a create or an edit.
+      const intent = await this.detectIntent(prompt, hasPhotos, parts);
+      if (intent?.intent === 'edit') {
+        const target = this.existingProperties().find((p) => p.iri === intent.propertyIri);
+        if (target) {
+          await this.runFlow(hasPhotos, parts, { ...input, current: this.normalizePropertyForAi(target) }, target.iri);
+          return;
+        }
+        if (this.existingProperties().length === 0) {
+          // Nothing exists to edit — treat the request as a create.
+          await this.runFlow(hasPhotos, parts, input, null);
+          return;
+        }
+        // Edit intended but nothing matched — ask the user which property.
+        this.pendingPick = { hasPhotos, parts, input };
+        this.finishRun();
+        this.pickProperty.set(true);
+        return;
+      }
+      await this.runFlow(hasPhotos, parts, input, null);
+    } catch {
+      this.finishRun();
+      this.failed.set(true);
+      this.summary.set(this.translate.translate('ai.summaryError'));
+    }
+  }
+
+  /** Detects create-vs-edit intent from the prompt (text or transcribed voice). */
+  private async detectIntent(
+    prompt: string,
+    hasPhotos: boolean,
+    parts: AiContentPart[],
+  ): Promise<{ intent: 'create' | 'edit'; propertyIri: string } | null> {
+    const key = hasPhotos
+      ? (this.intentPhotosScenarioKey() ?? this.intentTextScenarioKey())
+      : this.intentTextScenarioKey();
+    if (!key) return null;
+
+    this.status.set('ai.detecting');
+    const outcome = await this.flow.runScenario(
+      key,
+      {
+        userPrompt: prompt,
+        properties: this.existingProperties().map((p) => ({ iri: p.iri, name: p.name, address: p.address })),
+      },
+      parts,
+      () => {},
+    );
+    if (outcome.kind === 'error') return null;
+    const out = outcome.finalOutput as { intent?: string; propertyIri?: string } | undefined;
+    if (out && typeof out === 'object' && (out.intent === 'create' || out.intent === 'edit')) {
+      return { intent: out.intent, propertyIri: typeof out.propertyIri === 'string' ? out.propertyIri : '' };
+    }
+    return null;
+  }
+
+  /**
+   * Runs the fill scenario — create by default, edit when <c>editIri</c> is set
+   * or <c>mode</c> is forced to 'edit' (used for draft corrections, where the
+   * edit scenario preserves the draft's values even for a create draft).
+   */
+  private async runFlow(
+    hasPhotos: boolean,
+    parts: AiContentPart[],
+    input: Record<string, unknown>,
+    editIri: string | null,
+    mode: 'create' | 'edit' | 'complete' = editIri ? 'edit' : 'create',
+  ): Promise<void> {
+    const scenarioKey = hasPhotos
+      ? (mode === 'edit'
+          ? (this.editPhotosScenarioKey() ?? this.photosScenarioKey() ?? this.textScenarioKey())
+          : mode === 'complete'
+            ? (this.completePhotosScenarioKey() ?? this.editPhotosScenarioKey() ?? this.photosScenarioKey() ?? this.textScenarioKey())
+            : (this.photosScenarioKey() ?? this.textScenarioKey()))
+      : (mode === 'edit'
+          ? (this.editTextScenarioKey() ?? this.textScenarioKey())
+          : mode === 'complete'
+            ? (this.completeTextScenarioKey() ?? this.editTextScenarioKey() ?? this.textScenarioKey())
+            : this.textScenarioKey());
+
+    this.beginRun(hasPhotos);
+
+    let outcome;
+    try {
+      outcome = await this.flow.runScenario(scenarioKey, input, parts, (evt) => this.handleEvent(evt));
+    } catch {
+      this.finishRun();
+      this.failed.set(true);
+      this.summary.set(this.translate.translate('ai.summaryError'));
+      return;
+    }
+
+    this.finishRun();
 
     if (outcome.kind === 'error') {
-      this.error.set(outcome.message);
+      // Show only a friendly summary of the failure — never the raw error text.
+      this.failed.set(true);
+      this.summary.set(this.translate.translate('ai.summaryError'));
       return;
     }
 
     const finalOutput = outcome.finalOutput;
     if (finalOutput && typeof finalOutput === 'object' && !Array.isArray(finalOutput)) {
+      this.editIri.emit(editIri);
       this.proposal.emit(finalOutput as Record<string, unknown>);
-      this.done.set(true);
+      this.failed.set(false);
+      this.summary.set(this.buildSuccessSummary(finalOutput as Record<string, unknown>));
     } else {
-      this.error.set('ai.invalid');
+      this.failed.set(true);
+      this.summary.set(this.translate.translate('ai.summaryError'));
     }
+  }
+
+  /** The user picked an existing property to edit (intent was edit, no match). */
+  startEdit(property: AiExistingProperty): void {
+    const pending = this.pendingPick;
+    if (!pending) return;
+    this.pickProperty.set(false);
+    this.pendingPick = null;
+    void this.runFlow(
+      pending.hasPhotos,
+      pending.parts,
+      { ...pending.input, current: this.normalizePropertyForAi(property) },
+      property.iri,
+    );
+  }
+
+  cancelPick(): void {
+    this.pickProperty.set(false);
+    this.pendingPick = null;
+  }
+
+  /** Normalizes nested { iri, ... } references to plain IRI strings for the AI. */
+  private normalizePropertyForAi(property: Record<string, unknown>): Record<string, unknown> {
+    const out: Record<string, unknown> = { ...property };
+    for (const [key, value] of Object.entries(out)) {
+      if (typeof value === 'object' && value !== null && 'iri' in value) {
+        out[key] = (value as { iri: string }).iri;
+      }
+    }
+    return out;
+  }
+
+  private beginRun(hasPhotos: boolean): void {
+    this.running.set(true);
+    this.busy.emit(true);
+    this.summary.set(null);
+    this.failed.set(false);
+    this.status.set(hasPhotos ? 'ai.analyzing' : 'ai.filling');
+  }
+
+  private finishRun(): void {
+    this.running.set(false);
+    this.busy.emit(false);
+    this.status.set('ai.filling');
+  }
+
+  /** A short, plain-language recap of what the AI prepared — derived from the proposal. */
+  private buildSuccessSummary(data: Record<string, unknown>): string {
+    const name = typeof data['name'] === 'string' ? data['name'].trim() : '';
+    const address = typeof data['address'] === 'string' ? data['address'].trim() : '';
+    const roomCount = Array.isArray(data['rooms']) ? data['rooms'].length : 0;
+    const roomLabel =
+      roomCount === 1
+        ? this.translate.translate('ai.roomCountSingle')
+        : this.translate.translate('ai.roomCountPlural', { rooms: roomCount });
+    const params: Record<string, string> = { name, address, roomLabel };
+
+    let key = 'ai.summaryDoneGeneric';
+    if (name && address && roomCount > 0) key = 'ai.summaryDoneNameAddressRooms';
+    else if (name && address) key = 'ai.summaryDoneNameAddress';
+    else if (name && roomCount > 0) key = 'ai.summaryDoneNameRooms';
+    else if (name) key = 'ai.summaryDoneName';
+    else if (roomCount > 0) key = 'ai.summaryDoneRooms';
+    return this.translate.translate(key, params);
   }
 
   private handleEvent(event: AiFlowEvent): void {
@@ -378,9 +1031,6 @@ export class AiAssistantPanelComponent implements OnDestroy {
         break;
       case 'step_retry':
         this.status.set('ai.correcting');
-        break;
-      case 'token':
-        this.stream.update((current) => current + (event.delta ?? ''));
         break;
       default:
         break;

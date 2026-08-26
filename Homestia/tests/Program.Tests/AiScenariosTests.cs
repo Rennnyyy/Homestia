@@ -1,0 +1,102 @@
+using Aletheia.Sdk.AI.Scenarios;
+using Aletheia.Sdk.Program.AI;
+using Aletheia.Sdk.Program.Aspects;
+using Shouldly;
+
+namespace Aletheia.Sdk.Program.Tests;
+
+/// <summary>
+/// Unit tests for <see cref="AiScenarios"/> — the AI scenario flows for
+/// create, edit, and create-vs-edit intent detection.
+/// </summary>
+public sealed class AiScenariosTests
+{
+    private static ScenarioRegistry RegisterAll()
+    {
+        var registry = new ScenarioRegistry();
+        AiScenarios.Register(registry);
+        return registry;
+    }
+
+    [Fact]
+    public void Register_registers_all_scenario_families()
+    {
+        var registry = RegisterAll();
+
+        registry.Scenarios.Keys.ShouldBe(
+            [
+                AiScenarios.CreateText,
+                AiScenarios.CreatePhotos,
+                AiScenarios.EditText,
+                AiScenarios.EditPhotos,
+                AiScenarios.CompleteText,
+                AiScenarios.CompletePhotos,
+                AiScenarios.IntentText,
+                AiScenarios.IntentPhotos,
+            ],
+            ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Complete_scenarios_apply_a_follow_up_to_the_draft()
+    {
+        var registry = RegisterAll();
+
+        var complete = registry.Scenarios[AiScenarios.CompleteText];
+        complete.Steps.ShouldHaveSingleItem();
+        complete.Steps[0].Name.ShouldBe("complete_form");
+        // The lenient AI shape — a still-partial draft stays acceptable.
+        complete.Steps[0].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
+
+        var completePhotos = registry.Scenarios[AiScenarios.CompletePhotos];
+        completePhotos.Steps.Count.ShouldBe(2);
+        completePhotos.Steps[0].Name.ShouldBe("describe_images");
+        completePhotos.Steps[1].Name.ShouldBe("complete_form");
+        completePhotos.Steps[1].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
+    }
+
+    [Fact]
+    public void Intent_scenarios_end_with_a_detect_intent_step()
+    {
+        var registry = RegisterAll();
+
+        var text = registry.Scenarios[AiScenarios.IntentText];
+        text.Steps.ShouldHaveSingleItem();
+        text.Steps[0].Name.ShouldBe("detect_intent");
+        text.Steps[0].ViewIri.ShouldBeNull();
+
+        // The photos variant first describes images, then detects intent.
+        var photos = registry.Scenarios[AiScenarios.IntentPhotos];
+        photos.Steps.Count.ShouldBe(2);
+        photos.Steps[0].Name.ShouldBe("describe_images");
+        photos.Steps[0].TextOutput.ShouldBeTrue();
+        photos.Steps[1].Name.ShouldBe("detect_intent");
+        photos.Steps[1].ViewIri.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Edit_scenarios_validate_against_the_lenient_ai_property_shape()
+    {
+        var registry = RegisterAll();
+
+        var edit = registry.Scenarios[AiScenarios.EditText];
+        edit.Steps.ShouldHaveSingleItem();
+        edit.Steps[0].Name.ShouldBe("fill_form");
+        edit.Steps[0].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
+
+        var editPhotos = registry.Scenarios[AiScenarios.EditPhotos];
+        editPhotos.Steps.Count.ShouldBe(2);
+        editPhotos.Steps[1].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
+    }
+
+    [Fact]
+    public void Create_scenarios_build_from_the_users_request()
+    {
+        var registry = RegisterAll();
+
+        var create = registry.Scenarios[AiScenarios.CreateText];
+        create.Steps.ShouldHaveSingleItem();
+        create.Steps[0].Name.ShouldBe("fill_form");
+        create.Steps[0].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
+    }
+}

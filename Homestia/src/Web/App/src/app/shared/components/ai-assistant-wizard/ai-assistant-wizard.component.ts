@@ -14,15 +14,19 @@ interface WizardStepDef {
 
 /**
  * AiAssistantWizard — a full-screen, senior-friendly overlay that guides the
- * user through AI-assisted property creation:
+ * user through AI-assisted property creation and editing:
  *
- *   1. Describe  → free text / photos
- *   2. AI creates → the assistant fills the form (streaming progress)
+ *   1. Describe  → free text / photos / voice
+ *   2. AI creates → the assistant detects create-vs-edit, fills the form
  *   3. Review    → hand the validated proposal back to the page
  *
- * Everything is oversized for a 50+ audience: large type, big tap targets,
- * explicit labels, and a prominent close affordance. The chat surface itself
- * is the shared <app-ai-assistant-panel>, rendered frameless inside the card.
+ * When the AI detects an edit of an existing property (from the prompt or a
+ * transcribed voice note) it runs the edit scenario with that property as
+ * context, and emits its IRI so the page opens in edit mode. If the AI cannot
+ * tell which property, the panel lets the user pick one. Everything is
+ * oversized for a 50+ audience: large type, big tap targets, explicit labels,
+ * and a prominent close affordance. The chat surface itself is the shared
+ * <app-ai-assistant-panel>, rendered frameless inside the card.
  */
 @Component({
   selector: 'app-ai-assistant-wizard',
@@ -93,8 +97,18 @@ interface WizardStepDef {
               [framed]="false"
               [textScenarioKey]="textScenarioKey()"
               [photosScenarioKey]="photosScenarioKey()"
+              [editTextScenarioKey]="editTextScenarioKey()"
+              [editPhotosScenarioKey]="editPhotosScenarioKey()"
+              [completeTextScenarioKey]="completeTextScenarioKey()"
+              [completePhotosScenarioKey]="completePhotosScenarioKey()"
+              [intentTextScenarioKey]="intentTextScenarioKey()"
+              [intentPhotosScenarioKey]="intentPhotosScenarioKey()"
+              [existingProperties]="existingProperties()"
+              [draft]="draft()"
+              [draftIri]="draftIri()"
               [context]="context()"
               (proposal)="onProposal($event)"
+              (editIri)="lastEditIri.set($event)"
               (busy)="busy.set($event)"
             />
           } @else {
@@ -373,10 +387,22 @@ interface WizardStepDef {
 export class AiAssistantWizardComponent {
   readonly textScenarioKey = input.required<string>();
   readonly photosScenarioKey = input<string>();
+  readonly editTextScenarioKey = input<string>();
+  readonly editPhotosScenarioKey = input<string>();
+  readonly completeTextScenarioKey = input<string>();
+  readonly completePhotosScenarioKey = input<string>();
+  readonly intentTextScenarioKey = input<string>();
+  readonly intentPhotosScenarioKey = input<string>();
+  readonly existingProperties = input<{ iri: string; name?: string; address?: string; [key: string]: unknown }[]>([]);
+  readonly draft = input<Record<string, unknown> | null>(null);
+  readonly draftIri = input<string | null>(null);
   readonly context = input<Record<string, unknown>>({});
 
   /** Emits the validated form proposal when the user confirms the review step. */
   readonly proposal = output<Record<string, unknown>>();
+
+  /** Emits the IRI of the property the AI edited (null for a create). */
+  readonly editIri = output<string | null>();
 
   /** Emits when the wizard should be dismissed. */
   readonly close = output<void>();
@@ -384,6 +410,7 @@ export class AiAssistantWizardComponent {
   readonly phase = signal<WizardPhase>('ask');
   readonly busy = signal(false);
   private readonly lastProposal = signal<Record<string, unknown> | null>(null);
+  readonly lastEditIri = signal<string | null>(null);
 
   readonly steps: WizardStepDef[] = [
     { id: 'describe', label: 'ai.wizardStep1' },
@@ -412,6 +439,8 @@ export class AiAssistantWizardComponent {
   continue(): void {
     const data = this.lastProposal();
     if (!data) return;
+    // Emit the edit IRI first so the page has it set before it handles the proposal.
+    this.editIri.emit(this.lastEditIri());
     this.proposal.emit(data);
     this.close.emit();
   }

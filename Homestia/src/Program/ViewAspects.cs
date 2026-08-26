@@ -31,6 +31,17 @@ public static class ViewAspects
     public const string RoomShapeIri = "urn:aletheia:homestia:shapes:room";
 
     /// <summary>
+    /// IRI of the lenient Property shape used by AI fill scenarios. Same field
+    /// contract as the strict shape, but nothing is required — the AI may fill
+    /// only part of the form and the flow still succeeds; missing fields are
+    /// surfaced as warnings in the UI for the user to complete.
+    /// </summary>
+    public const string AiPropertyShapeIri = "urn:aletheia:homestia:shapes:property:ai";
+
+    /// <summary>IRI of the lenient Room shape used by AI fill scenarios.</summary>
+    public const string AiRoomShapeIri = "urn:aletheia:homestia:shapes:room:ai";
+
+    /// <summary>
     /// Property shape: <c>name</c> and <c>address</c> required, <c>propertyType</c>
     /// must be an IRI reference, <c>rentalModel</c> optional, and <c>rooms</c>
     /// recursively validated against the Room shape — one graph, one pass.
@@ -122,6 +133,95 @@ public static class ViewAspects
         """;
 
     /// <summary>
+    /// Lenient Property shape for AI fills: the same field contract as
+    /// <see cref="PropertyTtl"/> but with no required fields, so a partial
+    /// output passes and the user completes the rest manually.
+    /// </summary>
+    public const string AiPropertyTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:property:ai>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Property:ai> ;
+            sh:property [
+                sh:path json:name ; sh:order 1 ;
+                sh:description "A short human-readable name for the property." ;
+                sh:datatype xsd:string ;
+                sh:message "shape.property.name" ;
+            ] ;
+            sh:property [
+                sh:path json:address ; sh:order 2 ;
+                sh:description "The full postal address of the property." ;
+                sh:datatype xsd:string ;
+                sh:message "shape.property.address" ;
+            ] ;
+            sh:property [
+                sh:path json:propertyType ; sh:order 3 ;
+                sh:description "IRI reference to the property type; discover valid IRIs via the list tool." ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.property.propertyType" ;
+            ] ;
+            sh:property [
+                sh:path json:rentalModel ; sh:order 4 ;
+                sh:description "Optional IRI reference to the rental model." ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.property.rentalModel" ;
+            ] ;
+            sh:property [
+                sh:path json:rooms ; sh:order 5 ;
+                sh:description "The rooms of this property; each validated against the room shape." ;
+                sh:node <urn:aletheia:homestia:shapes:room:ai> ;
+                sh:message "shape.property.rooms" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Lenient Room shape for AI fills — no required fields, same contract.
+    /// </summary>
+    public const string AiRoomTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:room:ai>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Room:ai> ;
+            sh:property [
+                sh:path json:name ; sh:order 1 ;
+                sh:description "A short name for the room, e.g. 'Kitchen' or 'Room 1'." ;
+                sh:datatype xsd:string ;
+                sh:message "shape.room.name" ;
+            ] ;
+            sh:property [
+                sh:path json:location ; sh:order 2 ;
+                sh:description "Optional location or floor within the property." ;
+                sh:datatype xsd:string ;
+                sh:message "shape.room.location" ;
+            ] ;
+            sh:property [
+                sh:path json:roomSize ; sh:order 3 ;
+                sh:description "The room's area in square metres, between 1 and 1000." ;
+                sh:datatype xsd:decimal ;
+                sh:minInclusive 1 ; sh:maxInclusive 1000 ;
+                sh:message "shape.room.roomSize" ;
+            ] ;
+            sh:property [
+                sh:path json:furnishingStatus ; sh:order 4 ;
+                sh:description "Optional IRI reference to the furnishing status." ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.room.furnishingStatus" ;
+            ] ;
+            sh:property [
+                sh:path json:roomStatus ; sh:order 5 ;
+                sh:description "Optional IRI reference to the room status." ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.room.roomStatus" ;
+            ] .
+        """;
+
+    /// <summary>
     /// Registers every frontend view into the SDK's aspect store. The SDK
     /// validates the Turtle syntax at registration. Must run before the
     /// store's first resolve (it seals), alongside the other registrations.
@@ -132,5 +232,7 @@ public static class ViewAspects
 
         store.RegisterView(new InlineTtlViewAspect(PropertyShapeIri, PropertyTtl));
         store.RegisterView(new InlineTtlViewAspect(RoomShapeIri, RoomTtl));
+        store.RegisterView(new InlineTtlViewAspect(AiPropertyShapeIri, AiPropertyTtl));
+        store.RegisterView(new InlineTtlViewAspect(AiRoomShapeIri, AiRoomTtl));
     }
 }

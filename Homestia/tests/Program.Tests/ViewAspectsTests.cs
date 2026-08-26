@@ -27,8 +27,37 @@ public sealed class ViewAspectsTests
         Should.NotThrow(() => ViewAspects.RegisterViews(store));
 
         store.ViewIris.ShouldBe(
-            [ViewAspects.PropertyShapeIri, ViewAspects.RoomShapeIri],
+            [
+                ViewAspects.PropertyShapeIri,
+                ViewAspects.RoomShapeIri,
+                ViewAspects.AiPropertyShapeIri,
+                ViewAspects.AiRoomShapeIri,
+            ],
             ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Ai_shapes_are_lenient_no_required_fields()
+    {
+        // The AI shapes must NOT require name/address/propertyType — a partial
+        // fill must pass so the user completes the rest manually.
+        ViewAspects.AiPropertyTtl.ShouldNotContain("sh:minCount 1");
+        ViewAspects.AiPropertyTtl.ShouldNotContain("sh:minLength");
+        ViewAspects.AiPropertyTtl.ShouldContain("<urn:aletheia:homestia:shapes:room:ai>");
+
+        ViewAspects.AiRoomTtl.ShouldNotContain("sh:minCount 1");
+        ViewAspects.AiRoomTtl.ShouldNotContain("sh:minLength");
+    }
+
+    [Fact]
+    public void Ai_shapes_use_unique_target_classes()
+    {
+        // The view engine types the value with the shape's first target class
+        // and validates against ALL shapes for that class. The AI shapes must
+        // therefore target distinct classes so the strict shapes never apply
+        // to a partial AI fill.
+        ViewAspects.AiPropertyTtl.ShouldContain("<urn:aletheia:homestia:Property:ai>");
+        ViewAspects.AiRoomTtl.ShouldContain("<urn:aletheia:homestia:Room:ai>");
     }
 
     [Fact]

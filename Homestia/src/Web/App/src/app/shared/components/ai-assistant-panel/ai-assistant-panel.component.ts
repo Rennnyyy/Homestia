@@ -276,7 +276,10 @@ export class AiAssistantPanelComponent implements OnDestroy {
     if (this.destroyed) return;
 
     const duration = (Date.now() - this.recordingStartedAt) / 1000;
-    const mime = recorder.mimeType || 'audio/webm';
+    // Normalize the recorder's mime (e.g. "audio/webm;codecs=opus") to its bare
+    // type — the backend's whisper path must not receive a parameterized
+    // Content-Type or a ".wav"-labeled WebM.
+    const mime = normalizeAudioMime(recorder.mimeType || 'audio/webm');
     const blob = new Blob(this.mediaChunks, { type: mime });
     try {
       // Send the raw recorded bytes with their true media type — the backend
@@ -408,6 +411,12 @@ function pickSupportedAudioMimeType(): string | null {
   if (typeof MediaRecorder === 'undefined') return null;
   const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? null;
+}
+
+/** Bare media type of a recorder mime, e.g. "audio/webm;codecs=opus" → "audio/webm". */
+function normalizeAudioMime(mime: string): string {
+  const bare = (mime || 'audio/webm').split(';')[0].trim().toLowerCase();
+  return bare || 'audio/webm';
 }
 
 /** Conventional file name for a recorded voice note matching its media type. */

@@ -4,6 +4,11 @@
  * audio content part sent to the AI flow endpoint (multi-dimension input:
  * text + image + audio). The backend transcribes; no client-side re-encode.
  *
+ * Regression: the fake MediaRecorder reports a parameterized mime
+ * ("audio/webm;codecs=opus", as real browsers do) — the panel must normalize
+ * it to the bare "audio/webm" so the backend never sees "codecs" or a
+ * ".wav"-labeled WebM.
+ *
  * Browser APIs (MediaRecorder, getUserMedia) are stubbed so the recording
  * logic runs deterministically in jsdom.
  */
@@ -28,7 +33,7 @@ class MockTranslocoLoader implements TranslocoLoader {
 class FakeMediaRecorder {
   static isTypeSupported = () => true;
   state = 'inactive';
-  mimeType = 'audio/webm';
+  mimeType = 'audio/webm;codecs=opus';
   ondataavailable: ((e: { data: Blob }) => void) | null = null;
   onstop: (() => void) | null = null;
   onerror: (() => void) | null = null;
@@ -41,7 +46,7 @@ class FakeMediaRecorder {
 
   stop(): void {
     this.state = 'inactive';
-    this.ondataavailable?.({ data: new Blob(['fake-audio'], { type: 'audio/webm' }) });
+    this.ondataavailable?.({ data: new Blob(['fake-audio'], { type: 'audio/webm;codecs=opus' }) });
     this.onstop?.();
   }
 }
@@ -96,6 +101,8 @@ describe('AiAssistantPanelComponent — voice input', () => {
     expect(audio.name).toBe('voice.webm');
     expect(audio.mime).toBe('audio/webm');
     expect(audio.dataUrl.startsWith('data:audio/webm;base64,')).toBe(true);
+    // Regression: the recorder's "codecs" parameter must not leak through.
+    expect(audio.dataUrl).not.toContain('codecs');
     expect(component.recording()).toBe(false);
   });
 

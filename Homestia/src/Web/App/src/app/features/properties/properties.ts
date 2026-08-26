@@ -1,15 +1,15 @@
-import { Component, inject, signal, computed, OnInit, viewChild } from '@angular/core';
+import { Component, inject, signal, OnInit, viewChild } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
-import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen, LucideCheck } from '@lucide/angular';
+import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen, LucideCheck, LucideSparkles } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
 import { AletheiaHttpClient } from '../../shared/services/aletheia-http-client';
 import { EntitySyncService } from '../../shared/services/entity-sync.service';
 import { DynamicEntityFormComponent } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
 import { DynamicEntityTableComponent, type TableAction } from '../../shared/components/dynamic-entity-table/dynamic-entity-table.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { AiAssistantPanelComponent } from '../../shared/components/ai-assistant-panel/ai-assistant-panel.component';
+import { AiAssistantWizardComponent } from '../../shared/components/ai-assistant-wizard/ai-assistant-wizard.component';
 import { PropertyEntity, type Property } from '../../entities/property.entity';
 import { RoomEntity } from '../../entities/room.entity';
 import {
@@ -40,10 +40,11 @@ interface CreateStepDef {
     LucideTrash,
     LucideDoorOpen,
     LucideCheck,
+    LucideSparkles,
     DynamicEntityFormComponent,
     DynamicEntityTableComponent,
     ConfirmDialogComponent,
-    AiAssistantPanelComponent,
+    AiAssistantWizardComponent,
     ...HlmAccordionImports,
   ],
   template: `
@@ -68,7 +69,11 @@ interface CreateStepDef {
 
         <!-- Actions (list mode only) -->
         @if (mode() === 'list') {
-          <div class="hidden md:flex items-center gap-1 properties-actions">
+          <div class="hidden md:flex items-center gap-2 properties-actions">
+            <button hlmBtn size="sm" class="ai-magic-button" (click)="openAiWizard()">
+              <svg lucideSparkles class="size-4 mr-1"></svg>
+              {{ 'ai.assistButton' | transloco }}
+            </button>
             <button hlmBtn size="sm" (click)="enterCreate()">
               <svg lucidePlus class="size-4 mr-1"></svg>
               {{ 'nav.properties.create' | transloco }}
@@ -83,16 +88,6 @@ interface CreateStepDef {
       }
       @if (mode() === 'edit') {
         <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.editSubtext' | transloco }}</p>
-      }
-
-      <!-- AI assistant — fill the form by chat (A) or photos (B) -->
-      @if (mode() === 'create' || (mode() === 'edit' && editingItem())) {
-        <app-ai-assistant-panel
-          [textScenarioKey]="mode() === 'create' ? AI_SCENARIO_CREATE_TEXT : AI_SCENARIO_EDIT_TEXT"
-          [photosScenarioKey]="mode() === 'create' ? AI_SCENARIO_CREATE_PHOTOS : AI_SCENARIO_EDIT_PHOTOS"
-          [context]="aiContext()"
-          (proposal)="applyAiProposal($event)"
-        />
       }
 
       <!-- List mode: table -->
@@ -123,7 +118,11 @@ interface CreateStepDef {
 
       <!-- Mobile-only Add Property button (below table) -->
       @if (mode() === 'list') {
-        <div class="md:hidden" style="margin-top: 24px;">
+        <div class="md:hidden flex items-center gap-2" style="margin-top: 24px;">
+          <button hlmBtn size="sm" class="ai-magic-button" (click)="openAiWizard()">
+            <svg lucideSparkles class="size-4 mr-1"></svg>
+            {{ 'ai.assistButton' | transloco }}
+          </button>
           <button hlmBtn size="sm" (click)="enterCreate()">
             <svg lucidePlus class="size-4 mr-1"></svg>
             {{ 'nav.properties.create' | transloco }}
@@ -441,6 +440,16 @@ interface CreateStepDef {
       }
 
       <!-- End edit mode -->
+
+      <!-- AI wizard overlay — launched from the list view -->
+      @if (aiWizardOpen()) {
+        <app-ai-assistant-wizard
+          [textScenarioKey]="AI_SCENARIO_CREATE_TEXT"
+          [photosScenarioKey]="AI_SCENARIO_CREATE_PHOTOS"
+          (proposal)="onAiProposal($event)"
+          (close)="aiWizardOpen.set(false)"
+        />
+      }
     </div>
   `,
   styles: [`
@@ -449,6 +458,22 @@ interface CreateStepDef {
       border: 1px solid var(--destructive) !important;
       border-radius: 6px;
       box-shadow: 0 0 0 1px var(--destructive);
+    }
+    /* The AI assistant entry button — friendly gradient, easy to spot. */
+    .ai-magic-button {
+      background: linear-gradient(135deg, oklch(0.541 0.281 293.009), oklch(0.623 0.214 259.815));
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 16px -2px rgba(124, 58, 237, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+    .ai-magic-button:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 6px 20px -2px rgba(124, 58, 237, 0.55);
+      transform: translateY(-1px);
+    }
+    .ai-magic-button:active {
+      transform: translateY(0);
     }
     @media (max-width: 767px) {
       :host {
@@ -497,8 +522,6 @@ export class Properties implements OnInit {
   readonly ROOM_SHAPE_KEY = ROOM_SHAPE_IRI;
   readonly AI_SCENARIO_CREATE_TEXT = 'property.create.text';
   readonly AI_SCENARIO_CREATE_PHOTOS = 'property.create.photos';
-  readonly AI_SCENARIO_EDIT_TEXT = 'property.edit.text';
-  readonly AI_SCENARIO_EDIT_PHOTOS = 'property.edit.photos';
   readonly formRef = viewChild(DynamicEntityFormComponent);
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);
@@ -506,6 +529,7 @@ export class Properties implements OnInit {
   readonly mode = signal<PageMode>('list');
   readonly confirmingDelete = signal(false);
   readonly deletingItem = signal<Record<string, unknown> | null>(null);
+  readonly aiWizardOpen = signal(false);
 
   readonly editingItem = signal<Record<string, unknown> | null>(null);
   readonly rooms = signal<Record<string, unknown>[]>([]);
@@ -535,37 +559,35 @@ export class Properties implements OnInit {
     this.refresh();
   }
 
-  /** Current form context sent to the AI — existing values for edit, empty for create. */
-  readonly aiContext = computed<Record<string, unknown>>(() => {
-    if (this.mode() === 'edit' && this.editingItem()) {
-      return { ...this.editingItem(), rooms: this.rooms() };
-    }
-    return {};
-  });
+  /** Open the AI creation wizard as an overlay over the list view. */
+  openAiWizard(): void {
+    this.aiWizardOpen.set(true);
+  }
 
   /**
-   * Applies the AI's validated form proposal: property fields land in
-   * pendingProperty (create review) or merge into editingItem (edit); rooms
-   * populate the room list.
+   * The AI wizard produced a validated proposal — enter create mode at the
+   * review step with the proposal pre-filled, ready for a final look.
+   */
+  onAiProposal(data: Record<string, unknown>): void {
+    this.aiWizardOpen.set(false);
+    this.enterCreate();
+    this.applyAiProposal(data);
+  }
+
+  /**
+   * Applies the AI's validated create proposal: property fields land in
+   * pendingProperty (review) and any rooms populate the room list.
    */
   applyAiProposal(data: Record<string, unknown>): void {
     const { rooms: proposedRooms, ...propertyData } = data;
-    const rooms = Array.isArray(proposedRooms)
-      ? proposedRooms.map((room) => ({ ...(room as Record<string, unknown>) }))
-      : [];
-
-    if (this.mode() === 'edit' && this.editingItem()) {
-      this.editingItem.set({ ...this.editingItem()!, ...propertyData });
-      if (rooms.length > 0) {
-        this.rooms.set(rooms);
-        this.originalRooms.set(structuredClone(rooms) as Record<string, unknown>[]);
-      }
-      return;
-    }
-
     this.pendingProperty.set({ ...propertyData });
-    this.rooms.set(rooms);
+    this.rooms.set(
+      Array.isArray(proposedRooms)
+        ? proposedRooms.map((room) => ({ ...(room as Record<string, unknown>) }))
+        : [],
+    );
     this.createStep.set('review');
+    this.mode.set('create');
   }
 
   refresh(): void {

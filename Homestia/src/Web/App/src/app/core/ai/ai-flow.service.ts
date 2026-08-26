@@ -2,9 +2,11 @@ import { Injectable } from '@angular/core';
 
 /** A multimodal content part sent to the AI flow endpoint. */
 export interface AiContentPart {
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'audio';
   text?: string;
   url?: string;
+  /** Media type of the referenced payload (e.g. 'audio/webm' for audio parts). */
+  mime?: string;
 }
 
 /** SSE event kinds emitted by POST /api/ai/flow. */

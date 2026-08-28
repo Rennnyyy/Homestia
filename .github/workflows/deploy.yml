@@ -84,6 +84,9 @@ jobs:
           DEPLOY_GraphDb__RepositoryId: ${{ secrets.DEPLOY_GraphDb__RepositoryId }}
           DEPLOY_GraphDb__Username: ${{ secrets.DEPLOY_GraphDb__Username }}
           DEPLOY_GraphDb__Password: ${{ secrets.DEPLOY_GraphDb__Password }}
+          # AI API keys — DEPLOY_ prefix is stripped on the server.
+          DEPLOY_AI__Default__ApiKey: ${{ secrets.DEPLOY_AI__Default__ApiKey }}
+          DEPLOY_AI__ModelRoles__formfill__ApiKey: ${{ secrets.DEPLOY_AI__ModelRoles__formfill__ApiKey }}
         run: bash scripts/deploy.sh staging
 
   deploy-prod:
@@ -107,4 +110,7 @@ jobs:
           DEPLOY_GraphDb__RepositoryId: ${{ secrets.DEPLOY_GraphDb__RepositoryId }}
           DEPLOY_GraphDb__Username: ${{ secrets.DEPLOY_GraphDb__Username }}
           DEPLOY_GraphDb__Password: ${{ secrets.DEPLOY_GraphDb__Password }}
+          # AI API keys — DEPLOY_ prefix is stripped on the server.
+          DEPLOY_AI__Default__ApiKey: ${{ secrets.DEPLOY_AI__Default__ApiKey }}
+          DEPLOY_AI__ModelRoles__formfill__ApiKey: ${{ secrets.DEPLOY_AI__ModelRoles__formfill__ApiKey }}
         run: bash scripts/deploy.sh prod

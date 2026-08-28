@@ -42,7 +42,7 @@ public static class AiScenarios
     public const string VisionRole = "vision";
 
     /// <summary>Model role: the form-filling model that emits property JSON.</summary>
-    public const string FillRole = "form-fill";
+    public const string FillRole = "formfill";
 
     /// <summary>Registers every Homestia scenario into the shared registry.</summary>
     public static void Register(ScenarioRegistry registry)

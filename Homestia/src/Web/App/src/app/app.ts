@@ -15,13 +15,14 @@ import { Sidebar } from './shared/components/sidebar/sidebar';
 })
 export class App {
   private readonly transloco = inject(TranslocoService);
-  readonly currentLang = signal(this.transloco.getActiveLang());
+  // Reactive signal from Transloco itself — stays in sync with the actual
+  // active language (including fallback after a failed load).
+  readonly currentLang = this.transloco.activeLang;
   readonly sidebarOpen = signal(false);
 
   toggleLang(): void {
     const next = this.currentLang() === 'en' ? 'de' : 'en';
     this.transloco.setActiveLang(next);
-    this.currentLang.set(next);
   }
 
   toggleSidebar(): void {

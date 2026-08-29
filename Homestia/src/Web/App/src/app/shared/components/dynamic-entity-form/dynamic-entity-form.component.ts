@@ -205,10 +205,12 @@ export class DynamicEntityFormComponent {
     this.optionsLoading.set(new Set(loading));
 
     try {
-      const res = await lastValueFrom(this.aletheia.list<{ key?: string; displayName?: string; iri?: string }>(entityPath));
+      // displayName for enums/agents, key for enumeration fallback, name for
+      // entities like Property whose display field is `name`.
+      const res = await lastValueFrom(this.aletheia.list<{ key?: string; displayName?: string; name?: string; iri?: string }>(entityPath));
       const items = (res.items ?? []).map((item) => ({
         iri: item.iri ?? '',
-        displayValue: item.displayName ?? item.key ?? '',
+        displayValue: item.displayName ?? item.key ?? item.name ?? '',
       }));
       this.optionsCache.set(entityPath, items);
     } finally {

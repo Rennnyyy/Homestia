@@ -52,6 +52,14 @@ describe('FieldRendererRegistry', () => {
     expect(registry.resolve(prop('created', 'DateTime')).inputType).toBe('date');
   });
 
+  it('maps String fields ending in Date to the date picker', () => {
+    const p = prop('startDate', 'String');
+    expect(registry.resolve(p).template).toBe('date');
+    expect(registry.resolve(p).inputType).toBe('date');
+    // Plain strings (no Date suffix) still render as text.
+    expect(registry.resolve(prop('address', 'String')).template).toBe('text');
+  });
+
   it('maps EntityRef → select renderer', () => {
     expect(registry.resolve(prop('owner', 'EntityRef')).template).toBe('select');
   });

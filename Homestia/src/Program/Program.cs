@@ -149,6 +149,10 @@ var aspectStore = app.Services.GetRequiredService<IAspectStore>();
 // exploration endpoint api/entities/aspect-definitions/{iri}/view.
 ViewAspects.RegisterViews(aspectStore);
 
+// Query aspects — read-time enrichment (derived fields) served when a request
+// opts in via the X-Aletheia-Query-AspectIri header.
+QueryAspects.RegisterQueryAspects(aspectStore);
+
 // AI scenario flows — code-defined form-filling packs (property create/edit).
 AiScenarios.Register(app.Services.GetRequiredService<ScenarioRegistry>());
 

@@ -41,6 +41,30 @@ public static class ViewAspects
     /// <summary>IRI of the lenient Room shape used by AI fill scenarios.</summary>
     public const string AiRoomShapeIri = "urn:aletheia:homestia:shapes:room:ai";
 
+    /// <summary>IRI of the Rental shape for Stage 1 · Application.</summary>
+    public const string RentalApplicationShapeIri = "urn:aletheia:homestia:shapes:rental:application";
+
+    /// <summary>IRI of the Rental shape for Stage 2 · Contract.</summary>
+    public const string RentalContractShapeIri = "urn:aletheia:homestia:shapes:rental:contract";
+
+    /// <summary>IRI of the Rental shape for Stage 3 · Deposit.</summary>
+    public const string RentalDepositShapeIri = "urn:aletheia:homestia:shapes:rental:deposit";
+
+    /// <summary>IRI of the Rental shape for Stage 4 · Handover.</summary>
+    public const string RentalHandoverShapeIri = "urn:aletheia:homestia:shapes:rental:handover";
+
+    /// <summary>IRI of the Rental shape for Stage 5 · Tenancy.</summary>
+    public const string RentalTenancyShapeIri = "urn:aletheia:homestia:shapes:rental:tenancy";
+
+    /// <summary>IRI of the Rental shape for Stage 6 · Termination Noticed.</summary>
+    public const string RentalNoticedShapeIri = "urn:aletheia:homestia:shapes:rental:noticed";
+
+    /// <summary>IRI of the Rental shape for Stage 7 · Handback.</summary>
+    public const string RentalHandbackShapeIri = "urn:aletheia:homestia:shapes:rental:handback";
+
+    /// <summary>IRI of the Rental shape for Stage 8 · Terminated.</summary>
+    public const string RentalTerminatedShapeIri = "urn:aletheia:homestia:shapes:rental:terminated";
+
     /// <summary>
     /// Property shape: <c>name</c> and <c>address</c> required, <c>propertyType</c>
     /// must be an IRI reference, <c>rentalModel</c> optional, and <c>rooms</c>
@@ -222,6 +246,251 @@ public static class ViewAspects
         """;
 
     /// <summary>
+    /// Rental Stage 1 · Application shape: when the tenant applied and who the
+    /// tenant is. Validating this stage unlocks the Contract stage.
+    /// </summary>
+    public const string RentalApplicationTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:rental:application>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Rental:application> ;
+            sh:property [
+                sh:path json:applicationDate ; sh:order 1 ;
+                sh:description "When the tenant applied for the rental." ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.applicationDate" ;
+            ] ;
+            sh:property [
+                sh:path json:tenant ; sh:order 2 ;
+                sh:description "IRI reference to the tenant renting under this agreement." ;
+                sh:minCount 1 ; sh:nodeKind sh:IRI ;
+                sh:message "shape.rental.tenant" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Rental Stage 2 · Contract shape: the rented property (and optional unit),
+    /// monthly rent, start date, and duration. Validating this stage unlocks
+    /// the Deposit stage.
+    /// </summary>
+    public const string RentalContractTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:rental:contract>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Rental:contract> ;
+            sh:property [
+                sh:path json:property ; sh:order 1 ;
+                sh:description "IRI reference to the rented property." ;
+                sh:minCount 1 ; sh:nodeKind sh:IRI ;
+                sh:message "shape.rental.property" ;
+            ] ;
+            sh:property [
+                sh:path json:unit ; sh:order 2 ;
+                sh:description "Optional IRI reference to the specific room (single-room rentals)." ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.rental.unit" ;
+            ] ;
+            sh:property [
+                sh:path json:rent ; sh:order 3 ;
+                sh:description "Monthly rent in euros." ;
+                sh:minCount 1 ; sh:datatype xsd:decimal ;
+                sh:minInclusive 0 ;
+                sh:message "shape.rental.rent" ;
+            ] ;
+            sh:property [
+                sh:path json:startDate ; sh:order 4 ;
+                sh:description "Rental start date." ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.startDate" ;
+            ] ;
+            sh:property [
+                sh:path json:durationMonths ; sh:order 5 ;
+                sh:description "Contract duration in months." ;
+                sh:minCount 1 ; sh:datatype xsd:integer ;
+                sh:minInclusive 1 ;
+                sh:message "shape.rental.durationMonths" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Rental Stage 3 · Deposit shape: deposit amount, payment status, and the
+    /// optional payment date. Validating this stage unlocks the Handover stage.
+    /// </summary>
+    public const string RentalDepositTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:rental:deposit>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Rental:deposit> ;
+            sh:property [
+                sh:path json:depositAmount ; sh:order 1 ;
+                sh:description "Deposit amount in euros." ;
+                sh:minCount 1 ; sh:datatype xsd:decimal ;
+                sh:minInclusive 0 ;
+                sh:message "shape.rental.depositAmount" ;
+            ] ;
+            sh:property [
+                sh:path json:depositPaid ; sh:order 2 ;
+                sh:description "Whether the deposit has been paid." ;
+                sh:datatype xsd:boolean ;
+                sh:message "shape.rental.depositPaid" ;
+            ] ;
+            sh:property [
+                sh:path json:depositPaymentDate ; sh:order 3 ;
+                sh:description "When the deposit was paid." ;
+                sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.depositPaymentDate" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Rental Stage 4 · Handover shape: keys/property handover date and optional
+    /// protocol notes. Validating this stage unlocks the Tenancy stage.
+    /// </summary>
+    public const string RentalHandoverTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:rental:handover>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Rental:handover> ;
+            sh:property [
+                sh:path json:handoverDate ; sh:order 1 ;
+                sh:description "Keys/property handover date." ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.handoverDate" ;
+            ] ;
+            sh:property [
+                sh:path json:handoverNotes ; sh:order 2 ;
+                sh:description "Handover protocol notes." ;
+                sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.handoverNotes" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Rental Stage 5 · Tenancy shape: the resting state of the agreement.
+    /// Confirming the tenancy is active unlocks the Termination Noticed stage.
+    /// </summary>
+    public const string RentalTenancyTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:rental:tenancy>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Rental:tenancy> ;
+            sh:property [
+                sh:path json:tenancyActive ; sh:order 1 ;
+                sh:description "Confirms the tenancy is active." ;
+                sh:datatype xsd:boolean ;
+                sh:message "shape.rental.tenancyActive" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Rental Stage 6 · Termination Noticed shape: when the termination notice
+    /// was given and the optional reason. Validating this stage unlocks the
+    /// Handback stage.
+    /// </summary>
+    public const string RentalNoticedTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:rental:noticed>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Rental:noticed> ;
+            sh:property [
+                sh:path json:noticeDate ; sh:order 1 ;
+                sh:description "When the termination notice was given." ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.noticeDate" ;
+            ] ;
+            sh:property [
+                sh:path json:noticeReason ; sh:order 2 ;
+                sh:description "Termination reason." ;
+                sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.noticeReason" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Rental Stage 7 · Handback shape: keys/property handback date, optional
+    /// notes, and whether damage was confirmed. Validating this stage unlocks
+    /// the Terminated stage.
+    /// </summary>
+    public const string RentalHandbackTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:rental:handback>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Rental:handback> ;
+            sh:property [
+                sh:path json:handbackDate ; sh:order 1 ;
+                sh:description "Keys/property handback date." ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.handbackDate" ;
+            ] ;
+            sh:property [
+                sh:path json:handbackNotes ; sh:order 2 ;
+                sh:description "Handback protocol notes." ;
+                sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.handbackNotes" ;
+            ] ;
+            sh:property [
+                sh:path json:damageConfirmed ; sh:order 3 ;
+                sh:description "Whether damage was confirmed at handback." ;
+                sh:datatype xsd:boolean ;
+                sh:message "shape.rental.damageConfirmed" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Rental Stage 8 · Terminated shape: final financial settlement date,
+    /// whether the deposit was returned, and settlement notes. The last stage
+    /// of the agreement lifecycle.
+    /// </summary>
+    public const string RentalTerminatedTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+
+        <urn:aletheia:homestia:shapes:rental:terminated>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Rental:terminated> ;
+            sh:property [
+                sh:path json:settlementDate ; sh:order 1 ;
+                sh:description "Final financial settlement date." ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.settlementDate" ;
+            ] ;
+            sh:property [
+                sh:path json:depositReturned ; sh:order 2 ;
+                sh:description "Whether the deposit was returned." ;
+                sh:datatype xsd:boolean ;
+                sh:message "shape.rental.depositReturned" ;
+            ] ;
+            sh:property [
+                sh:path json:settlementNotes ; sh:order 3 ;
+                sh:description "Final settlement notes." ;
+                sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.settlementNotes" ;
+            ] .
+        """;
+
+    /// <summary>
     /// Registers every frontend view into the SDK's aspect store. The SDK
     /// validates the Turtle syntax at registration. Must run before the
     /// store's first resolve (it seals), alongside the other registrations.
@@ -234,5 +503,13 @@ public static class ViewAspects
         store.RegisterView(new InlineTtlViewAspect(RoomShapeIri, RoomTtl));
         store.RegisterView(new InlineTtlViewAspect(AiPropertyShapeIri, AiPropertyTtl));
         store.RegisterView(new InlineTtlViewAspect(AiRoomShapeIri, AiRoomTtl));
+        store.RegisterView(new InlineTtlViewAspect(RentalApplicationShapeIri, RentalApplicationTtl));
+        store.RegisterView(new InlineTtlViewAspect(RentalContractShapeIri, RentalContractTtl));
+        store.RegisterView(new InlineTtlViewAspect(RentalDepositShapeIri, RentalDepositTtl));
+        store.RegisterView(new InlineTtlViewAspect(RentalHandoverShapeIri, RentalHandoverTtl));
+        store.RegisterView(new InlineTtlViewAspect(RentalTenancyShapeIri, RentalTenancyTtl));
+        store.RegisterView(new InlineTtlViewAspect(RentalNoticedShapeIri, RentalNoticedTtl));
+        store.RegisterView(new InlineTtlViewAspect(RentalHandbackShapeIri, RentalHandbackTtl));
+        store.RegisterView(new InlineTtlViewAspect(RentalTerminatedShapeIri, RentalTerminatedTtl));
     }
 }

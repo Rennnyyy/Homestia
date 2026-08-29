@@ -4,7 +4,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { ThemePicker } from '../theme-picker';
 import {
-  LucideHouse, LucideBuilding, LucideUsers,
+  LucideHouse, LucideBuilding, LucideFileSignature,
   LucideX, LucidePanelLeft, LucidePanelLeftClose,
 } from '@lucide/angular';
 
@@ -18,7 +18,7 @@ interface NavItem {
   standalone: true,
   imports: [
     RouterLink, RouterLinkActive, TranslocoPipe, HlmButton, ThemePicker,
-    LucideHouse, LucideBuilding, LucideUsers,
+    LucideHouse, LucideBuilding, LucideFileSignature,
     LucideX, LucidePanelLeft, LucidePanelLeftClose,
   ],
   templateUrl: './sidebar.html',
@@ -39,7 +39,7 @@ export class Sidebar {
   readonly navItems: NavItem[] = [
     { label: 'nav.home', route: '/' },
     { label: 'nav.properties', route: '/properties' },
-    { label: 'nav.tenants', route: '/tenants' },
+    { label: 'nav.rentals', route: '/rentals' },
   ];
 
   closeMobile(): void {

@@ -26,8 +26,8 @@ export const CommonAreaEntity: EntityInfo = {
   predicatePath: 'commonArea',
   displayName: 'CommonArea',
   properties: [
-    { name: 'inventory', type: 'EntityRef', isCollection: true },
-    { name: 'isPartOf', type: 'EntityRef', isCollection: false },
+    { name: 'inventory', type: 'EntityRef', isCollection: true, targetEntityPath: 'inventory-items' },
+    { name: 'isPartOf', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
     { name: 'isCommonArea', type: 'Boolean', isCollection: false },
     { name: 'name', type: 'String', isCollection: false },
   ],

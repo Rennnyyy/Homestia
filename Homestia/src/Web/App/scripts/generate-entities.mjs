@@ -33,6 +33,8 @@ const REST_PATH_OVERRIDES = {
   room: 'rooms',
   studio: 'studios',
   agent: 'agents',
+  tenant: 'tenants',
+  rental: 'rentals',
 };
 
 // ── Inheritance map (child predicatePath → parent predicatePath) ─────
@@ -64,7 +66,7 @@ function toPascalCase(str) { return str.charAt(0).toUpperCase() + str.slice(1); 
 function toCamelCase(str) { return str.charAt(0).toLowerCase() + str.slice(1); }
 
 // ── Generate entity file ──────────────────────────────────────────────
-function generateEntityFile(def, enumValues, extraProps) {
+function generateEntityFile(def, enumValues, extraProps, defByIri) {
   const ifaceName = toPascalCase(def.predicatePath);
   const entityConstName = `${ifaceName}Entity`;
   const ifaceProps = [];
@@ -95,7 +97,10 @@ function generateEntityFile(def, enumValues, extraProps) {
     entityProps.push(`    { name: '${toCamelCase(p.propertyName)}', type: '${p.clrType}', isCollection: false },`);
   }
   for (const r of def.owningRelations) {
-    entityProps.push(`    { name: '${toCamelCase(r.propertyName)}', type: 'EntityRef', isCollection: ${r.isCollection} },`);
+    const target = defByIri.get(r.relatedEntityDefinitionIri);
+    const targetPath = target ? restPath(target) : undefined;
+    const extra = targetPath ? `, targetEntityPath: '${targetPath}'` : '';
+    entityProps.push(`    { name: '${toCamelCase(r.propertyName)}', type: 'EntityRef', isCollection: ${r.isCollection}${extra} },`);
   }
   if (extraProps && extraProps.length > 0) {
     for (const p of extraProps) {
@@ -261,12 +266,14 @@ async function main() {
     '',
   ];
 
+  const defByIri = new Map(items.map((d) => [d.iri, d]));
   let count = 0;
   for (const def of items) {
     const content = generateEntityFile(
       def,
       enumValueMap.get(def.predicatePath) ?? null,
       inferredProps.get(def.predicatePath) ?? null,
+      defByIri,
     );
     const fileName = `${def.predicatePath}.entity.ts`;
     fs.writeFileSync(`${ENTITIES_DIR}${fileName}`, content, 'utf-8');

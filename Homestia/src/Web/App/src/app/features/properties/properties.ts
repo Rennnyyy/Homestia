@@ -718,7 +718,8 @@ export class Properties implements OnInit {
 
     // No rooms in the proposal — load the existing ones as in enterEdit.
     this.rooms.set([]);
-    const children = existing['segmentedInto'];
+    // segmentedInto is a runtime inverse field (not part of the entity definition).
+    const children = (existing as unknown as Record<string, unknown>)['segmentedInto'];
     if (Array.isArray(children) && children.length > 0) {
       const roomIRIs: string[] = children
         .map((c: unknown) => {

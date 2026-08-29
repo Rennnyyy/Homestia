@@ -20,7 +20,7 @@ public sealed class ViewAspectsTests
     }
 
     [Fact]
-    public void RegisterViews_registers_property_and_room_into_the_view_family()
+    public void RegisterViews_registers_the_full_view_family()
     {
         var store = CreateStore();
 
@@ -32,8 +32,33 @@ public sealed class ViewAspectsTests
                 ViewAspects.RoomShapeIri,
                 ViewAspects.AiPropertyShapeIri,
                 ViewAspects.AiRoomShapeIri,
+                ViewAspects.RentalApplicationShapeIri,
+                ViewAspects.RentalContractShapeIri,
+                ViewAspects.RentalDepositShapeIri,
+                ViewAspects.RentalHandoverShapeIri,
+                ViewAspects.RentalTenancyShapeIri,
+                ViewAspects.RentalNoticedShapeIri,
+                ViewAspects.RentalHandbackShapeIri,
+                ViewAspects.RentalTerminatedShapeIri,
             ],
             ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Rental_stage_shapes_target_distinct_classes()
+    {
+        // The view engine types the value with the shape's first target class and
+        // validates against ALL shapes for that class. Each rental stage must
+        // therefore target a distinct class so completing one stage never pulls
+        // the required fields of the others into the validation.
+        ViewAspects.RentalApplicationTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:application>");
+        ViewAspects.RentalContractTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:contract>");
+        ViewAspects.RentalDepositTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:deposit>");
+        ViewAspects.RentalHandoverTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:handover>");
+        ViewAspects.RentalTenancyTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:tenancy>");
+        ViewAspects.RentalNoticedTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:noticed>");
+        ViewAspects.RentalHandbackTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:handback>");
+        ViewAspects.RentalTerminatedTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:terminated>");
     }
 
     [Fact]

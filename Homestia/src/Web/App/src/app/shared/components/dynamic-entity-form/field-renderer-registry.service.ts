@@ -43,6 +43,12 @@ export class FieldRendererRegistry {
     if (prop.isCollection && prop.type === 'EntityRef') {
       return this.map.get('EntityRefCollection') ?? { template: 'text' };
     }
+    // String fields that represent dates (convention: the field name ends in
+    // 'Date') render as a native date picker; the value stays an ISO
+    // YYYY-MM-DD string in the store.
+    if (prop.type === 'String' && /Date$/.test(prop.name)) {
+      return this.map.get('DateTime') ?? { template: 'date', inputType: 'date' };
+    }
     return this.map.get(prop.type) ?? { template: 'text' };
   }
 

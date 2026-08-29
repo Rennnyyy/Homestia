@@ -17,11 +17,9 @@ export interface Property {
   /** The entity's unique IRI. */
   iri: string;
   /** Inherited — resolved from entity hierarchy. */
-  segmentedInto: string | null[];
+  isCommonArea: boolean;
   /** Inherited — resolved from entity hierarchy. */
   name: string;
-  /** Inherited — resolved from entity hierarchy. */
-  isCommonArea: boolean;
 }
 
 // ── Dynamic form definition ───────────────────────────────────────────────
@@ -36,8 +34,7 @@ export const PropertyEntity: EntityInfo = {
     { name: 'isPartOf', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
     { name: 'propertyType', type: 'EntityRef', isCollection: false, targetEntityPath: 'property-types' },
     { name: 'rentalModel', type: 'EntityRef', isCollection: false, targetEntityPath: 'rental-models' },
-    { name: 'segmentedInto', type: 'EntityRef', isCollection: true, targetEntityPath: 'segmentations' },
-    { name: 'name', type: 'String', isCollection: false },
     { name: 'isCommonArea', type: 'Boolean', isCollection: false },
+    { name: 'name', type: 'String', isCollection: false },
   ],
 };

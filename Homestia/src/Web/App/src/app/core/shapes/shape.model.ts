@@ -61,3 +61,18 @@ export const ROOM_TYPE = 'urn:aletheia:homestia:Room';
 /** Catalog IRIs of the Homestia shapes (served by the SDK exploration). */
 export const PROPERTY_SHAPE_IRI = 'urn:aletheia:homestia:shapes:property';
 export const ROOM_SHAPE_IRI = 'urn:aletheia:homestia:shapes:room';
+
+/**
+ * Catalog IRIs of the rental stage shapes. Each stage carries its own target
+ * class (<c>urn:aletheia:homestia:Rental:&lt;stage&gt;</c>) so the backend view
+ * engine validates a stage in isolation — the whole stage sequence gates the
+ * rental lifecycle: stage N unlocks stage N+1.
+ */
+export const RENTAL_APPLICATION_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:application';
+export const RENTAL_CONTRACT_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:contract';
+export const RENTAL_DEPOSIT_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:deposit';
+export const RENTAL_HANDOVER_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:handover';
+export const RENTAL_TENANCY_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:tenancy';
+export const RENTAL_NOTICED_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:noticed';
+export const RENTAL_HANDBACK_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:handback';
+export const RENTAL_TERMINATED_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:terminated';

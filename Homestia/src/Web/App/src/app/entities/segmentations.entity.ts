@@ -26,6 +26,6 @@ export const SegmentationsEntity: EntityInfo = {
   properties: [
     { name: 'isCommonArea', type: 'Boolean', isCollection: false },
     { name: 'name', type: 'String', isCollection: false },
-    { name: 'isPartOf', type: 'EntityRef', isCollection: false },
+    { name: 'isPartOf', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
   ],
 };

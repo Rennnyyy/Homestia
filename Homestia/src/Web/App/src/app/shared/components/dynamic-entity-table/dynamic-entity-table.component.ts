@@ -1,5 +1,5 @@
-import { Component, input, output, computed, model, signal, HostListener, effect, inject } from '@angular/core';
-import { NgComponentOutlet } from '@angular/common';
+import { Component, input, output, computed, model, signal, HostListener, effect, inject, TemplateRef } from '@angular/core';
+import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmCard } from '@spartan-ng/helm/card';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -8,7 +8,7 @@ import { ShaclValidatorService } from '../../../core/shapes';
 import {
   LucidePencil, LucideTrash, LucideEye,
   LucideMoreHorizontal, LucidePlus, LucideDownload,
-  LucideCheck, LucideX, LucideSettings, LucideRefreshCw,
+  LucideCheck, LucideX, LucideSettings, LucideRefreshCw, LucideChevronRight,
 } from '@lucide/angular';
 import type { EntityInfo, EntityPropertyInfo } from '../../services/aletheia-http-client.models';
 
@@ -29,7 +29,7 @@ const ICONS: Record<string, unknown> = {
 @Component({
   selector: 'app-dynamic-entity-table',
   standalone: true,
-  imports: [TranslocoPipe, HlmCard, HlmButton, NgComponentOutlet, FormsModule, LucideSettings, LucideRefreshCw],
+  imports: [TranslocoPipe, HlmCard, HlmButton, NgComponentOutlet, NgTemplateOutlet, FormsModule, LucideSettings, LucideRefreshCw, LucideChevronRight],
   template: `
     @if (loading()) {
       <section hlmCard class="p-8 text-center text-muted-foreground">
@@ -77,6 +77,9 @@ const ICONS: Record<string, unknown> = {
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border bg-muted/50">
+              @if (expandable()) {
+                <th class="w-8 px-2 py-3"></th>
+              }
               @if (selectable()) {
                 <th class="w-10 px-3 py-3">
                   <input type="checkbox" class="size-4 rounded border-input"
@@ -95,9 +98,17 @@ const ICONS: Record<string, unknown> = {
             </tr>
           </thead>
           <tbody>
-            @for (item of items(); track item['iri'] ?? $index) {
+            <ng-template #dataRow let-item>
               <tr class="border-b border-border transition-colors hover:bg-muted/30 cursor-pointer"
                 (click)="onRowClick(item)">
+                @if (expandable()) {
+                  <td class="w-8 px-2 py-2.5" (click)="toggleExpand($event, item)">
+                    <button hlmBtn variant="ghost" size="icon-xs" class="size-6 text-muted-foreground"
+                      [attr.aria-expanded]="isExpanded(item)" title="Expand">
+                      <svg lucideChevronRight class="size-4 transition-transform" [class.rotate-90]="isExpanded(item)"></svg>
+                    </button>
+                  </td>
+                }
                 @if (selectable()) {
                   <td class="w-10 px-3 py-2.5" (click)="$event.stopPropagation()">
                     <input type="checkbox" class="size-4 rounded border-input"
@@ -124,6 +135,36 @@ const ICONS: Record<string, unknown> = {
                   </td>
                 }
               </tr>
+              @if (isExpanded(item) && rowDetail()) {
+                <tr class="border-b border-border bg-muted/20">
+                  <td [attr.colspan]="colspan()" class="px-4 py-3">
+                    <ng-container *ngTemplateOutlet="rowDetail(); context: { $implicit: item }" />
+                  </td>
+                </tr>
+              }
+            </ng-template>
+
+            @for (item of items(); track item['iri'] ?? $index) {
+              @if (isGroup(item)) {
+                <tr class="border-b border-border bg-muted/40 cursor-pointer" (click)="toggleGroup($event, item)">
+                  <td [attr.colspan]="colspan()" class="px-3 py-2">
+                    <div class="flex items-center gap-2">
+                      <button hlmBtn variant="ghost" size="icon-xs" class="size-6 text-muted-foreground">
+                        <svg lucideChevronRight class="size-4 transition-transform" [class.rotate-90]="isGroupExpanded(item)"></svg>
+                      </button>
+                      <span class="font-semibold text-foreground">{{ groupLabel(item) | transloco }}</span>
+                      <span class="text-xs text-muted-foreground">({{ groupChildren(item).length }})</span>
+                    </div>
+                  </td>
+                </tr>
+                @if (isGroupExpanded(item)) {
+                  @for (child of groupChildren(item); track child['iri'] ?? $index) {
+                    <ng-container *ngTemplateOutlet="dataRow; context: { $implicit: child }" />
+                  }
+                }
+              } @else {
+                <ng-container *ngTemplateOutlet="dataRow; context: { $implicit: item }" />
+              }
             }
           </tbody>
         </table>
@@ -148,6 +189,86 @@ export class DynamicEntityTableComponent {
   readonly actions = input<TableAction[]>([]);
   readonly rowClick = output<Record<string, unknown>>();
   readonly refresh = output<void>();
+
+  // ── Tree / expandable rows ──────────────────────────────────────────────
+
+  /** Tree mode: renders a chevron expand column on every row. */
+  readonly expandable = input(false);
+  /** Template rendered in a full-width row beneath an expanded row (context: the item). */
+  readonly rowDetail = input<TemplateRef<unknown> | null>(null);
+
+  /** IRIs of currently expanded rows. */
+  readonly expandedIris = signal<Set<string>>(new Set());
+
+  isExpanded(item: Record<string, unknown>): boolean {
+    const iri = item['iri'];
+    return typeof iri === 'string' && this.expandedIris().has(iri);
+  }
+
+  toggleExpand(event: Event, item: Record<string, unknown>): void {
+    event.stopPropagation();
+    const iri = item['iri'];
+    if (typeof iri !== 'string') return;
+    const next = new Set(this.expandedIris());
+    next.has(iri) ? next.delete(iri) : next.add(iri);
+    this.expandedIris.set(next);
+  }
+
+  /** Total rendered columns, including the expand, selection, and action columns. */
+  readonly colspan = computed<number>(() => {
+    let count = this.displayColumns().length;
+    if (this.expandable()) count += 1;
+    if (this.selectable()) count += 1;
+    if (this.actions().length > 0) count += 1;
+    return count;
+  });
+
+  // ── Group rows (state-grouped tree tables) ──────────────────────────────
+
+  /** Item key that marks a group-header row (e.g. '__group'). */
+  readonly groupField = input<string | null>(null);
+  /** Item key holding the group's display label (an i18n key). */
+  readonly groupLabelField = input<string | null>(null);
+  /** Item key holding the group's child rows. */
+  readonly groupChildrenField = input<string | null>(null);
+
+  /** Group keys the user collapsed (groups start expanded). */
+  readonly collapsedIris = signal<Set<string>>(new Set());
+
+  isGroup(item: Record<string, unknown>): boolean {
+    const field = this.groupField();
+    return !!field && typeof item[field] === 'string' && (item[field] as string).length > 0;
+  }
+
+  groupKey(item: Record<string, unknown>): string {
+    const field = this.groupField();
+    return field && typeof item[field] === 'string' ? `group:${item[field]}` : '';
+  }
+
+  isGroupExpanded(item: Record<string, unknown>): boolean {
+    const key = this.groupKey(item);
+    return key ? !this.collapsedIris().has(key) : true;
+  }
+
+  toggleGroup(event: Event, item: Record<string, unknown>): void {
+    event.stopPropagation();
+    const key = this.groupKey(item);
+    if (!key) return;
+    const next = new Set(this.collapsedIris());
+    next.has(key) ? next.delete(key) : next.add(key);
+    this.collapsedIris.set(next);
+  }
+
+  groupLabel(item: Record<string, unknown>): string {
+    const field = this.groupLabelField();
+    return field && typeof item[field] === 'string' ? (item[field] as string) : '';
+  }
+
+  groupChildren(item: Record<string, unknown>): Record<string, unknown>[] {
+    const field = this.groupChildrenField();
+    const children = field ? item[field] : null;
+    return Array.isArray(children) ? (children as Record<string, unknown>[]) : [];
+  }
 
   // ── Column management ──────────────────────────────────────────────────
 

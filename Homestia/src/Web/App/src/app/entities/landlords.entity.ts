@@ -24,8 +24,8 @@ export const LandlordsEntity: EntityInfo = {
   predicatePath: 'landlords',
   displayName: 'Landlord',
   properties: [
-    { name: 'agent', type: 'EntityRef', isCollection: false },
-    { name: 'properties', type: 'EntityRef', isCollection: true },
-    { name: 'landlordType', type: 'EntityRef', isCollection: false },
+    { name: 'agent', type: 'EntityRef', isCollection: false, targetEntityPath: 'agents' },
+    { name: 'properties', type: 'EntityRef', isCollection: true, targetEntityPath: 'properties' },
+    { name: 'landlordType', type: 'EntityRef', isCollection: false, targetEntityPath: 'property-types' },
   ],
 };

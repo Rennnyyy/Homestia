@@ -39,10 +39,10 @@ export class AletheiaHttpClient {
   // ═══════════════════════════════════════════════════════════════════════
 
   /** List all entities of the given predicate path. */
-  list<T>(entityPath: string, params?: HttpParams): Observable<AletheiaCollection<T>> {
+  list<T>(entityPath: string, params?: HttpParams, headers?: HttpHeaders): Observable<AletheiaCollection<T>> {
     return this.http.get<AletheiaCollection<T>>(
       `/api/entities/${entityPath}`,
-      { params },
+      { params, headers },
     );
   }
 

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, effect, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpHeaders } from '@angular/common/http';
 import { forkJoin, lastValueFrom } from 'rxjs';
@@ -6,7 +6,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
 import {
   LucideFileSignature, LucidePlus, LucideChevronRight, LucideTrash,
-  LucideCheck, LucideLock, LucideUserPlus,
+  LucideCheck, LucideLock,
 } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
 import { AletheiaHttpClient } from '../../shared/services/aletheia-http-client';
@@ -17,7 +17,7 @@ import {
   RENTAL_HANDBACK_SHAPE_IRI, RENTAL_TERMINATED_SHAPE_IRI,
 } from '../../core/shapes';
 import type { ShapeViolation } from '../../core/shapes';
-import { DynamicEntityFormComponent } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
+import { DynamicEntityFormComponent, type EntityManageConfig } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
 import {
   DynamicEntityTableComponent,
   type TableAction,
@@ -95,7 +95,6 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
     LucideTrash,
     LucideCheck,
     LucideLock,
-    LucideUserPlus,
     DynamicEntityFormComponent,
     DynamicEntityTableComponent,
     ConfirmDialogComponent,
@@ -212,56 +211,25 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                     <p class="text-sm text-muted-foreground" style="margin-bottom: 8px;">{{ 'nav.rentals.stageLockHint' | transloco }}</p>
                   } @else {
                     @if (stage.id === 0) {
-                      <!-- Application: date via the shape form, tenant via the custom selector -->
-                      <app-dynamic-entity-form
-                        [entity]="entity"
-                        [mode]="'edit'"
-                        [value]="workingRental()"
-                        [fieldNames]="['applicationDate']"
-                        [shapeKey]="stage.shapeIri"
-                        [violations]="stageViolationsFor(stage.id)" />
-                      <div class="flex flex-col gap-1.5 mb-[15px]">
-                        <label for="rental-tenant" class="text-sm font-medium text-foreground">{{ 'fields.rental.tenant' | transloco }}</label>
-                        <select id="rental-tenant"
-                          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          [ngModel]="selectedTenantIri()" (ngModelChange)="selectTenant($event)">
-                          <option value="">{{ 'fields.placeholder.select' | transloco }}</option>
-                          @for (tenant of tenants(); track tenant.iri) {
-                            <option [value]="tenant.iri">{{ tenant.displayName }}</option>
-                          }
-                        </select>
-                        @if (tenantViolation(); as violation) {
-                          <p class="text-[0.8rem] font-medium text-destructive -mt-1">{{ violation.message | transloco }}</p>
-                        }
-                        <div class="flex items-center gap-2">
-                          <button hlmBtn variant="outline" size="sm" (click)="showTenantForm.set(!showTenantForm())">
-                            <svg lucideUserPlus class="size-4 mr-1"></svg>
-                            {{ 'nav.rentals.addTenant' | transloco }}
-                          </button>
-                        </div>
-                        @if (showTenantForm()) {
-                          <div class="border border-border rounded-lg p-3 mt-2 flex flex-col gap-2">
-                            <p class="text-xs text-muted-foreground">{{ 'nav.rentals.addTenantHint' | transloco }}</p>
-                            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.displayName' | transloco }}</label>
-                            <input type="text"
-                              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-                              [ngModel]="tenantName()" (ngModelChange)="tenantName.set($event)" />
-                            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.email' | transloco }}</label>
-                            <input type="text"
-                              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-                              [ngModel]="tenantEmail()" (ngModelChange)="tenantEmail.set($event)" />
-                            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.phone' | transloco }}</label>
-                            <input type="text"
-                              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-                              [ngModel]="tenantPhone()" (ngModelChange)="tenantPhone.set($event)" />
-                            <div class="flex justify-end">
-                              <button hlmBtn size="sm" (click)="saveTenant()" [disabled]="loading() || !tenantName().trim()">
-                                {{ 'nav.rentals.saveTenant' | transloco }}
-                              </button>
-                            </div>
-                          </div>
-                        }
-                      </div>
+                      <!-- Application: property, room and tenant render as global EntityRef
+                           selects; the viewing date replaces the application date. The tenant
+                           quick-create form and the property/room manage links are projected
+                           into their fields via fieldFooters. -->
+                      @for (form of [formNonce()]; track form) {
+                        <app-dynamic-entity-form
+                          [entity]="entity"
+                          [mode]="'edit'"
+                          [value]="workingRental()"
+                          [fieldNames]="['property', 'unit', 'tenant', 'viewingDate']"
+                          [shapeKey]="stage.shapeIri"
+                          [violations]="stageViolationsFor(stage.id)"
+                          [createActions]="{ tenant: { labelKey: 'nav.rentals.addTenant' } }"
+                          [fieldDependencies]="{ unit: { dependsOn: 'property', via: 'isPartOf' } }"
+                          [fieldFooters]="{ tenant: tenantCreateForm }"
+                          [manage]="manageConfig"
+                          [showDescriptions]="false"
+                          (createRequested)="onCreateRequested($event)" />
+                      }
                     } @else {
                       <app-dynamic-entity-form
                         [entity]="entity"
@@ -333,6 +301,35 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
           }
         </div>
       </ng-template>
+
+      <!-- Inline tenant quick-create — projected under the tenant field via fieldFooters -->
+      <ng-template #tenantCreateForm>
+        @if (showTenantForm()) {
+          <div class="border border-border rounded-lg p-3 mt-2 flex flex-col gap-2">
+            <p class="text-xs text-muted-foreground">{{ 'nav.rentals.addTenantHint' | transloco }}</p>
+            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.displayName' | transloco }}</label>
+            <input type="text"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              [ngModel]="tenantName()" (ngModelChange)="tenantName.set($event)" />
+            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.email' | transloco }}</label>
+            <input type="text"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              [ngModel]="tenantEmail()" (ngModelChange)="tenantEmail.set($event)" />
+            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.phone' | transloco }}</label>
+            <input type="text"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              [ngModel]="tenantPhone()" (ngModelChange)="tenantPhone.set($event)" />
+            <div class="flex justify-end">
+              <button hlmBtn size="sm" (click)="saveTenant()" [disabled]="loading() || !tenantName().trim()">
+                {{ 'nav.rentals.saveTenant' | transloco }}
+              </button>
+            </div>
+          </div>
+        }
+      </ng-template>
+
+      <!-- Property & room "New / Edit" jump buttons are rendered generically by the
+           dynamic form's [manage] config — no per-field templates needed here. -->
     </div>
   `,
   styles: [`
@@ -385,6 +382,23 @@ export class Rentals implements OnInit {
   readonly entity = RentalEntity;
   readonly stages = STAGES;
 
+  /**
+   * Generic "New / Edit" manage targets for the Application-stage EntityRefs —
+   * keyed by entity path; the dynamic form renders the jump buttons.
+   */
+  readonly manageConfig: Record<string, EntityManageConfig> = {
+    properties: {
+      route: '/properties',
+      create: () => ({ mode: 'create' }),
+      edit: (iri) => ({ mode: 'edit', iri }),
+    },
+    rooms: {
+      route: '/properties',
+      create: (parentIri) => (parentIri ? { mode: 'edit', iri: parentIri } : { mode: 'create' }),
+      edit: (iri, parentIri) => (parentIri ? { mode: 'edit', iri: parentIri, room: iri } : null),
+    },
+  };
+
   // ── List state ──────────────────────────────────────────────────────────
   readonly items = signal<Record<string, unknown>[]>([]);
   readonly loading = signal(false);
@@ -396,6 +410,7 @@ export class Rentals implements OnInit {
   // ── Reference lookups (for display labels + options) ────────────────────
   readonly tenants = signal<{ iri: string; displayName: string }[]>([]);
   readonly properties = signal<{ iri: string; name: string }[]>([]);
+  readonly rooms = signal<{ iri: string; name: string; isPartOf: unknown }[]>([]);
   readonly stageList = signal<{ iri: string; key: string; displayName: string }[]>([]);
   private readonly stageByKey = signal<Map<string, string>>(new Map());
 
@@ -405,7 +420,9 @@ export class Rentals implements OnInit {
   readonly doneStages = signal<Set<number>>(new Set());
   readonly stageViolations = signal<Map<number, ShapeViolation[]>>(new Map());
   readonly savingStage = signal(false);
-  readonly selectedTenantIri = signal('');
+
+  /** Bumped to re-mount the Application form so its dropdowns reload options (e.g. after creating a tenant). */
+  readonly formNonce = signal(0);
 
   // ── Tenant quick-create ─────────────────────────────────────────────────
   readonly showTenantForm = signal(false);
@@ -426,6 +443,24 @@ export class Rentals implements OnInit {
   readonly workingRental = computed<Record<string, unknown> | null>(() =>
     this.mode() === 'edit' ? this.editingItem() : this.pendingRental(),
   );
+
+  /**
+   * Cascade guard: when the selected property changes, clear a room (unit) that
+   * no longer belongs to it, so a stale room can't be saved against a different
+   * property. Only clears on a positive mismatch (room found + known isPartOf).
+   */
+  private readonly clearStaleUnit = effect(() => {
+    const working = this.workingRental();
+    if (!working) return;
+    const propertyIri = refIri(working['property']);
+    const unitIri = refIri(working['unit']);
+    if (!propertyIri || !unitIri) return;
+    const room = this.rooms().find((r) => r.iri === unitIri);
+    const roomProperty = room ? refIri(room['isPartOf']) : '';
+    if (roomProperty && roomProperty !== propertyIri) {
+      working['unit'] = '';
+    }
+  });
 
   /** Index of the first not-yet-done stage (the current one). */
   readonly currentStageIndex = computed<number>(() => {
@@ -466,11 +501,6 @@ export class Rentals implements OnInit {
 
   stageHasViolations(stageId: number): boolean {
     return this.stageViolationsFor(stageId).length > 0;
-  }
-
-  /** The Application stage's tenant violation, shown next to the custom selector. */
-  tenantViolation(): ShapeViolation | null {
-    return this.stageViolationsFor(0).find((v) => v.key === 'tenant') ?? null;
   }
 
   // ── Display decoration (tree table) ─────────────────────────────────────
@@ -574,12 +604,14 @@ export class Rentals implements OnInit {
       rentals: this.aletheia.list<Record<string, unknown>>('rentals', undefined, stateHeaders),
       tenants: this.aletheia.list<{ iri: string; displayName: string }>('tenants'),
       properties: this.aletheia.list<{ iri: string; name: string }>('properties'),
+      rooms: this.aletheia.list<{ iri: string; name: string; isPartOf: unknown }>('rooms'),
       stages: this.aletheia.list<{ iri: string; key: string; displayName: string }>('rental-stages'),
     }).subscribe({
-      next: ({ rentals, tenants, properties, stages }) => {
+      next: ({ rentals, tenants, properties, rooms, stages }) => {
         this.items.set(rentals.items ?? []);
         this.tenants.set(tenants.items ?? []);
         this.properties.set(properties.items ?? []);
+        this.rooms.set(rooms.items ?? []);
         this.stageList.set(stages.items ?? []);
         const keyMap = new Map<string, string>();
         for (const s of stages.items ?? []) keyMap.set(s.key, s.iri);
@@ -606,7 +638,7 @@ export class Rentals implements OnInit {
     this.pendingRental.set({});
     this.doneStages.set(new Set());
     this.stageViolations.set(new Map());
-    this.selectedTenantIri.set('');
+    this.formNonce.set(0);
     this.showTenantForm.set(false);
     this.tenantName.set('');
     this.tenantEmail.set('');
@@ -620,7 +652,6 @@ export class Rentals implements OnInit {
     this.editingItem.set(normalized);
     this.pendingRental.set(null);
     this.stageViolations.set(new Map());
-    this.selectedTenantIri.set(refIri(normalized['tenant']));
     this.showTenantForm.set(false);
 
     // Replay progress: everything before the current stage is done.
@@ -691,13 +722,14 @@ export class Rentals implements OnInit {
     }
   }
 
-  selectTenant(iri: string): void {
-    this.selectedTenantIri.set(iri);
-    const working = this.workingRental();
-    if (working) working['tenant'] = iri;
-  }
-
   // ── Tenant quick-create ─────────────────────────────────────────────────
+
+  /** Toggles the tenant quick-create card when the inline selector action fires. */
+  onCreateRequested(event: { propertyName: string; entityPath: string }): void {
+    if (event.propertyName === 'tenant') {
+      this.showTenantForm.set(!this.showTenantForm());
+    }
+  }
 
   async saveTenant(): Promise<void> {
     const name = this.tenantName().trim();
@@ -705,12 +737,16 @@ export class Rentals implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      await lastValueFrom(this.aletheia.create('tenants', {
+      const created = await lastValueFrom(this.aletheia.create('tenants', {
         displayName: name,
         email: this.tenantEmail().trim(),
         phone: this.tenantPhone().trim(),
       }));
       await this.loadTenants();
+      const working = this.workingRental();
+      if (working) working['tenant'] = created.iri;
+      // Re-mount the Application form so the new tenant appears in its dropdown.
+      this.formNonce.update((n) => n + 1);
       this.showTenantForm.set(false);
       this.tenantName.set('');
       this.tenantEmail.set('');

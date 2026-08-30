@@ -92,13 +92,13 @@ public static class ViewAspects
             ] ;
             sh:property [
                 sh:path json:propertyType ; sh:order 3 ;
-                sh:description "IRI reference to the property type; discover valid IRIs via the list tool." ;
+                sh:description "Choose the type of property." ;
                 sh:minCount 1 ; sh:nodeKind sh:IRI ;
                 sh:message "shape.property.propertyType" ;
             ] ;
             sh:property [
                 sh:path json:rentalModel ; sh:order 4 ;
-                sh:description "Optional IRI reference to the rental model." ;
+                sh:description "Choose how the property is rented (optional)." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.property.rentalModel" ;
             ] ;
@@ -144,13 +144,13 @@ public static class ViewAspects
             ] ;
             sh:property [
                 sh:path json:furnishingStatus ; sh:order 4 ;
-                sh:description "Optional IRI reference to the furnishing status." ;
+                sh:description "Choose how furnished the room is." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.furnishingStatus" ;
             ] ;
             sh:property [
                 sh:path json:roomStatus ; sh:order 5 ;
-                sh:description "Optional IRI reference to the room status." ;
+                sh:description "Choose the current room status." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.roomStatus" ;
             ] .
@@ -246,8 +246,9 @@ public static class ViewAspects
         """;
 
     /// <summary>
-    /// Rental Stage 1 · Application shape: when the tenant applied and who the
-    /// tenant is. Validating this stage unlocks the Contract stage.
+    /// Rental Stage 1 · Application shape: the property (and optional room),
+    /// the tenant, and the apartment viewing date. Validating this stage
+    /// unlocks the Contract stage.
     /// </summary>
     public const string RentalApplicationTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
@@ -258,23 +259,34 @@ public static class ViewAspects
             a sh:NodeShape ;
             sh:targetClass <urn:aletheia:homestia:Rental:application> ;
             sh:property [
-                sh:path json:applicationDate ; sh:order 1 ;
-                sh:description "When the tenant applied for the rental." ;
-                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
-                sh:message "shape.rental.applicationDate" ;
+                sh:path json:property ; sh:order 1 ;
+                sh:description "Choose the property being rented." ;
+                sh:minCount 1 ; sh:nodeKind sh:IRI ;
+                sh:message "shape.rental.property" ;
             ] ;
             sh:property [
-                sh:path json:tenant ; sh:order 2 ;
-                sh:description "IRI reference to the tenant renting under this agreement." ;
+                sh:path json:unit ; sh:order 2 ;
+                sh:description "Choose the room, for single-room (shared living) rentals." ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.rental.unit" ;
+            ] ;
+            sh:property [
+                sh:path json:tenant ; sh:order 3 ;
+                sh:description "Choose the tenant for this rental." ;
                 sh:minCount 1 ; sh:nodeKind sh:IRI ;
                 sh:message "shape.rental.tenant" ;
+            ] ;
+            sh:property [
+                sh:path json:viewingDate ; sh:order 4 ;
+                sh:description "Pick the date of the apartment viewing." ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.rental.viewingDate" ;
             ] .
         """;
 
     /// <summary>
-    /// Rental Stage 2 · Contract shape: the rented property (and optional unit),
-    /// monthly rent, start date, and duration. Validating this stage unlocks
-    /// the Deposit stage.
+    /// Rental Stage 2 · Contract shape: monthly rent, start date, and duration.
+    /// Validating this stage unlocks the Deposit stage.
     /// </summary>
     public const string RentalContractTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
@@ -285,32 +297,20 @@ public static class ViewAspects
             a sh:NodeShape ;
             sh:targetClass <urn:aletheia:homestia:Rental:contract> ;
             sh:property [
-                sh:path json:property ; sh:order 1 ;
-                sh:description "IRI reference to the rented property." ;
-                sh:minCount 1 ; sh:nodeKind sh:IRI ;
-                sh:message "shape.rental.property" ;
-            ] ;
-            sh:property [
-                sh:path json:unit ; sh:order 2 ;
-                sh:description "Optional IRI reference to the specific room (single-room rentals)." ;
-                sh:nodeKind sh:IRI ;
-                sh:message "shape.rental.unit" ;
-            ] ;
-            sh:property [
-                sh:path json:rent ; sh:order 3 ;
+                sh:path json:rent ; sh:order 1 ;
                 sh:description "Monthly rent in euros." ;
                 sh:minCount 1 ; sh:datatype xsd:decimal ;
                 sh:minInclusive 0 ;
                 sh:message "shape.rental.rent" ;
             ] ;
             sh:property [
-                sh:path json:startDate ; sh:order 4 ;
+                sh:path json:startDate ; sh:order 2 ;
                 sh:description "Rental start date." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.startDate" ;
             ] ;
             sh:property [
-                sh:path json:durationMonths ; sh:order 5 ;
+                sh:path json:durationMonths ; sh:order 3 ;
                 sh:description "Contract duration in months." ;
                 sh:minCount 1 ; sh:datatype xsd:integer ;
                 sh:minInclusive 1 ;

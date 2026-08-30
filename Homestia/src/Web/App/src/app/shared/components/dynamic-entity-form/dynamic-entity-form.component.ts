@@ -6,18 +6,38 @@ import {
   computed,
   signal,
   effect,
+  TemplateRef,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { LucideArrowUpRight } from '@lucide/angular';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { lastValueFrom } from 'rxjs';
-import { AletheiaHttpClient } from '../../services/aletheia-http-client';
 import { ShaclValidatorService } from '../../../core/shapes';
-import type { ShapeViolation } from '../../../core/shapes';
+import type { ShapeSchema, ShapeViolation } from '../../../core/shapes';
+import { EntityRefSelectComponent } from '../entity-ref-select/entity-ref-select.component';
 import {
   FieldRendererRegistry,
   FieldRendererConfig,
 } from './field-renderer-registry.service';
 import type { EntityInfo, EntityPropertyInfo } from '../../services/aletheia-http-client.models';
+
+/** Query params for a manage navigation (create/edit). */
+export type ManageQueryParams = Record<string, unknown>;
+
+/**
+ * Generic "New / Edit" manage configuration for one entity type. Keyed by the
+ * EntityRef target path, so any EntityRef field that selects that entity gets
+ * the same jump buttons without per-field templates.
+ */
+export interface EntityManageConfig {
+  /** Router path that manages this entity type (e.g. '/properties'). */
+  route: string;
+  /** Builds query params for creating a new entity; parentIri = the cascading parent value. */
+  create?: (parentIri?: string) => ManageQueryParams | null;
+  /** Builds query params for editing the selected entity; parentIri = the cascading parent value. */
+  edit?: (iri: string, parentIri?: string) => ManageQueryParams | null;
+}
 
 /**
  * DynamicEntityForm — renders form fields for a single Aletheia entity
@@ -26,23 +46,13 @@ import type { EntityInfo, EntityPropertyInfo } from '../../services/aletheia-htt
 @Component({
   selector: 'app-dynamic-entity-form',
   standalone: true,
-  imports: [FormsModule, TranslocoPipe],
+  imports: [FormsModule, TranslocoPipe, EntityRefSelectComponent, NgTemplateOutlet, RouterLink, LucideArrowUpRight],
   templateUrl: './dynamic-entity-form.component.html',
   styleUrl: './dynamic-entity-form.component.scss',
 })
 export class DynamicEntityFormComponent {
   private readonly registry = inject(FieldRendererRegistry);
-  private readonly aletheia = inject(AletheiaHttpClient);
   private readonly validator = inject(ShaclValidatorService);
-
-  // ── Option caching for EntityRef dropdowns ─────────────────────────────
-
-  /** Cached options per entity path. { iri, displayValue } arrays. */
-  private readonly optionsCache = new Map<string, { iri: string; displayValue: string }[]>();
-  private readonly optionsLoading = signal<Set<string>>(new Set());
-
-  /** Public signal for template consumption: path → options array. */
-  readonly options = signal<Map<string, { iri: string; displayValue: string }[]>>(new Map());
 
   // ── Inputs ──────────────────────────────────────────────────────────────
 
@@ -64,10 +74,53 @@ export class DynamicEntityFormComponent {
   /** External violations targeting this form (scoped by the parent). */
   readonly violations = input<ShapeViolation[]>([]);
 
+  /**
+   * Configures inline "create new" actions on EntityRef fields, keyed by
+   * property name — e.g. <c>{ tenant: { labelKey: 'nav.rentals.addTenant' } }</c>.
+   * The selector renders the create button; the parent handles the emitted
+   * {@link createRequested} event with its own create form.
+   */
+  readonly createActions = input<Record<string, { labelKey: string }>>({});
+
+  /**
+   * Configures cascading EntityRef filters, keyed by the child property name —
+   * e.g. <c>{ unit: { dependsOn: 'property', via: 'isPartOf' } }</c> filters
+   * the unit dropdown to options whose <c>isPartOf</c> equals the selected
+   * property. A child without a selected parent shows no options.
+   */
+  readonly fieldDependencies = input<Record<string, { dependsOn: string; via: string }>>({});
+
+  /**
+   * Per-field footer templates, keyed by property name, rendered below that
+   * field's control — e.g. an inline "create tenant" form. The template
+   * context is <c>{ $implicit: prop }</c>.
+   */
+  readonly fieldFooters = input<Record<string, TemplateRef<unknown> | null>>({});
+
+  /**
+   * Generic "New / Edit" manage jump buttons per entity path — keyed by the
+   * EntityRef target path (e.g. 'properties', 'rooms'). Any EntityRef field
+   * whose target path is configured renders an "Edit" button (when a value is
+   * selected) and a "New" button to the right of the selector. The config
+   * builds the query params for both; the cascading parent value (if any) is
+   * passed through so a child entity can deep-link into its parent's page.
+   */
+  readonly manage = input<Record<string, EntityManageConfig>>({});
+
+  /**
+   * Whether per-field <c>sh:description</c> hints are shown under EntityRef
+   * selects. Set to false when the surrounding layout already communicates
+   * the field (e.g. jump buttons alongside).
+   */
+  readonly showDescriptions = input(true);
+
   // ── Outputs ─────────────────────────────────────────────────────────────
 
   readonly saved = output<Record<string, unknown>>();
   readonly cancelled = output<void>();
+
+  /** Emitted when a configured inline create action is requested. */
+  readonly createRequested = output<{ propertyName: string; entityPath: string }>();
 
   // ── Internal state ──────────────────────────────────────────────────────
 
@@ -93,6 +146,9 @@ export class DynamicEntityFormComponent {
 
   /** Shape-driven JSON keys in display order (null = no shape / not loaded). */
   private readonly shapeKeys = signal<string[] | null>(null);
+
+  /** The loaded frontend shape schema (drives field descriptions). */
+  private readonly shapeSchema = signal<ShapeSchema | null>(null);
 
   // ── Derived ─────────────────────────────────────────────────────────────
 
@@ -147,26 +203,23 @@ export class DynamicEntityFormComponent {
       }
     });
 
-    // Auto-load options for EntityRef properties
-    effect(() => {
-      const props = this.visibleProperties();
-      for (const p of props) {
-        if (p.type === 'EntityRef' && p.targetEntityPath && !this.optionsCache.has(p.targetEntityPath)) {
-          this.loadOptions(p.targetEntityPath);
-        }
-      }
-    });
-
     // Load the shape schema once when a shape key is provided.
     effect(() => {
       const key = this.shapeKey();
       if (!key) {
         this.shapeKeys.set(null);
+        this.shapeSchema.set(null);
         return;
       }
       this.validator.loadSchema(key)
-        .then((schema) => this.shapeKeys.set(schema.keys.map((k) => k.key)))
-        .catch(() => this.shapeKeys.set(null));
+        .then((schema) => {
+          this.shapeKeys.set(schema.keys.map((k) => k.key));
+          this.shapeSchema.set(schema);
+        })
+        .catch(() => {
+          this.shapeKeys.set(null);
+          this.shapeSchema.set(null);
+        });
     });
   }
 
@@ -187,38 +240,18 @@ export class DynamicEntityFormComponent {
     return prop.name;
   }
 
-  /** Get the dropdown options for an EntityRef property. */
-  optionsFor(prop: EntityPropertyInfo): { iri: string; displayValue: string }[] {
-    if (!prop.targetEntityPath) return [];
-    // Read from the signal to make this template-reactive
-    const map = this.options();
-    return map.get(prop.targetEntityPath) ?? [];
+  /** Visual help: the shape's sh:description for a JSON key, if any. */
+  descriptionFor(key: string): string | null {
+    return this.shapeSchema()?.keyByName.get(key)?.description ?? null;
   }
 
-  private async loadOptions(entityPath: string): Promise<void> {
-    if (this.optionsCache.has(entityPath)) return;
-
-    const loading = this.optionsLoading();
-    if (loading.has(entityPath)) return;
-
-    loading.add(entityPath);
-    this.optionsLoading.set(new Set(loading));
-
-    try {
-      // displayName for enums/agents, key for enumeration fallback, name for
-      // entities like Property whose display field is `name`.
-      const res = await lastValueFrom(this.aletheia.list<{ key?: string; displayName?: string; name?: string; iri?: string }>(entityPath));
-      const items = (res.items ?? []).map((item) => ({
-        iri: item.iri ?? '',
-        displayValue: item.displayName ?? item.key ?? item.name ?? '',
-      }));
-      this.optionsCache.set(entityPath, items);
-    } finally {
-      loading.delete(entityPath);
-      this.optionsLoading.set(new Set(loading));
-      // Trigger signal update
-      this.options.set(new Map(this.optionsCache));
+  /** Normalizes a stored reference (IRI string or { iri }) to a plain IRI. */
+  asIri(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object' && 'iri' in (value as object)) {
+      return ((value as { iri: unknown }).iri as string) ?? '';
     }
+    return '';
   }
 
   // ── Actions ─────────────────────────────────────────────────────────────

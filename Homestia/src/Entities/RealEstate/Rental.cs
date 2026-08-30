@@ -22,16 +22,6 @@ public partial class Rental
 
     // ── Stage 1 · Application ───────────────────────────────────────────────
 
-    /// <summary>When the tenant applied.</summary>
-    [Predicate("applicationDate")]
-    public string ApplicationDate { get; set; } = string.Empty;
-
-    /// <summary>The tenant who rents under this agreement.</summary>
-    [Owning("tenant")]
-    public partial EntityRef<Tenant>? Tenant { get; set; }
-
-    // ── Stage 2 · Contract ──────────────────────────────────────────────────
-
     /// <summary>The rented property.</summary>
     [Owning("property")]
     public partial EntityRef<Property>? Property { get; set; }
@@ -39,6 +29,16 @@ public partial class Rental
     /// <summary>The specific room, for single-room (shared living) rentals.</summary>
     [Owning("unit")]
     public partial EntityRef<Room>? Unit { get; set; }
+
+    /// <summary>The tenant who rents under this agreement.</summary>
+    [Owning("tenant")]
+    public partial EntityRef<Tenant>? Tenant { get; set; }
+
+    /// <summary>When the apartment viewing takes place.</summary>
+    [Predicate("viewingDate")]
+    public string ViewingDate { get; set; } = string.Empty;
+
+    // ── Stage 2 · Contract ──────────────────────────────────────────────────
 
     /// <summary>Monthly rent in euros.</summary>
     [Predicate("rent")]

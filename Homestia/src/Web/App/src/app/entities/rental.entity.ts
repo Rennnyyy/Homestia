@@ -6,8 +6,6 @@ import type { EntityInfo } from '../shared/services/aletheia-http-client.models'
 // ── API response interface ────────────────────────────────────────────────
 
 export interface Rental {
-  /** applicationDate */
-  applicationDate: string;
   /** damageConfirmed */
   damageConfirmed: boolean;
   /** depositAmount */
@@ -42,6 +40,8 @@ export interface Rental {
   startDate: string;
   /** tenancyActive */
   tenancyActive: boolean;
+  /** viewingDate */
+  viewingDate: string;
   /** property → Property */
   property: unknown;
   /** currentStage → RentalStage */
@@ -62,7 +62,6 @@ export const RentalEntity: EntityInfo = {
   predicatePath: 'rental',
   displayName: 'Rental',
   properties: [
-    { name: 'applicationDate', type: 'String', isCollection: false },
     { name: 'damageConfirmed', type: 'Boolean', isCollection: false },
     { name: 'depositAmount', type: 'Decimal', isCollection: false },
     { name: 'depositPaid', type: 'Boolean', isCollection: false },
@@ -80,6 +79,7 @@ export const RentalEntity: EntityInfo = {
     { name: 'settlementNotes', type: 'String', isCollection: false },
     { name: 'startDate', type: 'String', isCollection: false },
     { name: 'tenancyActive', type: 'Boolean', isCollection: false },
+    { name: 'viewingDate', type: 'String', isCollection: false },
     { name: 'property', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
     { name: 'currentStage', type: 'EntityRef', isCollection: false, targetEntityPath: 'rental-stages' },
     { name: 'unit', type: 'EntityRef', isCollection: false, targetEntityPath: 'rooms' },

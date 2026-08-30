@@ -33,12 +33,14 @@ export function extractSchema(dataset: DatasetCore, shapeIri: string): ShapeSche
     const orderTerm = [...dataset.match(propertyNode, sh('order'), null)].map((q) => q.object)[0];
     const datatypeTerm = [...dataset.match(propertyNode, sh('datatype'), null)].map((q) => q.object)[0];
     const nodeKindTerm = [...dataset.match(propertyNode, sh('nodeKind'), null)].map((q) => q.object)[0];
+    const descriptionTerm = [...dataset.match(propertyNode, sh('description'), null)].map((q) => q.object)[0];
 
     keys.push({
       key,
       order: orderTerm?.termType === 'Literal' && !Number.isNaN(Number(orderTerm.value)) ? Number(orderTerm.value) : 0,
       datatype: datatypeTerm?.termType === 'NamedNode' ? datatypeTerm.value : null,
       nodeKind: nodeKindTerm?.termType === 'NamedNode' ? localName(nodeKindTerm.value) : null,
+      description: descriptionTerm?.termType === 'Literal' ? descriptionTerm.value : null,
     });
   }
 

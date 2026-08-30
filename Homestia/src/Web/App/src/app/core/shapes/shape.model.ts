@@ -32,6 +32,8 @@ export interface KeyConstraint {
   datatype: string | null;
   /** sh:nodeKind local name (`IRI`), null when not declared. */
   nodeKind: string | null;
+  /** sh:description text, null when not declared (shown as field visual help). */
+  description: string | null;
 }
 
 /** The extracted schema of one shape: ordered keys + target classes. */

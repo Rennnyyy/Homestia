@@ -39,7 +39,7 @@ public sealed class QueryAspectsTests
     {
         var rental = new Rental
         {
-            ApplicationDate = "2026-01-01",
+            ViewingDate = "2026-01-15",
             Rent = 900,
             CurrentStage = EntityRef<RentalStage>.ForIri(
                 $"https://www.aletheia.arkenforge.de/rental-stages/{stageKey}"),

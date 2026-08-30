@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal, OnInit, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, viewChild, effect } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -576,6 +577,7 @@ export class Properties implements OnInit {
   private readonly aletheia = inject(AletheiaHttpClient);
   private readonly sync = inject(EntitySyncService);
   private readonly validator = inject(ShaclValidatorService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly entity = PropertyEntity;
   readonly RoomEntity = RoomEntity;
@@ -637,6 +639,20 @@ export class Properties implements OnInit {
   readonly originalRooms = signal<Record<string, unknown>[]>([]);
   readonly openRoomIndices = signal<Set<number>>(new Set());
 
+  // ── Deep-link state (from rentals' property/room manage links) ─────────
+  private deepLink: { mode: 'create' | 'edit'; iri?: string; room?: string } | null = null;
+  private pendingRoomIri: string | null = null;
+
+  /** Opens the room targeted by a deep link once the edit-mode rooms load. */
+  private readonly openDeepLinkedRoom = effect(() => {
+    const iri = this.pendingRoomIri;
+    if (!iri) return;
+    const idx = this.rooms().findIndex((r) => r['iri'] === iri);
+    if (idx < 0) return;
+    this.openRoomIndices.update((open) => new Set(open).add(idx));
+    this.pendingRoomIri = null;
+  });
+
   /** Composite SHACL violations for the property + rooms tree. */
   readonly validationErrors = signal<ShapeViolation[]>([]);
 
@@ -658,6 +674,34 @@ export class Properties implements OnInit {
 
   ngOnInit(): void {
     this.refresh();
+    this.route.queryParams.subscribe((qp) => {
+      const mode = qp['mode'];
+      if (mode === 'create') {
+        this.deepLink = { mode: 'create' };
+      } else if (mode === 'edit' && qp['iri']) {
+        this.deepLink = { mode: 'edit', iri: qp['iri'], room: qp['room'] ?? undefined };
+      } else {
+        this.deepLink = null;
+      }
+    });
+  }
+
+  /** Applies a deep link (e.g. from rentals) once the list has loaded. */
+  private processDeepLink(): void {
+    const dl = this.deepLink;
+    if (!dl) return;
+    this.deepLink = null;
+    if (dl.mode === 'create') {
+      this.enterCreate();
+      return;
+    }
+    if (dl.iri) {
+      const item = this.items().find((p) => p['iri'] === dl.iri);
+      if (item) {
+        this.pendingRoomIri = dl.room ?? null;
+        this.enterEdit(item as unknown as Record<string, unknown>);
+      }
+    }
   }
 
   /** Open the AI creation wizard as an overlay over the list view. */
@@ -782,6 +826,7 @@ export class Properties implements OnInit {
       next: (res: AletheiaCollection<Property>) => {
         this.items.set(res.items ?? []);
         this.loading.set(false);
+        this.processDeepLink();
       },
       error: (err) => {
         this.error.set(err?.message ?? 'Failed to load properties');

@@ -49,19 +49,51 @@
         [disabled]="isView()" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
     }
 
-    <!-- Select / EntityRef (single) -->
+    <!-- Select / EntityRef (single) — always a real dropdown via the shared selector -->
     @if (renderer.template === 'select' && !prop.isCollection) {
-      @let opts = optionsFor(prop);
-      @if (opts.length > 0) {
-        <select [id]="fieldId"
-          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          [disabled]="isView()" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event">
-          <option value="">{{ 'fields.placeholder.select' | transloco }}</option>
-          @for (opt of opts; track opt.iri) {
-            <option [value]="opt.iri">{{ opt.displayValue }}</option>
+      @if (prop.targetEntityPath) {
+        @let createCfg = createActions()[prop.name];
+        @let dep = fieldDependencies()[prop.name];
+        @let depValue = dep ? asIri(formData()[dep.dependsOn]) : null;
+        <div class="flex items-center gap-2">
+          <div class="min-w-0 flex-1">
+            <app-entity-ref-select
+              [fieldId]="fieldId"
+              [entityPath]="prop.targetEntityPath"
+              [value]="asIri(formData()[prop.name])"
+              [disabled]="isView()"
+              [hint]="showDescriptions() ? descriptionFor(prop.name) : null"
+              [allowCreate]="!!createCfg && isEditable()"
+              [createLabelKey]="createCfg?.labelKey ?? 'entityRefSelect.createNew'"
+              [filter]="dep ? { predicate: dep.via, value: depValue } : null"
+              (valueChange)="formData()[prop.name] = $event"
+              (create)="createRequested.emit({ propertyName: prop.name, entityPath: prop.targetEntityPath })" />
+          </div>
+          @if (manage()[prop.targetEntityPath]; as manageCfg) {
+            @let valueIri = asIri(formData()[prop.name]);
+            @let parentIri = dep ? asIri(formData()[dep.dependsOn]) : undefined;
+            <div class="flex shrink-0 items-center gap-1.5">
+              @if (manageCfg.edit && valueIri) {
+                <a [routerLink]="manageCfg.route" [queryParams]="manageCfg.edit(valueIri, parentIri) ?? {}"
+                  class="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  title="{{ 'entityRefSelect.edit' | transloco }}">
+                  <svg lucideArrowUpRight class="size-3.5 text-muted-foreground"></svg>
+                  {{ 'entityRefSelect.edit' | transloco }}
+                </a>
+              }
+              @if (manageCfg.create) {
+                <a [routerLink]="manageCfg.route" [queryParams]="manageCfg.create(parentIri) ?? {}"
+                  class="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  title="{{ 'entityRefSelect.new' | transloco }}">
+                  <svg lucideArrowUpRight class="size-3.5 text-muted-foreground"></svg>
+                  {{ 'entityRefSelect.new' | transloco }}
+                </a>
+              }
+            </div>
           }
-        </select>
+        </div>
       } @else {
+        <!-- Defensive fallback: EntityRef without a target path has nothing to select from. -->
         <input [id]="fieldId" type="text"
           class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           [disabled]="isView()" [placeholder]="'fields.placeholder.entityRef' | transloco" [ngModel]="formData()[prop.name]" (ngModelChange)="formData()[prop.name] = $event" />
@@ -78,6 +110,11 @@
     <!-- SHACL violation for this field (sh:message is an i18n key) -->
     @if (fieldErrors()[prop.name] || externalFieldErrors()[prop.name]) {
       <p class="text-[0.8rem] font-medium text-destructive -mt-1">{{ (fieldErrors()[prop.name] || externalFieldErrors()[prop.name]) | transloco }}</p>
+    }
+
+    <!-- Per-field footer slot — e.g. an inline create form or manage links -->
+    @if (fieldFooters()[prop.name]; as footer) {
+      <ng-container [ngTemplateOutlet]="footer" [ngTemplateOutletContext]="{ $implicit: prop }" />
     }
   </div>
 }

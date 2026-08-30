@@ -4,12 +4,13 @@
  * and output emissions.
  */
 import { Component, signal, Injectable } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideTransloco, TranslocoLoader } from '@jsverse/transloco';
 import { of } from 'rxjs';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { DynamicEntityFormComponent } from './dynamic-entity-form.component';
 import type { ShapeViolation } from '../../../core/shapes';
 import type { EntityInfo } from '../../services/aletheia-http-client.models';
@@ -32,8 +33,11 @@ class MockTranslocoLoader implements TranslocoLoader {
       [mode]="mode()"
       [value]="value()"
       [violations]="violations()"
+      [createActions]="createActions()"
+      [fieldDependencies]="fieldDependencies()"
       (saved)="onSaved($event)"
       (cancelled)="onCancelled()"
+      (createRequested)="onCreateRequested($event)"
     />
   `,
 })
@@ -46,9 +50,12 @@ class TestHost {
   readonly mode = signal<'view' | 'edit' | 'create'>('view');
   readonly value = signal<Record<string, unknown> | null>(null);
   readonly violations = signal<ShapeViolation[]>([]);
+  readonly createActions = signal<Record<string, { labelKey: string }>>({});
+  readonly fieldDependencies = signal<Record<string, { dependsOn: string; via: string }>>({});
 
   savedData: Record<string, unknown> | null = null;
   cancelledCount = 0;
+  requested: { propertyName: string; entityPath: string } | null = null;
 
   onSaved(data: Record<string, unknown>): void {
     this.savedData = data;
@@ -56,6 +63,10 @@ class TestHost {
 
   onCancelled(): void {
     this.cancelledCount++;
+  }
+
+  onCreateRequested(event: { propertyName: string; entityPath: string }): void {
+    this.requested = event;
   }
 }
 
@@ -74,12 +85,22 @@ function makeEntity(overrides?: Partial<EntityInfo>): EntityInfo {
   };
 }
 
+/** Runs change detection and flushes pending microtasks so the async load settles. */
+async function settle(host: ComponentFixture<TestHost>): Promise<void> {
+  host.detectChanges();
+  await new Promise((resolve) => setTimeout(resolve));
+  host.detectChanges();
+}
+
 describe('DynamicEntityFormComponent', () => {
+  let httpMock: HttpTestingController;
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TestHost],
       providers: [
         provideHttpClient(),
+        provideHttpClientTesting(),
         provideTransloco({
           config: {
             availableLangs: [{ id: 'en', label: 'English' }],
@@ -91,6 +112,11 @@ describe('DynamicEntityFormComponent', () => {
         }),
       ],
     });
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
   });
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -287,5 +313,78 @@ describe('DynamicEntityFormComponent', () => {
     expect(el.textContent).toContain('The address is invalid.');
     // Nested violations with a dot path belong to child forms, not this one.
     expect(el.textContent).not.toContain('Not for this form.');
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // EntityRef selector (global dropdown)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  it('renders an EntityRef with a target path as a real dropdown', async () => {
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.entity.set(makeEntity({
+      properties: [
+        { name: 'owner', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
+      ],
+    }));
+    host.componentInstance.mode.set('edit');
+    host.componentInstance.value.set({ owner: '' });
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/properties').flush({ items: [{ iri: 'https://x/properties/1', name: 'Haus A' }] });
+    await settle(host);
+
+    const select = host.nativeElement.querySelector('app-entity-ref-select select');
+    expect(select).toBeTruthy();
+    expect((select as HTMLSelectElement).textContent).toContain('Haus A');
+    // No raw IRI text input is rendered for this field.
+    expect(host.nativeElement.querySelector('input#properties-owner')).toBeNull();
+  });
+
+  it('renders a configurable create action and emits createRequested', async () => {
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.entity.set(makeEntity({
+      properties: [
+        { name: 'tenant', type: 'EntityRef', isCollection: false, targetEntityPath: 'tenants' },
+      ],
+    }));
+    host.componentInstance.mode.set('edit');
+    host.componentInstance.value.set({ tenant: '' });
+    host.componentInstance.createActions.set({ tenant: { labelKey: 'nav.rentals.addTenant' } });
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/tenants').flush({ items: [{ iri: 'https://x/tenants/1', displayName: 'Anna' }] });
+    await settle(host);
+
+    const button = host.nativeElement.querySelector('app-entity-ref-select button') as HTMLButtonElement;
+    expect(button).toBeTruthy();
+    button.click();
+    expect(host.componentInstance.requested).toEqual({ propertyName: 'tenant', entityPath: 'tenants' });
+  });
+
+  it('filters a dependent EntityRef by the selected parent value', async () => {
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.entity.set(makeEntity({
+      properties: [
+        { name: 'property', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
+        { name: 'unit', type: 'EntityRef', isCollection: false, targetEntityPath: 'rooms' },
+      ],
+    }));
+    host.componentInstance.mode.set('edit');
+    host.componentInstance.value.set({ property: 'https://x/properties/A', unit: '' });
+    host.componentInstance.fieldDependencies.set({ unit: { dependsOn: 'property', via: 'isPartOf' } });
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/properties').flush({ items: [{ iri: 'https://x/properties/A', name: 'Haus A' }] });
+    httpMock.expectOne('/api/entities/rooms').flush({
+      items: [
+        { iri: 'https://x/rooms/1', name: 'Kitchen', isPartOf: { iri: 'https://x/properties/A' } },
+        { iri: 'https://x/rooms/2', name: 'Living', isPartOf: { iri: 'https://x/properties/B' } },
+      ],
+    });
+    await settle(host);
+
+    const selects = host.nativeElement.querySelectorAll('app-entity-ref-select select');
+    expect(selects.length).toBe(2);
+    // The unit dropdown (second) shows only rooms of the selected property.
+    const unitSelect = selects[1] as HTMLSelectElement;
+    expect(unitSelect.textContent).toContain('Kitchen');
+    expect(unitSelect.textContent).not.toContain('Living');
   });
 });

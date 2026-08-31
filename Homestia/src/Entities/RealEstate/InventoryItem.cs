@@ -1,7 +1,7 @@
 using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Operations;
 
-namespace Aletheia.Sdk.Program.Entities.RealEstate;
+namespace Homestia.Entities.RealEstate;
 
 /// <summary>
 /// InventoryItem — a physical item (furniture, appliance, etc.) placed in a

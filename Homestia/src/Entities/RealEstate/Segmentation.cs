@@ -2,7 +2,7 @@ using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Entity.Contracts;
 using Aletheia.Sdk.Operations;
 
-namespace Aletheia.Sdk.Program.Entities.RealEstate;
+namespace Homestia.Entities.RealEstate;
 
 /// <summary>
 /// Segmentation — abstract base for any spatially-defined part of a property.

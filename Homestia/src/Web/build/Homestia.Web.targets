@@ -3,7 +3,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════════════
        Homestia.Web — Angular facade build hook.
-       Imported by src/Program/Aletheia.Sdk.Program.csproj so the facade is
+       Imported by src/Program/Homestia.Program.csproj so the facade is
        rebuilt into the host's wwwroot on every dotnet build / publish.
        Skip with: dotnet run -p:SkipAngularBuild=true
 

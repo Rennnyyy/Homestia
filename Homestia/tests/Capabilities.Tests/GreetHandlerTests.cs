@@ -2,7 +2,7 @@ using Aletheia.Sdk.Capability;
 using Aletheia.Sdk.Execution;
 using Shouldly;
 
-namespace Aletheia.Sdk.Program.Capabilities.Tests;
+namespace Homestia.Capabilities.Tests;
 
 /// <summary>
 /// Unit tests for <see cref="GreetHandler"/> — validates command handling,

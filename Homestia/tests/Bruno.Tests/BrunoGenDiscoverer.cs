@@ -2,7 +2,7 @@ using System.Reflection;
 using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Operations;
 
-namespace Aletheia.Sdk.Program.Bruno.Tests;
+namespace Homestia.Bruno.Tests;
 
 /// <summary>
 /// Auto-discovers <c>[Entity]</c> types and <c>[Capability]</c> handlers
@@ -28,7 +28,7 @@ public static class BrunoGenDiscoverer
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             // Only scan Program-slice assemblies (skip system/Framework assemblies)
-            if (!(assembly.FullName?.StartsWith("Aletheia.Sdk.Program") ?? false))
+            if (!(assembly.FullName?.StartsWith("Homestia") ?? false))
                 continue;
 
             DiscoverFromAssembly(assembly, result);
@@ -39,7 +39,7 @@ public static class BrunoGenDiscoverer
         {
             try
             {
-                var entitiesAssembly = Assembly.Load("Aletheia.Sdk.Program.Entities");
+                var entitiesAssembly = Assembly.Load("Homestia.Entities");
                 DiscoverFromAssembly(entitiesAssembly, result);
             }
             catch

@@ -1,4 +1,4 @@
-namespace Aletheia.Sdk.Program.Web;
+namespace Homestia.Web;
 
 /// <summary>
 /// Well-known paths for the Homestia Angular facade, shared between the host

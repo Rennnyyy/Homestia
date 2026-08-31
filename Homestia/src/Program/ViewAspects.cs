@@ -1,7 +1,7 @@
 using Aletheia.Sdk.Aspects.Abstractions.Contracts;
 using Aletheia.Sdk.Aspects.View;
 
-namespace Aletheia.Sdk.Program.Aspects;
+namespace Homestia.Aspects;
 
 /// <summary>
 /// Frontend-purpose views — the form shapes of Homestia.

@@ -1,7 +1,7 @@
 using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Operations;
 
-namespace Aletheia.Sdk.Program.Entities.RealEstate;
+namespace Homestia.Entities.RealEstate;
 
 /// <summary>
 /// RentalStage — enumeration of the lifecycle stages of a <see cref="Rental"/>

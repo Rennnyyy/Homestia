@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Aletheia.Sdk.AI.Scenarios;
-using Aletheia.Sdk.Program.Aspects;
+using Homestia.Aspects;
 
-namespace Aletheia.Sdk.Program.AI;
+namespace Homestia.AI;
 
 /// <summary>
 /// Code-defined AI scenario flows for Homestia.

@@ -1,7 +1,7 @@
 using Aletheia.Sdk.Aspects.Abstractions.Contracts;
 using Aletheia.Sdk.Aspects.Query;
 
-namespace Aletheia.Sdk.Program.Aspects;
+namespace Homestia.Aspects;
 
 /// <summary>
 /// Query aspects — read-time derivation of implicit knowledge for the Homestia

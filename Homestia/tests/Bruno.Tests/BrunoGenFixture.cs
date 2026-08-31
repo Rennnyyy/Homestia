@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Aletheia.Sdk.Testing;
 
-namespace Aletheia.Sdk.Program.Bruno.Tests;
+namespace Homestia.Bruno.Tests;
 
 /// <summary>
 /// xUnit collection fixture that inherits the battle-tested server lifecycle
@@ -13,7 +13,7 @@ public sealed class BrunoGenCollection : ICollectionFixture<BrunoGenFixture>;
 
 public class BrunoGenFixture : BrunoFixture
 {
-    public BrunoGenFixture() : base("Aletheia.Sdk.Program.dll") { }
+    public BrunoGenFixture() : base("Homestia.Program.dll") { }
 
     /// <summary>Shared across the temporary [MemberData] fixture and the injected test fixture.</summary>
     private static string? s_brunoOutputDir;

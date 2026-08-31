@@ -75,7 +75,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>Aletheia.Sdk.Program</RootNamespace>
+    <RootNamespace>Homestia</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -85,9 +85,9 @@
     and serves HTTP.
   -->
   <ItemGroup>
-    <ProjectReference Include="../Capabilities/Aletheia.Sdk.Program.Capabilities.csproj" />
-    <ProjectReference Include="../Entities/Aletheia.Sdk.Program.Entities.csproj" />
-    <ProjectReference Include="../Web/Aletheia.Sdk.Program.Web.csproj" />
+    <ProjectReference Include="../Capabilities/Homestia.Capabilities.csproj" />
+    <ProjectReference Include="../Entities/Homestia.Entities.csproj" />
+    <ProjectReference Include="../Web/Homestia.Web.csproj" />
   </ItemGroup>
 
   <!--

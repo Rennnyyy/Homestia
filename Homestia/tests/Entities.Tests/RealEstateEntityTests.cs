@@ -2,10 +2,10 @@ using Aletheia.Authentication;
 using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Entity.Contracts;
 using Aletheia.Sdk.Operations;
-using Aletheia.Sdk.Program.Entities.RealEstate;
+using Homestia.Entities.RealEstate;
 using Shouldly;
 
-namespace Aletheia.Sdk.Program.Entities.RealEstate.Tests;
+namespace Homestia.Entities.RealEstate.Tests;
 
 /// <summary>
 /// Unit tests for the Homestia real-estate domain entities.

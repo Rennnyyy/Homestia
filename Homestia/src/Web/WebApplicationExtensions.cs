@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 
-namespace Aletheia.Sdk.Program.Web;
+namespace Homestia.Web;
 
 /// <summary>
 /// Pipeline extensions for the Homestia web slice — serves the Angular facade.

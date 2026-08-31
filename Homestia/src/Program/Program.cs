@@ -41,21 +41,21 @@ using Aletheia.Sdk.Messaging.InMemory.DependencyInjection;
 using Aletheia.Sdk.Capability.Messaging.DependencyInjection;
 
 // ── Program slices ─────────────────────────────────────────────────────────
-using Aletheia.Sdk.Program.Aspects;
-using Aletheia.Sdk.Program.Capabilities;
-using Aletheia.Sdk.Program.Entities.RealEstate;
+using Homestia.Aspects;
+using Homestia.Capabilities;
+using Homestia.Entities.RealEstate;
 
 // ── AI — chat + scenario flows ─────────────────────────────────────────────
 using Aletheia.Sdk.AI.DependencyInjection;
 using Aletheia.Sdk.AI.Http;
 using Aletheia.Sdk.AI.Scenarios;
-using Aletheia.Sdk.Program.AI;
+using Homestia.AI;
 
 // ── Web — generic entity admin (Sdk.Web) ───────────────────────────────────
 using Aletheia.Sdk.Web.DependencyInjection;
 
 // ── Web slice — Homestia facade hosting ────────────────────────────────────
-using Aletheia.Sdk.Program.Web;
+using Homestia.Web;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SERVICE CONFIGURATION

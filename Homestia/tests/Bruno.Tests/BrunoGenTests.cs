@@ -2,7 +2,7 @@ using Xunit.Sdk;
 
 using System.Reflection;
 
-namespace Aletheia.Sdk.Program.Bruno.Tests;
+namespace Homestia.Bruno.Tests;
 
 /// <summary>
 /// Integration tests that auto-discover all <c>[Entity]</c> types with
@@ -42,7 +42,7 @@ public sealed class BrunoGenTests : IAsyncLifetime
     public static IEnumerable<object[]> DiscoverAndGenerateChapters()
     {
         // Force-load the entity assembly so [MemberData] discovery can find them.
-        Assembly.Load("Aletheia.Sdk.Program.Entities");
+        Assembly.Load("Homestia.Entities");
 
         var chapters = BrunoGenFixture.GenerateAndGetChapters();
 

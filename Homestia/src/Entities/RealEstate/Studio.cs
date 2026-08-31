@@ -1,7 +1,7 @@
 using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Operations;
 
-namespace Aletheia.Sdk.Program.Entities.RealEstate;
+namespace Homestia.Entities.RealEstate;
 
 /// <summary>
 /// Studio — a studio apartment, which is a special kind of <see cref="Segmentation"/>

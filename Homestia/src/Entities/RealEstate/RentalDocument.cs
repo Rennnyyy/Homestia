@@ -1,7 +1,7 @@
 using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Entity.Contracts;
 
-namespace Aletheia.Sdk.Program.Entities.RealEstate;
+namespace Homestia.Entities.RealEstate;
 
 /// <summary>
 /// RentalDocument — one uploaded file attached to the Contract stage of a

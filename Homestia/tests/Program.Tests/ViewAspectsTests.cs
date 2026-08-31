@@ -1,10 +1,10 @@
 using Aletheia.Sdk.Aspects.Abstractions.Contracts;
 using Aletheia.Sdk.Aspects.DependencyInjection;
-using Aletheia.Sdk.Program.Aspects;
+using Homestia.Aspects;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
-namespace Aletheia.Sdk.Program.Tests;
+namespace Homestia.Tests;
 
 /// <summary>
 /// Unit tests for <see cref="ViewAspects"/> — the frontend-purpose view

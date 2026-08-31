@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>Aletheia.Sdk.Program.Entities.Tests</RootNamespace>
+    <RootNamespace>Homestia.Capabilities.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
@@ -24,9 +24,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/Entities/Aletheia.Sdk.Program.Entities.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity/Aletheia.Sdk.Entity.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations/Aletheia.Sdk.Operations.csproj" />
+    <ProjectReference Include="../../src/Capabilities/Homestia.Capabilities.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability/Aletheia.Sdk.Capability.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Execution/Aletheia.Sdk.Execution.csproj" />
   </ItemGroup>
 
 </Project>

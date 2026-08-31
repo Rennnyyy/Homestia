@@ -12,7 +12,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>Aletheia.Sdk.Program.Web</RootNamespace>
+    <RootNamespace>Homestia.Web</RootNamespace>
     <IsPackable>false</IsPackable>
     <!-- Keep the Angular source (App/) out of the C# build and output. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);App\**</DefaultItemExcludes>

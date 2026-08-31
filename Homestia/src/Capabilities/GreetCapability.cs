@@ -1,7 +1,7 @@
 using Aletheia.Sdk.Capability;
 using Aletheia.Sdk.Execution;
 
-namespace Aletheia.Sdk.Program.Capabilities;
+namespace Homestia.Capabilities;
 
 /// <summary>
 /// Inbound command: greet a visitor by name.

@@ -2,7 +2,7 @@ using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Entity.Contracts;
 using Aletheia.Sdk.Operations;
 
-namespace Aletheia.Sdk.Program.Entities.RealEstate;
+namespace Homestia.Entities.RealEstate;
 
 /// <summary>
 /// Property — a real-estate property owned by a <see cref="Landlord"/>.

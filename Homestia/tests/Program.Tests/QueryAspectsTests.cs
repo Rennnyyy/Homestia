@@ -3,8 +3,8 @@ using Aletheia.Sdk.Aspects.DependencyInjection;
 using Aletheia.Sdk.Aspects.Query;
 using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Entity.Contracts;
-using Aletheia.Sdk.Program.Aspects;
-using Aletheia.Sdk.Program.Entities.RealEstate;
+using Homestia.Aspects;
+using Homestia.Entities.RealEstate;
 using Aletheia.Sdk.Repository;
 using Aletheia.Sdk.Repository.Contracts;
 using Aletheia.Sdk.Repository.DependencyInjection;
@@ -12,7 +12,7 @@ using Aletheia.Sdk.Repository.InMemory.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
-namespace Aletheia.Sdk.Program.Tests;
+namespace Homestia.Tests;
 
 /// <summary>
 /// Tests for <see cref="QueryAspects"/> — read-time enrichment that derives the

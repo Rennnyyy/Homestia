@@ -1,7 +1,7 @@
 using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Operations;
 
-namespace Aletheia.Sdk.Program.Entities.RealEstate;
+namespace Homestia.Entities.RealEstate;
 
 /// <summary>
 /// RentalModel — enumeration of how a property is rented out.

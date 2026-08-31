@@ -3,31 +3,31 @@
 
   <!-- Program slices -->
   <Folder Name="/src/Program/">
-    <Project Path="src/Program/Aletheia.Sdk.Program.csproj" />
+    <Project Path="src/Program/Homestia.Program.csproj" />
   </Folder>
   <Folder Name="/src/Capabilities/">
-    <Project Path="src/Capabilities/Aletheia.Sdk.Program.Capabilities.csproj" />
+    <Project Path="src/Capabilities/Homestia.Capabilities.csproj" />
   </Folder>
   <Folder Name="/src/Entities/">
-    <Project Path="src/Entities/Aletheia.Sdk.Program.Entities.csproj" />
+    <Project Path="src/Entities/Homestia.Entities.csproj" />
   </Folder>
   <Folder Name="/src/Web/">
-    <Project Path="src/Web/Aletheia.Sdk.Program.Web.csproj" />
+    <Project Path="src/Web/Homestia.Web.csproj" />
   </Folder>
 
   <!-- Test projects -->
   <Folder Name="/tests/" />
   <Folder Name="/tests/Capabilities.Tests/">
-    <Project Path="tests/Capabilities.Tests/Aletheia.Sdk.Program.Capabilities.Tests.csproj" />
+    <Project Path="tests/Capabilities.Tests/Homestia.Capabilities.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Entities.Tests/">
-    <Project Path="tests/Entities.Tests/Aletheia.Sdk.Program.Entities.Tests.csproj" />
+    <Project Path="tests/Entities.Tests/Homestia.Entities.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Program.Tests/">
-    <Project Path="tests/Program.Tests/Aletheia.Sdk.Program.Tests.csproj" />
+    <Project Path="tests/Program.Tests/Homestia.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Bruno.Tests/">
-    <Project Path="tests/Bruno.Tests/Aletheia.Sdk.Program.Bruno.Tests.csproj" />
+    <Project Path="tests/Bruno.Tests/Homestia.Bruno.Tests.csproj" />
   </Folder>
 
   <!-- Aletheia SDK projects (referenced from sibling Aletheia repository) -->

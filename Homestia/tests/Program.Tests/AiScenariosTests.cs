@@ -1,9 +1,9 @@
 using Aletheia.Sdk.AI.Scenarios;
-using Aletheia.Sdk.Program.AI;
-using Aletheia.Sdk.Program.Aspects;
+using Homestia.AI;
+using Homestia.Aspects;
 using Shouldly;
 
-namespace Aletheia.Sdk.Program.Tests;
+namespace Homestia.Tests;
 
 /// <summary>
 /// Unit tests for <see cref="AiScenarios"/> — the AI scenario flows for

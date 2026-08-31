@@ -31,12 +31,12 @@ COPY Homestia/Homestia/ Homestia/Homestia/
 # Restore and publish — MSBuild BuildAngularFrontend target fires automatically,
 # building Angular into wwwroot/browser/ before the .NET publish.
 WORKDIR /src/Homestia/Homestia
-RUN dotnet restore src/Program/Aletheia.Sdk.Program.csproj
+RUN dotnet restore src/Program/Homestia.Program.csproj
 
 # Limit Node.js heap to prevent OOM kills in constrained build environments.
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-RUN dotnet publish src/Program/Aletheia.Sdk.Program.csproj \
+RUN dotnet publish src/Program/Homestia.Program.csproj \
     -c Release \
     -o /app \
     --no-restore
@@ -51,4 +51,4 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "Aletheia.Sdk.Program.dll"]
+ENTRYPOINT ["dotnet", "Homestia.Program.dll"]

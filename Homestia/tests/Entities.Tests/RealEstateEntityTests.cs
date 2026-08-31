@@ -258,7 +258,7 @@ public sealed class RealEstateEntityTests
     {
         var type = typeof(Room);
         type.GetProperty("Name")!.PropertyType.ShouldBe(typeof(string)); // inherited
-        type.GetProperty("RoomSize")!.PropertyType.ShouldBe(typeof(decimal));
+        type.GetProperty("RoomSize")!.PropertyType.ShouldBe(typeof(decimal?));
         type.GetProperty("Location")!.PropertyType.ShouldBe(typeof(string));
     }
 
@@ -267,7 +267,7 @@ public sealed class RealEstateEntityTests
     {
         var room = new Room();
         room.Name.ShouldBe(string.Empty);
-        room.RoomSize.ShouldBe(0m);
+        room.RoomSize.ShouldBeNull(); // room size is optional
         room.Location.ShouldBe(string.Empty);
     }
 

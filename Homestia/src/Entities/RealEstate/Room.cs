@@ -13,8 +13,9 @@ namespace Homestia.Entities.RealEstate;
 [OperationEndpoints("rooms")]
 public partial class Room : Segmentation
 {
+    /// <summary>The room's area in square metres; optional (no size until provided).</summary>
     [Predicate("roomSize")]
-    public decimal RoomSize { get; set; }
+    public decimal? RoomSize { get; set; }
 
     [Predicate("location")]
     public string Location { get; set; } = string.Empty;

@@ -240,7 +240,6 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                         [entityPath]="'rental-documents'"
                         [documents]="contractDocuments()"
                         [labelKey]="'fields.rental.rentalDocuments'"
-                        [hintKey]="'shape.rental.rentalDocuments'"
                         (changed)="onContractDocumentsChanged($event)" />
                     } @else {
                       <app-dynamic-entity-form
@@ -248,6 +247,7 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                         [mode]="'edit'"
                         [value]="workingRental()"
                         [shapeKey]="stage.shapeIri"
+                        [showDescriptions]="false"
                         [violations]="stageViolationsFor(stage.id)" />
                     }
                     <div style="display: flex; justify-content: flex-end; margin-top: 6px;">

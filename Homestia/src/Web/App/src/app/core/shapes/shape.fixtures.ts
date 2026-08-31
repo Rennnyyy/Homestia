@@ -60,7 +60,7 @@ export const ROOM_TTL = `
     ] ;
     sh:property [
         sh:path json:roomSize ; sh:order 3 ;
-        sh:minCount 1 ; sh:datatype xsd:decimal ;
+        sh:datatype xsd:decimal ;
         sh:minInclusive 1 ; sh:maxInclusive 1000 ;
         sh:message "shape.room.roomSize" ;
     ] ;

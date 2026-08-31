@@ -111,9 +111,9 @@ public static class ViewAspects
         """;
 
     /// <summary>
-    /// Room shape: <c>name</c> and a numeric <c>roomSize</c> (1–1000 m²) required,
-    /// optional <c>location</c>, and IRI references for <c>furnishingStatus</c>
-    /// and <c>roomStatus</c>.
+    /// Room shape: <c>name</c> required, a numeric <c>roomSize</c> (1–1000 m²)
+    /// optional, <c>location</c> optional, and IRI references for
+    /// <c>furnishingStatus</c> and <c>roomStatus</c>.
     /// </summary>
     public const string RoomTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
@@ -137,8 +137,8 @@ public static class ViewAspects
             ] ;
             sh:property [
                 sh:path json:roomSize ; sh:order 3 ;
-                sh:description "The room's area in square metres, between 1 and 1000." ;
-                sh:minCount 1 ; sh:datatype xsd:decimal ;
+                sh:description "The room's area in square metres, between 1 and 1000 (optional)." ;
+                sh:datatype xsd:decimal ;
                 sh:minInclusive 1 ; sh:maxInclusive 1000 ;
                 sh:message "shape.room.roomSize" ;
             ] ;

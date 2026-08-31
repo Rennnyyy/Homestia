@@ -172,6 +172,7 @@ interface CreateStepDef {
                     [mode]="pendingProperty() ? 'edit' : 'create'"
                     [value]="pendingProperty()"
                     [shapeKey]="PROPERTY_SHAPE_KEY"
+                    [showDescriptions]="false"
                     (saved)="onPropertySaved($event)"
                   />
                 </div>
@@ -183,7 +184,7 @@ interface CreateStepDef {
           @if (rooms().length > 0) {
             <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
               @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
-                <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [class.room-invalid]="roomHasViolations(i)">
+                <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [isOpened]="openRoomIndices().has(i)" [class.room-invalid]="roomHasViolations(i)">
                   <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
                     <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
                       <svg lucideDoorOpen class="size-[30px]"></svg>
@@ -192,7 +193,7 @@ interface CreateStepDef {
                       <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
                     </div>
                     <div class="flex-1"></div>
-                    <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="margin-right: 8px;">
+                    <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="order: 10; margin-left: 30px; margin-right: 8px;">
                       <svg lucideTrash style="width: 30px; height: 30px;"></svg>
                     </button>
                   </hlm-accordion-trigger>
@@ -202,7 +203,7 @@ interface CreateStepDef {
                         [entity]="RoomEntity"
                         [mode]="'edit'"
                         [value]="room"
-                        [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
+                        [shapeKey]="ROOM_SHAPE_KEY" [showDescriptions]="false" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                     </div>
                   </hlm-accordion-content>
                 </hlm-accordion-item>
@@ -267,6 +268,7 @@ interface CreateStepDef {
                 [entity]="entity"
                 [mode]="'create'"
                 [shapeKey]="PROPERTY_SHAPE_KEY"
+                [showDescriptions]="false"
                 (saved)="pendingProperty.set($event)"
               />
             </div>
@@ -297,6 +299,7 @@ interface CreateStepDef {
                   [mode]="'edit'"
                   [value]="rooms()[rooms().length - 1]"
                   [shapeKey]="ROOM_SHAPE_KEY"
+                  [showDescriptions]="false"
                   [violations]="violationsForRoom(rooms().length - 1)"
                   (saved)="updateRoom(rooms().length - 1, $event)" />
               </div>
@@ -326,6 +329,7 @@ interface CreateStepDef {
                   [mode]="'edit'"
                   [value]="pendingProperty()"
                   [shapeKey]="PROPERTY_SHAPE_KEY"
+                  [showDescriptions]="false"
                   [violations]="propertyViolations()" />
               </div>
             }
@@ -341,7 +345,7 @@ interface CreateStepDef {
                         <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
                       </div>
                       <div class="flex-1"></div>
-                      <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="margin-right: 8px;">
+                      <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="order: 10; margin-left: 30px; margin-right: 8px;">
                         <svg lucideTrash style="width: 30px; height: 30px;"></svg>
                       </button>
                     </hlm-accordion-trigger>
@@ -351,7 +355,7 @@ interface CreateStepDef {
                           [entity]="RoomEntity"
                           [mode]="'edit'"
                           [value]="room"
-                          [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
+                          [shapeKey]="ROOM_SHAPE_KEY" [showDescriptions]="false" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                       </div>
                     </hlm-accordion-content>
                   </hlm-accordion-item>
@@ -393,6 +397,7 @@ interface CreateStepDef {
                   [mode]="'edit'"
                   [value]="editingItem()"
                   [shapeKey]="PROPERTY_SHAPE_KEY"
+                  [showDescriptions]="false"
                   (saved)="onPropertySaved($event)"
                 />
               </div>
@@ -404,7 +409,7 @@ interface CreateStepDef {
         @if (rooms().length > 0) {
           <hlm-accordion class="block border border-border rounded-lg overflow-hidden" style="margin-top: 20px;" type="multiple">
             @for (room of rooms(); track room['iri'] ?? $index; let i = $index) {
-              <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [class.room-invalid]="roomHasViolations(i)">
+              <hlm-accordion-item style="border-bottom: 1px solid var(--border);" [isOpened]="openRoomIndices().has(i)" [class.room-invalid]="roomHasViolations(i)">
                 <hlm-accordion-trigger [triggerClass]="'py-2 hover:bg-muted/50 hover:no-underline items-center'">
                   <div class="flex items-center gap-2 font-semibold text-foreground" style="font-size: 18px; line-height: 1; padding-left: 10px;">
                     <svg lucideDoorOpen class="size-[30px]"></svg>
@@ -413,7 +418,7 @@ interface CreateStepDef {
                     <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
                   </div>
                   <div class="flex-1"></div>
-                  <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="margin-right: 8px;">
+                  <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="order: 10; margin-left: 30px; margin-right: 8px;">
                     <svg lucideTrash style="width: 30px; height: 30px;"></svg>
                   </button>
                 </hlm-accordion-trigger>
@@ -423,7 +428,7 @@ interface CreateStepDef {
                       [entity]="RoomEntity"
                       [mode]="'edit'"
                       [value]="room"
-                      [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
+                      [shapeKey]="ROOM_SHAPE_KEY" [showDescriptions]="false" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                   </div>
                 </hlm-accordion-content>
               </hlm-accordion-item>
@@ -856,6 +861,7 @@ export class Properties implements OnInit {
     this.editingItem.set(normalized);
     this.rooms.set([]);
     this.originalRooms.set([]);
+    this.openRoomIndices.set(new Set());
     this.validationErrors.set([]);
     this.aiWarnings.set([]);
     this.mode.set('edit');
@@ -995,10 +1001,17 @@ export class Properties implements OnInit {
   }
 
   addRoom(): void {
+    const newIndex = this.rooms().length;
     this.rooms.update((r) => [
       ...r,
       { name: '', location: '', roomSize: null, furnishingStatus: '', roomStatus: '' },
     ]);
+    // Auto-expand the freshly created room so it can be filled in right away.
+    this.openRoomIndices.update((open) => {
+      const next = new Set(open);
+      next.add(newIndex);
+      return next;
+    });
   }
 
   removeRoom(index: number): void {

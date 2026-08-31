@@ -9,7 +9,7 @@ export interface Room {
   /** location */
   location: string;
   /** roomSize */
-  roomSize: number;
+  roomSize?: number | null;
   /** furnishingStatus → FurnishingStatus */
   furnishingStatus: unknown;
   /** equippedWith → InventoryItem */

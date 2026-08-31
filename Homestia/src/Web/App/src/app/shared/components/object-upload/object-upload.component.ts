@@ -50,7 +50,9 @@ export interface ObjectUploadItem {
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
           <p class="text-sm font-medium text-foreground">{{ labelKey() | transloco }}</p>
-          <p class="text-xs text-muted-foreground" style="margin-top: 2px;">{{ hintKey() | transloco }}</p>
+          @if (hintKey()) {
+            <p class="text-xs text-muted-foreground" style="margin-top: 2px;">{{ hintKey() | transloco }}</p>
+          }
         </div>
         <button hlmBtn size="sm" variant="outline" class="shrink-0" (click)="fileInput.click()" [disabled]="uploading()">
           @if (uploading()) {
@@ -108,8 +110,8 @@ export class ObjectUploadComponent {
   readonly documents = input<ObjectUploadItem[] | null>(null);
   /** i18n key for the field label. */
   readonly labelKey = input('fields.rental.rentalDocuments');
-  /** i18n key for the field hint. */
-  readonly hintKey = input('shape.rental.rentalDocuments');
+  /** Optional i18n key for the field hint; omitted (null) renders no hint. */
+  readonly hintKey = input<string | null>(null);
 
   /** Emits the new collection — an array of IRI strings — whenever it changes. */
   readonly changed = output<string[]>();

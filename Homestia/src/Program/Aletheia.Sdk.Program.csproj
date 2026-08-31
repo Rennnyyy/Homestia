@@ -1,83 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <!-- ══════════════════════════════════════════════════════════════════════════
-       Auto-rebuild Angular into wwwroot on every dotnet run / build.
-       Skip with: dotnet run -p:SkipAngularBuild=true
+       Angular facade build lives in the Web slice (src/Web/build/Homestia.Web.targets),
+       imported here so the facade is rebuilt into THIS host's wwwroot on every
+       dotnet build / publish. Skip with: dotnet run -p:SkipAngularBuild=true
        ══════════════════════════════════════════════════════════════════════════ -->
-  <Target Name="BuildAngularFrontend" BeforeTargets="BeforeBuild"
-          Condition="'$(SkipAngularBuild)' != 'true'">
-    <PropertyGroup>
-      <WebDir>$(MSBuildProjectDirectory)/../Web/App</WebDir>
-      <WwwRootDir>$(MSBuildProjectDirectory)/wwwroot</WwwRootDir>
-    </PropertyGroup>
-
-    <!-- Pre-flight: Node.js must be available -->
-    <Exec Command="node --version"
-          ContinueOnError="true"
-          StandardOutputImportance="low"
-          StandardErrorImportance="low">
-      <Output TaskParameter="ExitCode" PropertyName="_NodeExitCode" />
-    </Exec>
-    <Error Condition="'$(_NodeExitCode)' != '0'"
-           Text="Node.js is not installed or not on PATH. Install Node.js 22+ from https://nodejs.org and retry.&#xA;Or skip the Angular build with: dotnet build -p:SkipAngularBuild=true" />
-
-    <!-- Capture load-time wwwroot Content items BEFORE deleting the folder.
-         MSBuild's Remove glob expands against the filesystem, so it cannot
-         remove items whose files no longer exist — capture identities first
-         and remove them exactly after the Angular build regenerates wwwroot. -->
-    <ItemGroup>
-      <_StaleWwwrootContent Include="@(Content)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('wwwroot'))" />
-    </ItemGroup>
-
-    <!-- Clean old wwwroot output and ALL static web assets cache files.
-         The SDK caches paths in obj/*/staticwebassets* — stale entries cause
-         intermittent resolution failures during publish. -->
-    <RemoveDir Directories="$(WwwRootDir)" Condition="Exists('$(WwwRootDir)')" />
-    <MakeDir Directories="$(WwwRootDir)" />
-    <RemoveDir Directories="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets" />
-    <ItemGroup>
-      <_StaleAssetManifests Include="$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/staticwebassets*;
-                                   $(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/*.dswa.cache.json;
-                                   $(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/swae*" />
-    </ItemGroup>
-    <Delete Files="@(_StaleAssetManifests)" />
-
-    <Message Importance="high" Text="──────────────────────────────────────────────" />
-    <Message Importance="high" Text="🔨 Building Angular frontend..." />
-    <Message Importance="high" Text="   Source : $(WebDir)" />
-    <Message Importance="high" Text="   Output : $(WwwRootDir)" />
-    <Message Importance="high" Text="──────────────────────────────────────────────" />
-
-    <!-- Restore: npm ci when lock file exists (CI / reproducible), npm install otherwise -->
-    <Exec Command="npm ci" WorkingDirectory="$(WebDir)"
-          Condition="Exists('$(WebDir)/package-lock.json')" />
-    <Exec Command="npm install" WorkingDirectory="$(WebDir)"
-          Condition="!Exists('$(WebDir)/package-lock.json') And Exists('$(WebDir)/package.json')" />
-
-    <!-- npm run build: the prebuild hook generates src/generated/tailwind.css
-         (required by angular.json global styles), then runs ng build. Output
-         goes to wwwroot/ per angular.json outputPath. -->
-    <Exec Command="npm run build -- --configuration production"
-          WorkingDirectory="$(WebDir)"
-          Condition="Exists('$(WebDir)/package.json')" />
-
-    <!-- Angular 19+ outputs to a browser/ subdirectory; Program.cs serves
-         wwwroot/browser/ directly via the web root — no flattening needed.
-
-         Refresh Content items here: the SDK globs wwwroot/** into @(Content)
-         at project load — BEFORE this target runs. Re-declaring them after the
-         Angular build ensures dotnet publish copies the fresh files and
-         DefineStaticWebAssets resolves current paths (avoids stale references
-         when Angular emits new hashed chunk filenames). -->
-    <ItemGroup>
-      <Content Remove="@(_StaleWwwrootContent)" />
-      <Content Include="wwwroot/**"
-               ExcludeFromSingleFile="true"
-               CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
-
-    <Message Importance="high" Text="✅ Angular build complete." />
-  </Target>
+  <Import Project="../Web/build/Homestia.Web.targets" />
 
   <!-- ══════════════════════════════════════════════════════════════════════════
        Sdk.Web admin → /aletheia/
@@ -159,6 +87,7 @@
   <ItemGroup>
     <ProjectReference Include="../Capabilities/Aletheia.Sdk.Program.Capabilities.csproj" />
     <ProjectReference Include="../Entities/Aletheia.Sdk.Program.Entities.csproj" />
+    <ProjectReference Include="../Web/Aletheia.Sdk.Program.Web.csproj" />
   </ItemGroup>
 
   <!--

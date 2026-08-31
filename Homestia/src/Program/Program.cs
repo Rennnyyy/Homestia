@@ -54,6 +54,9 @@ using Aletheia.Sdk.Program.AI;
 // ── Web — generic entity admin (Sdk.Web) ───────────────────────────────────
 using Aletheia.Sdk.Web.DependencyInjection;
 
+// ── Web slice — Homestia facade hosting ────────────────────────────────────
+using Aletheia.Sdk.Program.Web;
+
 // ══════════════════════════════════════════════════════════════════════════════
 // SERVICE CONFIGURATION
 // ══════════════════════════════════════════════════════════════════════════════
@@ -62,11 +65,12 @@ using Aletheia.Sdk.Web.DependencyInjection;
 // UseStaticFiles and MapFallbackToFile serve the Angular app directly —
 // no flatten step needed, avoiding static web assets manifest conflicts.
 // Must be set via WebApplicationOptions: .NET 10 rejects changing the web
-// root through WebApplicationBuilder.WebHost settings at runtime.
+// root through WebApplicationBuilder.WebHost settings at runtime. The path
+// is owned by the Web slice (HomestiaWebPaths.WebRoot).
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
-    WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "browser")
+    WebRootPath = HomestiaWebPaths.WebRoot
 });
 
 // Core: Aspects are always required — they power the gatekeeper validation system.
@@ -139,11 +143,6 @@ var app = builder.Build();
 // Authorization token middleware (must come before endpoint mapping).
 app.UseAgentTokenMiddleware();
 
-// ── Static files — serves the Angular facade in production ──────────────────
-// Web root is set to wwwroot/browser/ so UseStaticFiles finds index.html,
-// scripts, and assets directly — no flatten step needed.
-app.UseStaticFiles();
-
 // Branch scope — isolates requests to a branch context.
 if (branching)
 {
@@ -184,12 +183,12 @@ app.MapAspectsEntity();
 app.MapAiEndpoints();
 
 // ── Sdk.Web — generic entity admin at /aletheia/ ─────────────────────────────
-// Registered BEFORE the SPA fallback so /aletheia/* routes are not swallowed
-// by MapFallbackToFile (which is terminal). Mirrors Sdk.Sample's wiring.
+// Registered BEFORE the facade so /aletheia/* routes are not swallowed by the
+// SPA fallback (which is terminal). Mirrors Sdk.Sample's wiring.
 app.UseWebInterface();
 
-// ── SPA fallback — serves index.html for client-side routes ──────────────────
-app.MapFallbackToFile("index.html");
+// ── Web slice — serves the Angular facade + SPA fallback ────────────────────
+app.UseHomestiaWeb();
 
 app.Run();
 

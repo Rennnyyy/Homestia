@@ -11,6 +11,9 @@
   <Folder Name="/src/Entities/">
     <Project Path="src/Entities/Aletheia.Sdk.Program.Entities.csproj" />
   </Folder>
+  <Folder Name="/src/Web/">
+    <Project Path="src/Web/Aletheia.Sdk.Program.Web.csproj" />
+  </Folder>
 
   <!-- Test projects -->
   <Folder Name="/tests/" />

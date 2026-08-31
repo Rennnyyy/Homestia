@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       Homestia Web slice — hosts the Angular facade.
+       Provides the web-root path (HomestiaWebPaths) and the facade serving
+       pipeline (UseHomestiaWeb). The Angular build hook lives in
+       build/Homestia.Web.targets, imported by the Program host.
+       ══════════════════════════════════════════════════════════════════════════ -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Aletheia.Sdk.Program.Web</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- Keep the Angular source (App/) out of the C# build and output. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);App\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

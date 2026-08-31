@@ -51,6 +51,9 @@ using Aletheia.Sdk.AI.Http;
 using Aletheia.Sdk.AI.Scenarios;
 using Aletheia.Sdk.Program.AI;
 
+// ── Web — generic entity admin (Sdk.Web) ───────────────────────────────────
+using Aletheia.Sdk.Web.DependencyInjection;
+
 // ══════════════════════════════════════════════════════════════════════════════
 // SERVICE CONFIGURATION
 // ══════════════════════════════════════════════════════════════════════════════
@@ -122,6 +125,11 @@ builder.Services.AddAIOntology();
 builder.Services.AddAITools();
 builder.Services.AddAI(builder.Configuration);
 
+// Web — generic entity admin at /aletheia/ (like Sdk.Sample). Serves the
+// compiled Sdk.Web Angular app from its wwwroot (dedicated aletheia-wwwroot
+// output folder, see RedirectSdkWebAdmin in the csproj).
+builder.Services.AddWebInterface("/aletheia", ResolveSdkWebRoot());
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MIDDLEWARE PIPELINE
 // ══════════════════════════════════════════════════════════════════════════════
@@ -175,7 +183,50 @@ app.MapAspectsEntity();
 // AI — SSE chat and scenario-flow endpoints.
 app.MapAiEndpoints();
 
+// ── Sdk.Web — generic entity admin at /aletheia/ ─────────────────────────────
+// Registered BEFORE the SPA fallback so /aletheia/* routes are not swallowed
+// by MapFallbackToFile (which is terminal). Mirrors Sdk.Sample's wiring.
+app.UseWebInterface();
+
 // ── SPA fallback — serves index.html for client-side routes ──────────────────
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+/// <summary>
+/// Locates the compiled Sdk.Web Angular admin (the "aletheia web" viewer served at
+/// /aletheia/). The build redirects the Sdk.Web wwwroot into a dedicated
+/// <c>aletheia-wwwroot</c> output folder so it never collides with the Homestia
+/// facade (both ship browser/index.html). Resolution order:
+///   1. dedicated output folder (bin + Docker publish) — <c>aletheia-wwwroot</c>
+///   2. Sdk.Web default output copy (bin/wwwroot, e.g. --no-build / manual runs)
+///   3. source tree — walk up to the sibling Aletheia repository
+/// </summary>
+static string? ResolveSdkWebRoot()
+{
+    // 1) Dedicated folder shipped with the build (RedirectSdkWebAdmin target).
+    var dedicated = Path.Combine(AppContext.BaseDirectory, "aletheia-wwwroot");
+    if (Directory.Exists(dedicated))
+        return dedicated;
+
+    // 2) Sdk.Web project's own wwwroot copied into the output directory.
+    var outputWwwRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+    if (Directory.Exists(Path.Combine(outputWwwRoot, "browser")))
+        return outputWwwRoot;
+
+    // 3) Source tree — walk up from cwd/base to the sibling Aletheia repo.
+    foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+    {
+        var dir = new DirectoryInfo(start);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, "Aletheia", "SDK", "src", "Web", "wwwroot");
+            if (Directory.Exists(candidate))
+                return candidate;
+            dir = dir.Parent;
+        }
+    }
+
+    // Let AddWebInterface fall back to its own default resolver / helpful error.
+    return null;
+}

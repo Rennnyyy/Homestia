@@ -7,7 +7,6 @@ import {
   AletheiaCreatedResponse,
   AletheiaUpdatedResponse,
   CapabilityResponse,
-  ObjectReference,
   EntityDefinition,
   CapabilityDefinition,
   AspectDefinition,
@@ -57,8 +56,9 @@ export class AletheiaHttpClientMock {
     this.updateResult.next({ iri: '' });
     this.deleteResult.next(undefined);
     this.executeResult.next({ success: true });
-    this.uploadResult.next({ id: '', url: '', contentType: '', size: 0 });
+    this.objectUploadResult.next(undefined);
     this.downloadResult.next(new Blob());
+    this.objectDeleteResult.next(undefined);
     this.exploreEntitiesResult.next({ items: [] });
     this.exploreCapabilitiesResult.next({ items: [] });
     this.exploreAspectsResult.next({ items: [] });
@@ -73,8 +73,9 @@ export class AletheiaHttpClientMock {
   readonly updateResult = new BehaviorSubject<AletheiaUpdatedResponse>({ iri: '' });
   readonly deleteResult = new BehaviorSubject<void | undefined>(undefined);
   readonly executeResult = new BehaviorSubject<CapabilityResponse<unknown>>({ success: true });
-  readonly uploadResult = new BehaviorSubject<ObjectReference>({ id: '', url: '', contentType: '', size: 0 });
+  readonly objectUploadResult = new BehaviorSubject<unknown>(undefined);
   readonly downloadResult = new BehaviorSubject<Blob>(new Blob());
+  readonly objectDeleteResult = new BehaviorSubject<unknown>(undefined);
   readonly exploreEntitiesResult = new BehaviorSubject<AletheiaCollection<EntityDefinition>>({ items: [] });
   readonly exploreCapabilitiesResult = new BehaviorSubject<AletheiaCollection<CapabilityDefinition>>({ items: [] });
   readonly exploreAspectsResult = new BehaviorSubject<AletheiaCollection<AspectDefinition>>({ items: [] });
@@ -117,16 +118,21 @@ export class AletheiaHttpClientMock {
     return this.executeResult.asObservable() as Observable<CapabilityResponse<TResponse>>;
   }
 
-  // ── Objects ────────────────────────────────────────────────────────────
+  // ── Objects — blob upload / download for [ObjectBearing] entities ───────
 
-  upload(file: File): Observable<ObjectReference> {
-    this.track('upload', [file]);
-    return this.uploadResult.asObservable();
+  uploadObject(entityPath: string, iri: string, file: File): Observable<unknown> {
+    this.track('uploadObject', [entityPath, iri, file]);
+    return this.objectUploadResult.asObservable();
   }
 
-  download(objectId: string): Observable<Blob> {
-    this.track('download', [objectId]);
+  downloadObject(entityPath: string, iri: string): Observable<Blob> {
+    this.track('downloadObject', [entityPath, iri]);
     return this.downloadResult.asObservable();
+  }
+
+  deleteObject(entityPath: string, iri: string): Observable<unknown> {
+    this.track('deleteObject', [entityPath, iri]);
+    return this.objectDeleteResult.asObservable();
   }
 
   // ── Exploration ────────────────────────────────────────────────────────

@@ -22,6 +22,7 @@ import {
   DynamicEntityTableComponent,
   type TableAction,
 } from '../../shared/components/dynamic-entity-table/dynamic-entity-table.component';
+import { ObjectUploadComponent, type ObjectUploadItem } from '../../shared/components/object-upload/object-upload.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { RentalEntity } from '../../entities/rental.entity';
 
@@ -97,6 +98,7 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
     LucideLock,
     DynamicEntityFormComponent,
     DynamicEntityTableComponent,
+    ObjectUploadComponent,
     ConfirmDialogComponent,
     ...HlmAccordionImports,
   ],
@@ -144,8 +146,8 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
           [items]="displayItems()"
           [loading]="loading()"
           [error]="error()"
-          [columnNames]="['tenant', 'startDate', 'property', 'currentStage']"
-          [defaultVisibleColumns]="['tenant', 'startDate', 'property', 'currentStage']"
+          [columnNames]="['tenant', 'rentalDocuments', 'property', 'currentStage']"
+          [defaultVisibleColumns]="['tenant', 'rentalDocuments', 'property', 'currentStage']"
           [emptyMessage]="'nav.rentals.empty'"
           [actions]="rowActions"
           [expandable]="true"
@@ -230,6 +232,16 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                           [showDescriptions]="false"
                           (createRequested)="onCreateRequested($event)" />
                       }
+                    } @else if (stage.id === 1) {
+                      <!-- Contract: a single field — the uploaded object-bearing documents.
+                           The generic object-upload renders the list, upload, download, and
+                           delete; changes flow back into workingRental.rentalDocuments. -->
+                      <app-object-upload
+                        [entityPath]="'rental-documents'"
+                        [documents]="contractDocuments()"
+                        [labelKey]="'fields.rental.rentalDocuments'"
+                        [hintKey]="'shape.rental.rentalDocuments'"
+                        (changed)="onContractDocumentsChanged($event)" />
                     } @else {
                       <app-dynamic-entity-form
                         [entity]="entity"
@@ -423,6 +435,11 @@ export class Rentals implements OnInit {
 
   /** Bumped to re-mount the Application form so its dropdowns reload options (e.g. after creating a tenant). */
   readonly formNonce = signal(0);
+
+  // ── Contract documents (Stage 2) ───────────────────────────────────────
+
+  /** Loaded metadata of the uploaded contract documents (iri/name/contentType). */
+  readonly contractDocuments = signal<ObjectUploadItem[]>([]);
 
   // ── Tenant quick-create ─────────────────────────────────────────────────
   readonly showTenantForm = signal(false);
@@ -639,6 +656,7 @@ export class Rentals implements OnInit {
     this.doneStages.set(new Set());
     this.stageViolations.set(new Map());
     this.formNonce.set(0);
+    this.contractDocuments.set([]);
     this.showTenantForm.set(false);
     this.tenantName.set('');
     this.tenantEmail.set('');
@@ -660,6 +678,7 @@ export class Rentals implements OnInit {
     const done = new Set<number>();
     for (let i = 0; i < Math.max(idx, 0); i++) done.add(i);
     this.doneStages.set(done);
+    this.loadContractDocuments();
     this.mode.set('edit');
   }
 
@@ -687,7 +706,10 @@ export class Rentals implements OnInit {
   private normalizeRefs(item: Record<string, unknown>): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(item)) {
-      if (value && typeof value === 'object' && 'iri' in (value as object)) {
+      if (Array.isArray(value)) {
+        // EntityRefCollection — collapse each { iri } element to a plain IRI string.
+        out[key] = value.map((v) => refIri(v)).filter(Boolean);
+      } else if (value && typeof value === 'object' && 'iri' in (value as object)) {
         out[key] = ((value as { iri: unknown }).iri as string) ?? '';
       } else {
         out[key] = value;
@@ -720,6 +742,46 @@ export class Rentals implements OnInit {
     } finally {
       this.savingStage.set(false);
     }
+  }
+
+  // ── Contract documents (Stage 2) ───────────────────────────────────────
+
+  /**
+   * The Contract stage owns a single field — the uploaded object-bearing
+   * documents. Called by the object-upload component on every change: writes
+   * the new IRI list onto the working rental and reloads the metadata so the
+   * list re-renders with the fresh documents.
+   */
+  onContractDocumentsChanged(iris: string[]): void {
+    const working = this.workingRental();
+    if (!working) return;
+    working['rentalDocuments'] = iris;
+    this.loadContractDocuments();
+  }
+
+  /** Loads the metadata of every document IRI currently on the working rental. */
+  private loadContractDocuments(): void {
+    const working = this.workingRental();
+    const iris = this.toIriArray(working?.['rentalDocuments']);
+    if (iris.length === 0) {
+      this.contractDocuments.set([]);
+      return;
+    }
+    forkJoin(iris.map((iri) => this.aletheia.get<Record<string, unknown>>('rental-documents', iri))).subscribe({
+      next: (docs) => this.contractDocuments.set(
+        docs.map((d) => ({
+          iri: d['iri'] as string,
+          name: (d['name'] as string) ?? '',
+          contentType: (d['contentType'] as string) ?? '',
+        })),
+      ),
+      error: () => this.contractDocuments.set([]),
+    });
+  }
+
+  private toIriArray(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.map((v) => refIri(v)).filter(Boolean);
   }
 
   // ── Tenant quick-create ─────────────────────────────────────────────────
@@ -769,6 +831,10 @@ export class Rentals implements OnInit {
     const current = STAGES[Math.min(this.currentStageIndex(), STAGES.length - 1)];
     const stageIri = this.stageByKey().get(current.key);
     const data: Record<string, unknown> = { ...working };
+    // EntityRefCollection fields must be sent as arrays of IRI strings.
+    if (Array.isArray(data['rentalDocuments'])) {
+      data['rentalDocuments'] = (data['rentalDocuments'] as unknown[]).map((v) => refIri(v)).filter(Boolean);
+    }
     if (stageIri) data['currentStage'] = stageIri;
 
     this.loading.set(true);

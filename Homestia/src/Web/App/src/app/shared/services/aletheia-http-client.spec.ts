@@ -12,7 +12,6 @@ import {
   AletheiaCollection,
   AletheiaCreatedResponse,
   CapabilityResponse,
-  ObjectReference,
   EntityDefinition,
   CapabilityDefinition,
   AspectDefinition,
@@ -175,34 +174,50 @@ describe('AletheiaHttpClient', () => {
   // Objects
   // ═══════════════════════════════════════════════════════════════════════
 
-  describe('upload', () => {
-    it('POSTs a FormData with the file to /api/objects', () => {
+  describe('uploadObject', () => {
+    it('PUTs a multipart FormData with a content part to /api/objects/{path}/content', () => {
       const file = new File(['content'], 'test.txt', { type: 'text/plain' });
-      const ref: ObjectReference = { id: 'obj-1', url: '/api/objects/obj-1', contentType: 'text/plain', size: 7 };
 
-      client.upload(file).subscribe((r) => {
-        expect(r.id).toBe('obj-1');
-      });
+      client.uploadObject('rental-documents', 'https://iri/doc-1', file).subscribe();
 
-      const req = httpMock.expectOne('/api/objects');
-      expect(req.request.method).toBe('POST');
+      const req = httpMock.expectOne((r) =>
+        r.method === 'PUT' &&
+        r.url === '/api/objects/rental-documents/content' &&
+        r.params.get('iri') === 'https://iri/doc-1');
       expect(req.request.body instanceof FormData).toBe(true);
-      req.flush(ref);
+      const sent = req.request.body.get('content') as File;
+      expect(sent.name).toBe('test.txt');
+      expect(sent.type).toBe('text/plain');
+      req.flush({});
     });
   });
 
-  describe('download', () => {
-    it('GETs /api/objects/{id} as blob', () => {
-      const blob = new Blob(['data'], { type: 'application/octet-stream' });
+  describe('downloadObject', () => {
+    it('GETs /api/objects/{path}/content?iri=... as blob', () => {
+      const blob = new Blob(['data'], { type: 'application/pdf' });
 
-      client.download('obj-1').subscribe((b) => {
+      client.downloadObject('rental-documents', 'https://iri/doc-1').subscribe((b) => {
         expect(b instanceof Blob).toBe(true);
       });
 
-      const req = httpMock.expectOne('/api/objects/obj-1');
-      expect(req.request.method).toBe('GET');
+      const req = httpMock.expectOne((r) =>
+        r.method === 'GET' &&
+        r.url === '/api/objects/rental-documents/content' &&
+        r.params.get('iri') === 'https://iri/doc-1');
       expect(req.request.responseType).toBe('blob');
       req.flush(blob);
+    });
+  });
+
+  describe('deleteObject', () => {
+    it('DELETEs /api/objects/{path}/content?iri=...', () => {
+      client.deleteObject('rental-documents', 'https://iri/doc-1').subscribe();
+
+      const req = httpMock.expectOne((r) =>
+        r.method === 'DELETE' &&
+        r.url === '/api/objects/rental-documents/content' &&
+        r.params.get('iri') === 'https://iri/doc-1');
+      req.flush({});
     });
   });
 

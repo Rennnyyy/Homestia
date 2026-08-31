@@ -16,8 +16,6 @@ export interface Rental {
   depositPaymentDate: string;
   /** depositReturned */
   depositReturned: boolean;
-  /** durationMonths */
-  durationMonths: number;
   /** handbackDate */
   handbackDate: string;
   /** handbackNotes */
@@ -30,18 +28,16 @@ export interface Rental {
   noticeDate: string;
   /** noticeReason */
   noticeReason: string;
-  /** rent */
-  rent: number;
   /** settlementDate */
   settlementDate: string;
   /** settlementNotes */
   settlementNotes: string;
-  /** startDate */
-  startDate: string;
   /** tenancyActive */
   tenancyActive: boolean;
   /** viewingDate */
   viewingDate: string;
+  /** rentalDocuments → RentalDocument[] */
+  rentalDocuments: unknown[];
   /** property → Property */
   property: unknown;
   /** currentStage → RentalStage */
@@ -67,19 +63,17 @@ export const RentalEntity: EntityInfo = {
     { name: 'depositPaid', type: 'Boolean', isCollection: false },
     { name: 'depositPaymentDate', type: 'String', isCollection: false },
     { name: 'depositReturned', type: 'Boolean', isCollection: false },
-    { name: 'durationMonths', type: 'Int32', isCollection: false },
     { name: 'handbackDate', type: 'String', isCollection: false },
     { name: 'handbackNotes', type: 'String', isCollection: false },
     { name: 'handoverDate', type: 'String', isCollection: false },
     { name: 'handoverNotes', type: 'String', isCollection: false },
     { name: 'noticeDate', type: 'String', isCollection: false },
     { name: 'noticeReason', type: 'String', isCollection: false },
-    { name: 'rent', type: 'Decimal', isCollection: false },
     { name: 'settlementDate', type: 'String', isCollection: false },
     { name: 'settlementNotes', type: 'String', isCollection: false },
-    { name: 'startDate', type: 'String', isCollection: false },
     { name: 'tenancyActive', type: 'Boolean', isCollection: false },
     { name: 'viewingDate', type: 'String', isCollection: false },
+    { name: 'rentalDocuments', type: 'EntityRef', isCollection: true, targetEntityPath: 'rental-documents' },
     { name: 'property', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
     { name: 'currentStage', type: 'EntityRef', isCollection: false, targetEntityPath: 'rental-stages' },
     { name: 'unit', type: 'EntityRef', isCollection: false, targetEntityPath: 'rooms' },

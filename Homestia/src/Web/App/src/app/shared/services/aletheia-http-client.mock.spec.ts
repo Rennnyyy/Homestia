@@ -77,17 +77,23 @@ describe('AletheiaHttpClientMock', () => {
     expect(mock.calls[0].args).toEqual(['greet', body]);
   });
 
-  it('tracks upload calls', () => {
+  it('tracks uploadObject calls', () => {
     const file = new File([], 'test.txt');
-    mock.upload(file).subscribe();
-    expect(mock.calls[0].method).toBe('upload');
-    expect(mock.calls[0].args[0]).toBe(file);
+    mock.uploadObject('rental-documents', 'abc', file).subscribe();
+    expect(mock.calls[0].method).toBe('uploadObject');
+    expect(mock.calls[0].args).toEqual(['rental-documents', 'abc', file]);
   });
 
-  it('tracks download calls', () => {
-    mock.download('obj-1').subscribe();
-    expect(mock.calls[0].method).toBe('download');
-    expect(mock.calls[0].args).toEqual(['obj-1']);
+  it('tracks downloadObject calls', () => {
+    mock.downloadObject('rental-documents', 'abc').subscribe();
+    expect(mock.calls[0].method).toBe('downloadObject');
+    expect(mock.calls[0].args).toEqual(['rental-documents', 'abc']);
+  });
+
+  it('tracks deleteObject calls', () => {
+    mock.deleteObject('rental-documents', 'abc').subscribe();
+    expect(mock.calls[0].method).toBe('deleteObject');
+    expect(mock.calls[0].args).toEqual(['rental-documents', 'abc']);
   });
 
   it('tracks exploreEntities calls', () => {

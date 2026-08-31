@@ -40,17 +40,13 @@ public partial class Rental
 
     // ── Stage 2 · Contract ──────────────────────────────────────────────────
 
-    /// <summary>Monthly rent in euros.</summary>
-    [Predicate("rent")]
-    public decimal Rent { get; set; }
-
-    /// <summary>Rental start date.</summary>
-    [Predicate("startDate")]
-    public string StartDate { get; set; } = string.Empty;
-
-    /// <summary>Contract duration in months.</summary>
-    [Predicate("durationMonths")]
-    public int DurationMonths { get; set; }
+    /// <summary>
+    /// Uploaded contract documents — each member is an object-bearing
+    /// <see cref="RentalDocument"/> holding one file. At least one document is
+    /// required for the Contract stage to validate.
+    /// </summary>
+    [Owning("rentalDocuments")]
+    public partial EntityRefCollection<RentalDocument> RentalDocuments { get; }
 
     // ── Stage 3 · Deposit ───────────────────────────────────────────────────
 

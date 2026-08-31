@@ -447,6 +447,7 @@ public sealed class RealEstateEntityTests
             typeof(InventoryItem),
             typeof(Landlord),
             typeof(Rental),
+            typeof(RentalDocument),
             typeof(RentalStage),
             typeof(Tenant),
         };

@@ -285,8 +285,9 @@ public static class ViewAspects
         """;
 
     /// <summary>
-    /// Rental Stage 2 · Contract shape: monthly rent, start date, and duration.
-    /// Validating this stage unlocks the Deposit stage.
+    /// Rental Stage 2 · Contract shape: at least one uploaded contract
+    /// document. Each document is an object-bearing entity referenced by IRI;
+    /// the collection must be non-empty for the stage to validate.
     /// </summary>
     public const string RentalContractTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
@@ -297,24 +298,10 @@ public static class ViewAspects
             a sh:NodeShape ;
             sh:targetClass <urn:aletheia:homestia:Rental:contract> ;
             sh:property [
-                sh:path json:rent ; sh:order 1 ;
-                sh:description "Monthly rent in euros." ;
-                sh:minCount 1 ; sh:datatype xsd:decimal ;
-                sh:minInclusive 0 ;
-                sh:message "shape.rental.rent" ;
-            ] ;
-            sh:property [
-                sh:path json:startDate ; sh:order 2 ;
-                sh:description "Rental start date." ;
-                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
-                sh:message "shape.rental.startDate" ;
-            ] ;
-            sh:property [
-                sh:path json:durationMonths ; sh:order 3 ;
-                sh:description "Contract duration in months." ;
-                sh:minCount 1 ; sh:datatype xsd:integer ;
-                sh:minInclusive 1 ;
-                sh:message "shape.rental.durationMonths" ;
+                sh:path json:rentalDocuments ; sh:order 1 ;
+                sh:description "Upload the signed contract documents (each file is stored as an object)." ;
+                sh:minCount 1 ; sh:nodeKind sh:IRI ;
+                sh:message "shape.rental.rentalDocuments" ;
             ] .
         """;
 

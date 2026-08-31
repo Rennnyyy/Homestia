@@ -6,7 +6,6 @@ import {
   AletheiaCreatedResponse,
   AletheiaUpdatedResponse,
   CapabilityResponse,
-  ObjectReference,
   EntityDefinition,
   CapabilityDefinition,
   AspectDefinition,
@@ -88,21 +87,34 @@ export class AletheiaHttpClient {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Objects — Blob upload / download
+  // Objects — blob upload / download for [ObjectBearing] entities
   // ═══════════════════════════════════════════════════════════════════════
 
-  /** Upload a file. Returns an object reference with id and url. */
-  upload(file: File): Observable<ObjectReference> {
+  /**
+   * Upload a file to an object-bearing entity (e.g. 'rental-documents').
+   * Streams multipart/form-data to PUT /api/objects/{path}/content and
+   * updates the entity's ObjectKey/ContentType atomically.
+   */
+  uploadObject(entityPath: string, iri: string, file: File): Observable<unknown> {
+    const params = new HttpParams().set('iri', iri);
     const formData = new FormData();
-    formData.append('file', file);
-    return this.http.post<ObjectReference>('/api/objects', formData);
+    formData.append('content', file, file.name);
+    return this.http.put(`/api/objects/${entityPath}/content`, formData, { params });
   }
 
-  /** Download an object by id as a Blob. */
-  download(objectId: string): Observable<Blob> {
-    return this.http.get(`/api/objects/${objectId}`, {
+  /** Download an object-bearing entity's binary content as a Blob. */
+  downloadObject(entityPath: string, iri: string): Observable<Blob> {
+    const params = new HttpParams().set('iri', iri);
+    return this.http.get(`/api/objects/${entityPath}/content`, {
+      params,
       responseType: 'blob',
     });
+  }
+
+  /** Delete an object-bearing entity's blob only; clears its ObjectKey/ContentType. */
+  deleteObject(entityPath: string, iri: string): Observable<unknown> {
+    const params = new HttpParams().set('iri', iri);
+    return this.http.delete(`/api/objects/${entityPath}/content`, { params });
   }
 
   // ═══════════════════════════════════════════════════════════════════════

@@ -4,19 +4,13 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { LucideSparkles, LucideX, LucideCheck, LucideChevronRight } from '@lucide/angular';
 import { AiAssistantPanelComponent } from '../ai-assistant-panel/ai-assistant-panel.component';
 
-type WizardStepId = 'describe' | 'create' | 'review';
 type WizardPhase = 'ask' | 'review';
-
-interface WizardStepDef {
-  id: WizardStepId;
-  label: string;
-}
 
 /**
  * AiAssistantWizard — a full-screen, senior-friendly overlay that guides the
  * user through AI-assisted property creation and editing:
  *
- *   1. Describe  → free text / photos / voice
+ *   1. Describe  → free text / voice
  *   2. AI creates → the assistant detects create-vs-edit, fills the form
  *   3. Review    → hand the validated proposal back to the page
  *
@@ -57,7 +51,6 @@ interface WizardStepDef {
             </span>
             <div>
               <h2 class="ai-title">{{ 'ai.wizardTitle' | transloco }}</h2>
-              <p class="ai-subtitle">{{ 'ai.wizardSubtitle' | transloco }}</p>
             </div>
           </div>
           <button type="button" class="ai-close" (click)="onClose()" [attr.aria-label]="'ai.wizardClose' | transloco">
@@ -65,51 +58,22 @@ interface WizardStepDef {
           </button>
         </header>
 
-        <!-- Step indicator -->
-        <nav class="ai-steps" aria-label="Steps">
-          @for (step of steps; track step.id; let i = $index; let last = $last) {
-            <div class="flex items-center">
-              <div
-                class="ai-step"
-                [class.ai-step-active]="stepState(step.id) === 'active'"
-                [class.ai-step-done]="stepState(step.id) === 'done'"
-              >
-                <span class="ai-step-num">
-                  @if (stepState(step.id) === 'done') {
-                    <svg lucideCheck class="size-4"></svg>
-                  } @else {
-                    {{ i + 1 }}
-                  }
-                </span>
-                <span class="ai-step-label">{{ step.label | transloco }}</span>
-              </div>
-              @if (!last) {
-                <div class="ai-step-line" [class.ai-step-line-done]="stepState(step.id) !== 'todo'"></div>
-              }
-            </div>
-          }
-        </nav>
-
         <!-- Body -->
         <div class="ai-body">
           @if (phase() === 'ask') {
             <app-ai-assistant-panel
               [framed]="false"
+              [showHeading]="false"
               [textScenarioKey]="textScenarioKey()"
-              [photosScenarioKey]="photosScenarioKey()"
               [editTextScenarioKey]="editTextScenarioKey()"
-              [editPhotosScenarioKey]="editPhotosScenarioKey()"
               [completeTextScenarioKey]="completeTextScenarioKey()"
-              [completePhotosScenarioKey]="completePhotosScenarioKey()"
               [intentTextScenarioKey]="intentTextScenarioKey()"
-              [intentPhotosScenarioKey]="intentPhotosScenarioKey()"
               [existingProperties]="existingProperties()"
               [draft]="draft()"
               [draftIri]="draftIri()"
               [context]="context()"
               (proposal)="onProposal($event)"
               (editIri)="lastEditIri.set($event)"
-              (busy)="busy.set($event)"
             />
           } @else {
             <div class="ai-done">
@@ -202,13 +166,6 @@ interface WizardStepDef {
       line-height: 1.1;
       margin: 0;
     }
-    .ai-subtitle {
-      font-size: 1rem;
-      line-height: 1.35;
-      margin: 0.25rem 0 0;
-      opacity: 0.92;
-      max-width: 30rem;
-    }
     .ai-close {
       display: flex;
       align-items: center;
@@ -229,71 +186,6 @@ interface WizardStepDef {
     .ai-close-icon {
       width: 1.5rem;
       height: 1.5rem;
-    }
-
-    /* ── Steps ────────────────────────────────────────────────── */
-    .ai-steps {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-      background: var(--secondary);
-      flex-shrink: 0;
-    }
-    .ai-step {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .ai-step-num {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 2rem;
-      height: 2rem;
-      border-radius: 9999px;
-      border: 2px solid var(--border);
-      color: var(--muted-foreground);
-      background: transparent;
-      font-size: 1rem;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    .ai-step-label {
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: var(--muted-foreground);
-      white-space: nowrap;
-    }
-    .ai-step-active .ai-step-num {
-      border-color: var(--primary);
-      color: var(--primary);
-      box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 18%, transparent);
-    }
-    .ai-step-active .ai-step-label {
-      color: var(--foreground);
-    }
-    .ai-step-done .ai-step-num {
-      border-color: var(--primary);
-      background: var(--primary);
-      color: var(--primary-foreground);
-    }
-    .ai-step-done .ai-step-label {
-      color: var(--foreground);
-    }
-    .ai-step-line {
-      width: 2.75rem;
-      height: 2px;
-      border-radius: 2px;
-      background: var(--border);
-      margin-bottom: 1.35rem;
-      transition: background 0.2s ease;
-    }
-    .ai-step-line-done {
-      background: var(--primary);
     }
 
     /* ── Body ─────────────────────────────────────────────────── */
@@ -374,9 +266,19 @@ interface WizardStepDef {
       }
       .ai-header {
         padding: 1.1rem 1.25rem;
+        gap: 0.75rem;
       }
-      .ai-steps {
-        padding: 0.9rem 1rem;
+      .ai-header-icon {
+        width: 2.75rem;
+        height: 2.75rem;
+      }
+      .ai-header-sparkles {
+        width: 1.6rem;
+        height: 1.6rem;
+      }
+      .ai-close {
+        width: 2.5rem;
+        height: 2.5rem;
       }
       .ai-footer {
         padding: 0.9rem 1.25rem;
@@ -386,13 +288,9 @@ interface WizardStepDef {
 })
 export class AiAssistantWizardComponent {
   readonly textScenarioKey = input.required<string>();
-  readonly photosScenarioKey = input<string>();
   readonly editTextScenarioKey = input<string>();
-  readonly editPhotosScenarioKey = input<string>();
   readonly completeTextScenarioKey = input<string>();
-  readonly completePhotosScenarioKey = input<string>();
   readonly intentTextScenarioKey = input<string>();
-  readonly intentPhotosScenarioKey = input<string>();
   readonly existingProperties = input<{ iri: string; name?: string; address?: string; [key: string]: unknown }[]>([]);
   readonly draft = input<Record<string, unknown> | null>(null);
   readonly draftIri = input<string | null>(null);
@@ -408,27 +306,8 @@ export class AiAssistantWizardComponent {
   readonly close = output<void>();
 
   readonly phase = signal<WizardPhase>('ask');
-  readonly busy = signal(false);
   private readonly lastProposal = signal<Record<string, unknown> | null>(null);
   readonly lastEditIri = signal<string | null>(null);
-
-  readonly steps: WizardStepDef[] = [
-    { id: 'describe', label: 'ai.wizardStep1' },
-    { id: 'create', label: 'ai.wizardStep2' },
-    { id: 'review', label: 'ai.wizardStep3' },
-  ];
-
-  /** Where a step sits in the flow: 'todo' | 'active' | 'done'. */
-  stepState(id: WizardStepId): 'todo' | 'active' | 'done' {
-    switch (id) {
-      case 'describe':
-        return this.busy() || this.phase() === 'review' ? 'done' : 'active';
-      case 'create':
-        return this.phase() === 'review' ? 'done' : this.busy() ? 'active' : 'todo';
-      case 'review':
-        return this.phase() === 'review' ? 'active' : 'todo';
-    }
-  }
 
   onProposal(data: Record<string, unknown>): void {
     this.lastProposal.set(data);

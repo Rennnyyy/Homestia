@@ -14,32 +14,17 @@ namespace Homestia.AI;
 /// </summary>
 public static class AiScenarios
 {
-    /// <summary>Scenario key: create a property from free text.</summary>
+    /// <summary>Scenario key: create a property from free text or voice.</summary>
     public const string CreateText = "property.create.text";
 
-    /// <summary>Scenario key: create a property from photos (and optional text).</summary>
-    public const string CreatePhotos = "property.create.photos";
-
-    /// <summary>Scenario key: edit a property from free text.</summary>
+    /// <summary>Scenario key: edit a property from free text or voice.</summary>
     public const string EditText = "property.edit.text";
 
-    /// <summary>Scenario key: edit a property from photos (and optional text).</summary>
-    public const string EditPhotos = "property.edit.photos";
-
-    /// <summary>Scenario key: decide whether the user wants to create or edit (text).</summary>
+    /// <summary>Scenario key: decide whether the user wants to create or edit.</summary>
     public const string IntentText = "property.intent.text";
 
-    /// <summary>Scenario key: decide whether the user wants to create or edit (photos).</summary>
-    public const string IntentPhotos = "property.intent.photos";
-
-    /// <summary>Scenario key: continue/correct an in-progress draft from free text.</summary>
+    /// <summary>Scenario key: continue/correct an in-progress draft from text or voice.</summary>
     public const string CompleteText = "property.complete.text";
-
-    /// <summary>Scenario key: continue/correct an in-progress draft with photos.</summary>
-    public const string CompletePhotos = "property.complete.photos";
-
-    /// <summary>Model role: a vision-capable model that describes photos.</summary>
-    public const string VisionRole = "vision";
 
     /// <summary>Model role: the form-filling model that emits property JSON.</summary>
     public const string FillRole = "formfill";
@@ -50,21 +35,17 @@ public static class AiScenarios
         ArgumentNullException.ThrowIfNull(registry);
 
         registry
-            .Register(CreateScenario(CreateText, withPhotos: false))
-            .Register(CreateScenario(CreatePhotos, withPhotos: true))
-            .Register(EditScenario(EditText, withPhotos: false))
-            .Register(EditScenario(EditPhotos, withPhotos: true))
-            .Register(CompleteScenario(CompleteText, withPhotos: false))
-            .Register(CompleteScenario(CompletePhotos, withPhotos: true))
-            .Register(IntentScenario(IntentText, withPhotos: false))
-            .Register(IntentScenario(IntentPhotos, withPhotos: true));
+            .Register(CreateScenario(CreateText))
+            .Register(EditScenario(EditText))
+            .Register(CompleteScenario(CompleteText))
+            .Register(IntentScenario(IntentText));
     }
 
-    private static ScenarioDefinition CreateScenario(string key, bool withPhotos) =>
-        BuildScenario(key, "Create a property from the user's description and photos.", withPhotos, edit: false);
+    private static ScenarioDefinition CreateScenario(string key) =>
+        BuildScenario(key, "Create a property from the user's description.", edit: false);
 
-    private static ScenarioDefinition EditScenario(string key, bool withPhotos) =>
-        BuildScenario(key, "Edit a property from the user's requested changes and photos.", withPhotos, edit: true);
+    private static ScenarioDefinition EditScenario(string key) =>
+        BuildScenario(key, "Edit a property from the user's requested changes.", edit: true);
 
     /// <summary>
     /// Continues/corrects an in-progress draft: the user's follow-up request is
@@ -72,21 +53,9 @@ public static class AiScenarios
     /// draft already contains is kept; the lenient AI shape keeps a still-partial
     /// result acceptable.
     /// </summary>
-    private static ScenarioDefinition CompleteScenario(string key, bool withPhotos)
+    private static ScenarioDefinition CompleteScenario(string key)
     {
         var steps = new List<ScenarioStep>();
-
-        if (withPhotos)
-        {
-            steps.Add(new ScenarioStep(
-                Name: "describe_images",
-                ModelRole: VisionRole,
-                Instruction: VisionInstruction,
-                OutputSchema: EmptySchema(),
-                MaxRetries: 0,
-                ViewIri: null,
-                TextOutput: true));
-        }
 
         steps.Add(new ScenarioStep(
             Name: "complete_form",
@@ -109,21 +78,9 @@ public static class AiScenarios
     /// <c>{ "intent": "create" | "edit", "propertyIri": string }</c> — an empty
     /// <c>propertyIri</c> means "edit intended but no property matched".
     /// </summary>
-    private static ScenarioDefinition IntentScenario(string key, bool withPhotos)
+    private static ScenarioDefinition IntentScenario(string key)
     {
         var steps = new List<ScenarioStep>();
-
-        if (withPhotos)
-        {
-            steps.Add(new ScenarioStep(
-                Name: "describe_images",
-                ModelRole: VisionRole,
-                Instruction: VisionInstruction,
-                OutputSchema: EmptySchema(),
-                MaxRetries: 0,
-                ViewIri: null,
-                TextOutput: true));
-        }
 
         steps.Add(new ScenarioStep(
             Name: "detect_intent",
@@ -140,21 +97,9 @@ public static class AiScenarios
             steps);
     }
 
-    private static ScenarioDefinition BuildScenario(string key, string description, bool withPhotos, bool edit)
+    private static ScenarioDefinition BuildScenario(string key, string description, bool edit)
     {
         var steps = new List<ScenarioStep>();
-
-        if (withPhotos)
-        {
-            steps.Add(new ScenarioStep(
-                Name: "describe_images",
-                ModelRole: VisionRole,
-                Instruction: VisionInstruction,
-                OutputSchema: EmptySchema(),
-                MaxRetries: 0,
-                ViewIri: null,
-                TextOutput: true));
-        }
 
         // The lenient AI shape (not the strict form shape) so a partial fill
         // still succeeds; missing fields surface as warnings for the user.
@@ -170,24 +115,11 @@ public static class AiScenarios
         return new ScenarioDefinition(key, description, steps);
     }
 
-    private const string VisionInstruction = """
-        You describe real-estate photos so another model can fill a property form.
-
-        The user message is a JSON payload that may contain a "userPrompt" field.
-        If "userPrompt" is present and not empty, output it verbatim first, prefixed with "User request: ".
-
-        Then describe the property shown in the attached photos in detail: the building type,
-        the address if legible, the exterior and interior condition, every room and its
-        approximate size in square metres, the furnishing, and anything else relevant to
-        filling a property rental form. Plain prose is fine.
-        """;
-
     private static string FillInstruction(bool edit) => $"""
         You fill the Homestia property form from the information in the user message.
 
-        The user message is either a JSON object with "userPrompt" (the free-text request)
-        and "current" (the existing property — empty for create), or a text description of
-        property photos with an optional "User request:" prefix.
+        The user message is a JSON object with "userPrompt" (the free-text request, possibly
+        transcribed from voice) and "current" (the existing property — empty for create).
 
         {(edit
             ? "This is an EDIT: keep the values in \"current\" unless the user explicitly asks to change them."
@@ -226,9 +158,9 @@ public static class AiScenarios
     private const string IntentInstruction = """
         You decide whether the user wants to CREATE a new property or EDIT an existing one.
 
-        The user message is either a JSON object with "userPrompt" (the user's request, possibly
+        The user message is a JSON object with "userPrompt" (the user's request, possibly
         transcribed from voice) and "properties" (existing properties, each with "iri", "name", and
-        "address"), or a text description of property photos with an optional "User request:" prefix.
+        "address").
 
         Decide:
         - CREATE: the user is describing a NEW property to add.

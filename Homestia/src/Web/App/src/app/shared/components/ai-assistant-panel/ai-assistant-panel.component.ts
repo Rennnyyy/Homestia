@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   LucideSparkles,
-  LucidePaperclip,
   LucideMic,
   LucideSquare,
   LucideArrowUp,
@@ -23,22 +22,23 @@ export interface AiExistingProperty {
 /**
  * AiAssistantPanel — the visible face of AI-assisted form filling.
  *
- * Paths A (chat), B (photos) and C (voice) all flow through here: the panel
- * collects a free-text prompt, optional photos, and an optional voice
- * recording, streams the scenario's progress, and emits the validated form
- * proposal so the parent can render it in review. Voice is recorded in the
- * browser and sent to the backend as a raw audio content part with its real
- * media type — the SDK transcribes it and feeds the text into the flow.
+ * Paths A (chat) and C (voice) both flow through here: the panel collects a
+ * free-text prompt and an optional voice recording, streams the scenario's
+ * progress, and emits the validated form proposal so the parent can render it
+ * in review. Voice is recorded in the browser and sent to the backend as a
+ * raw audio content part with its real media type — the SDK transcribes it
+ * and feeds the text into the flow.
  *
- * The composer is ChatGPT-shaped but sized for a 50+ audience: a large text
- * field with an attachment (paperclip) button and a microphone right next to
- * it, and a round send button. Clicking the microphone starts recording —
- * the composer shows a "Listening…" area with a live timer and an explicit
- * Stop button. Stopping immediately sends the voice note; the final voice
- * note is shown inside the composer so the user knows it was captured.
+ * The composer is voice-first and sized for a 50+ audience: a large
+ * microphone button on the left (it morphs into a red Stop while recording)
+ * beside the text field, and a labeled "Send" button on the right. Stopping
+ * a recording immediately sends the voice note; the final voice note is shown
+ * inside the composer so the user knows it was captured.
  *
- * Once the flow settles — success or failure — the panel shows a single
- * plain-language summary of the outcome and nothing else: no raw token
+ * While the AI works, a large high-contrast working panel (spinner + status +
+ * progress bar) replaces quiet small text, so it is always obvious the AI is
+ * running. Once the flow settles — success or failure — the panel shows a
+ * single plain-language summary of the outcome and nothing else: no raw token
  * stream, no raw error text. Typography and touch targets stay oversized for
  * a 50+ audience.
  */
@@ -50,7 +50,6 @@ export interface AiExistingProperty {
     TranslocoPipe,
     NgTemplateOutlet,
     LucideSparkles,
-    LucidePaperclip,
     LucideMic,
     LucideSquare,
     LucideArrowUp,
@@ -68,20 +67,10 @@ export interface AiExistingProperty {
     <ng-template #content>
       <div class="ai-panel">
         <!-- Heading -->
-        <div class="ai-heading">
-          <svg lucideSparkles class="size-6 text-primary"></svg>
-          <span>{{ 'ai.title' | transloco }}</span>
-        </div>
-
-        <!-- Attached photos -->
-        @if (images().length > 0) {
-          <div class="ai-photos">
-            @for (img of images(); track img.dataUrl; let i = $index) {
-              <div class="relative">
-                <img [src]="img.dataUrl" alt="" class="size-20 object-cover rounded border border-border" />
-                <button type="button" class="ai-remove-chip" (click)="removeImage(i)" [attr.aria-label]="'ai.removePhoto' | transloco">×</button>
-              </div>
-            }
+        @if (showHeading()) {
+          <div class="ai-heading">
+            <svg lucideSparkles class="size-6 text-primary"></svg>
+            <span>{{ 'ai.title' | transloco }}</span>
           </div>
         }
 
@@ -90,10 +79,14 @@ export interface AiExistingProperty {
           <p class="ai-error-text">{{ recordingError() | transloco }}</p>
         }
 
-        <!-- Progress while the AI works -->
+        <!-- Big, unmissable "the AI is working" state -->
         @if (running()) {
-          <div class="ai-progress">
-            <span class="animate-pulse">{{ status() | transloco }}</span>
+          <div class="ai-working" role="status" aria-live="polite">
+            <span class="ai-working-spinner" aria-hidden="true"></span>
+            <p class="ai-working-status">{{ status() | transloco }}</p>
+            <div class="ai-progress-track" aria-hidden="true">
+              <div class="ai-progress-bar"></div>
+            </div>
           </div>
         }
 
@@ -109,9 +102,6 @@ export interface AiExistingProperty {
             </span>
             <div>
               <p class="ai-summary-text">{{ summary() }}</p>
-              @if (!failed()) {
-                <p class="ai-summary-hint">{{ 'ai.summaryHint' | transloco }}</p>
-              }
             </div>
           </div>
         }
@@ -137,56 +127,17 @@ export interface AiExistingProperty {
           </div>
         }
 
-        <!-- Composer (ChatGPT-shaped, senior-friendly) -->
-        <div class="ai-composer" [class.ai-composer-recording]="recording()">
-          @if (recording()) {
-            <!-- Listening state lives inside the composer -->
-            <div class="ai-input-area ai-listening">
-              <span class="ai-recording-dot" aria-hidden="true"></span>
-              <span class="ai-listening-label">{{ 'ai.listening' | transloco }}</span>
-              <div class="flex-1"></div>
-              <span class="ai-listening-timer">{{ formatDuration(recordingSeconds()) }}</span>
-              <button type="button" class="ai-listening-stop" (click)="onToggleRecord()" [attr.aria-label]="'ai.stopRecording' | transloco">
-                <svg lucideSquare class="size-4"></svg>
-                <span>{{ 'ai.stopRecording' | transloco }}</span>
-              </button>
-            </div>
-          } @else if (audio()) {
-            <!-- The final voice note lives inside the composer -->
-            <div class="ai-input-area ai-final-voice">
-              <svg lucideMic class="ai-final-voice-icon"></svg>
-              <span class="ai-final-voice-label">{{ 'ai.voiceAdded' | transloco }}</span>
-              <span class="ai-final-voice-duration">{{ formatDuration(audio()!.duration) }}</span>
-              <div class="flex-1"></div>
-              <button type="button" class="ai-voice-remove" (click)="removeAudio()" [attr.aria-label]="'ai.removeVoice' | transloco">
-                <svg lucideX class="size-5"></svg>
-              </button>
-            </div>
-          } @else {
-            <textarea
-              #composerInput
-              [(ngModel)]="prompt"
-              class="ai-composer-input"
-              [placeholder]="'ai.placeholder' | transloco"
-              (keydown.enter)="onSubmitKey($event)"
-              (input)="autosize()"
-            ></textarea>
-          }
-          <div class="ai-composer-toolbar">
+        <!-- Composer: mic left, text in the middle, labeled Send right -->
+        <div
+          class="ai-composer"
+          [class.ai-composer-recording]="recording()"
+          [class.ai-composer-busy]="running()"
+        >
+          <div class="ai-composer-row">
+            <!-- Microphone on the LEFT — morphs into Stop while recording -->
             <button
               type="button"
-              class="ai-icon-btn"
-              (click)="onSelectPhotos()"
-              [disabled]="running()"
-              [attr.aria-label]="'ai.attachPhotos' | transloco"
-              [title]="'ai.attachPhotos' | transloco"
-            >
-              <svg lucidePaperclip class="ai-icon-btn-svg"></svg>
-            </button>
-
-            <button
-              type="button"
-              class="ai-icon-btn"
+              class="ai-mic-btn"
               [class.ai-mic-recording]="recording()"
               (click)="onToggleRecord()"
               [disabled]="running()"
@@ -194,14 +145,49 @@ export interface AiExistingProperty {
               [title]="recording() ? ('ai.stopRecording' | transloco) : ('ai.recordVoice' | transloco)"
             >
               @if (recording()) {
-                <svg lucideSquare class="ai-icon-btn-svg"></svg>
+                <svg lucideSquare class="ai-mic-btn-svg"></svg>
               } @else {
-                <svg lucideMic class="ai-icon-btn-svg"></svg>
+                <svg lucideMic class="ai-mic-btn-svg"></svg>
               }
             </button>
 
-            <div class="flex-1"></div>
+            <div class="ai-composer-main">
+              @if (recording()) {
+                <!-- Listening state lives inside the composer -->
+                <div class="ai-input-area ai-listening">
+                  <span class="ai-recording-dot" aria-hidden="true"></span>
+                  <span class="ai-listening-label">{{ 'ai.listening' | transloco }}</span>
+                  <div class="flex-1"></div>
+                  <span class="ai-listening-timer">{{ formatDuration(recordingSeconds()) }}</span>
+                  <button type="button" class="ai-listening-stop" (click)="onToggleRecord()" [attr.aria-label]="'ai.stopRecording' | transloco">
+                    <svg lucideSquare class="size-4"></svg>
+                    <span>{{ 'ai.stopRecording' | transloco }}</span>
+                  </button>
+                </div>
+              } @else if (audio()) {
+                <!-- The final voice note lives inside the composer -->
+                <div class="ai-input-area ai-final-voice">
+                  <svg lucideMic class="ai-final-voice-icon"></svg>
+                  <span class="ai-final-voice-label">{{ 'ai.voiceAdded' | transloco }}</span>
+                  <span class="ai-final-voice-duration">{{ formatDuration(audio()!.duration) }}</span>
+                  <div class="flex-1"></div>
+                  <button type="button" class="ai-voice-remove" (click)="removeAudio()" [attr.aria-label]="'ai.removeVoice' | transloco">
+                    <svg lucideX class="size-5"></svg>
+                  </button>
+                </div>
+              } @else {
+                <textarea
+                  #composerInput
+                  [(ngModel)]="prompt"
+                  class="ai-composer-input"
+                  [placeholder]="'ai.placeholder' | transloco"
+                  (keydown.enter)="onSubmitKey($event)"
+                  (input)="autosize()"
+                ></textarea>
+              }
+            </div>
 
+            <!-- Labeled Send on the RIGHT — never a mystery icon -->
             <button
               type="button"
               class="ai-send-btn"
@@ -210,12 +196,15 @@ export interface AiExistingProperty {
               [attr.aria-label]="'ai.send' | transloco"
               [title]="'ai.send' | transloco"
             >
-              <svg lucideArrowUp class="ai-send-btn-svg"></svg>
+              @if (running()) {
+                <span class="ai-send-spinner" aria-hidden="true"></span>
+              } @else {
+                <svg lucideArrowUp class="ai-send-btn-svg"></svg>
+                <span>{{ 'ai.send' | transloco }}</span>
+              }
             </button>
           </div>
         </div>
-
-        <input #fileInput type="file" accept="image/*" multiple class="hidden" (change)="onFilesSelected($event)" />
       </div>
     </ng-template>
   `,
@@ -233,28 +222,6 @@ export interface AiExistingProperty {
       font-size: 1.25rem;
       font-weight: 700;
       color: var(--foreground);
-    }
-
-    /* ── Attached photos ────────────────────────────────────── */
-    .ai-photos {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .ai-remove-chip {
-      position: absolute;
-      top: -0.4rem;
-      right: -0.4rem;
-      width: 1.5rem;
-      height: 1.5rem;
-      border-radius: 9999px;
-      border: none;
-      background: var(--destructive);
-      color: #fff;
-      font-size: 0.9rem;
-      line-height: 1;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     }
 
     /* ── Composer input area: listening / final voice ───────── */
@@ -350,12 +317,46 @@ export interface AiExistingProperty {
       color: var(--destructive);
       margin: 0;
     }
-    .ai-progress {
+
+    /* ── Working state — clear but not oversized ────────────── */
+    .ai-working {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 1.05rem;
-      color: var(--muted-foreground);
+      gap: 0.8rem;
+      text-align: center;
+      border: 1px solid color-mix(in oklch, var(--primary) 30%, transparent);
+      border-radius: 1rem;
+      background: color-mix(in oklch, var(--primary) 6%, transparent);
+      padding: 1.15rem 1rem 1rem;
+    }
+    .ai-working-spinner {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      border: 3px solid color-mix(in oklch, var(--primary) 22%, transparent);
+      border-top-color: var(--primary);
+      animation: aiSpin 0.9s linear infinite;
+    }
+    .ai-working-status {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--foreground);
+      margin: 0;
+    }
+    .ai-progress-track {
+      width: 100%;
+      height: 0.5rem;
+      border-radius: 9999px;
+      background: color-mix(in oklch, var(--primary) 15%, transparent);
+      overflow: hidden;
+    }
+    .ai-progress-bar {
+      width: 40%;
+      height: 100%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, oklch(0.541 0.281 293.009), oklch(0.623 0.214 259.815));
+      animation: aiProgress 1.4s ease-in-out infinite;
     }
 
     /* ── Outcome summary ────────────────────────────────────── */
@@ -392,11 +393,6 @@ export interface AiExistingProperty {
       line-height: 1.4;
       color: var(--foreground);
       margin: 0;
-    }
-    .ai-summary-hint {
-      font-size: 0.95rem;
-      color: var(--muted-foreground);
-      margin: 0.25rem 0 0;
     }
 
     /* ── Edit target picker ────────────────────────────────── */
@@ -469,11 +465,11 @@ export interface AiExistingProperty {
       color: var(--foreground);
     }
 
-    /* ── Composer (ChatGPT-shaped) ──────────────────────────── */
+    /* ── Composer (voice-first row) ─────────────────────────── */
     .ai-composer {
       border: 2px solid var(--border);
       border-radius: 1.25rem;
-      padding: 0.6rem 0.6rem 0.4rem;
+      padding: 0.5rem;
       background: var(--card);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
@@ -484,6 +480,19 @@ export interface AiExistingProperty {
     .ai-composer-recording {
       border-color: var(--destructive);
       box-shadow: 0 0 0 4px color-mix(in oklch, var(--destructive) 15%, transparent);
+    }
+    .ai-composer-busy {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .ai-composer-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .ai-composer-main {
+      flex: 1;
+      min-width: 0;
     }
     .ai-composer-input {
       width: 100%;
@@ -502,36 +511,32 @@ export interface AiExistingProperty {
     .ai-composer-input::placeholder {
       color: var(--muted-foreground);
     }
-    .ai-composer-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding-top: 0.4rem;
-    }
-    .ai-icon-btn {
+
+    /* ── Microphone — left, morphs into Stop while recording ── */
+    .ai-mic-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 2.75rem;
-      height: 2.75rem;
+      width: 3rem;
+      height: 3rem;
       border-radius: 9999px;
       border: none;
-      background: transparent;
-      color: var(--muted-foreground);
+      background: color-mix(in oklch, var(--primary) 12%, transparent);
+      color: var(--primary);
       cursor: pointer;
+      flex-shrink: 0;
       transition: background 0.15s ease, color 0.15s ease;
     }
-    .ai-icon-btn:hover:not(:disabled) {
-      background: var(--secondary);
-      color: var(--foreground);
+    .ai-mic-btn:hover:not(:disabled) {
+      background: color-mix(in oklch, var(--primary) 22%, transparent);
     }
-    .ai-icon-btn:disabled {
+    .ai-mic-btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
     }
-    .ai-icon-btn-svg {
-      width: 1.35rem;
-      height: 1.35rem;
+    .ai-mic-btn-svg {
+      width: 1.4rem;
+      height: 1.4rem;
     }
     .ai-mic-recording {
       color: #fff;
@@ -542,20 +547,27 @@ export interface AiExistingProperty {
       background: var(--destructive);
       color: #fff;
     }
-    .ai-mic-recording .ai-icon-btn-svg {
+    .ai-mic-recording .ai-mic-btn-svg {
       color: #fff;
     }
+
+    /* ── Send — labeled, never a mystery icon ─────────────── */
     .ai-send-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 2.75rem;
-      height: 2.75rem;
+      gap: 0.4rem;
+      min-width: 6.5rem;
+      height: 3rem;
+      padding: 0 1.1rem;
       border-radius: 9999px;
       border: none;
       background: linear-gradient(135deg, oklch(0.541 0.281 293.009), oklch(0.623 0.214 259.815));
       color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
+      flex-shrink: 0;
       box-shadow: 0 4px 14px -4px rgba(124, 58, 237, 0.5);
       transition: filter 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
     }
@@ -569,8 +581,16 @@ export interface AiExistingProperty {
       transform: none;
     }
     .ai-send-btn-svg {
-      width: 1.4rem;
-      height: 1.4rem;
+      width: 1.3rem;
+      height: 1.3rem;
+    }
+    .ai-send-spinner {
+      width: 1.3rem;
+      height: 1.3rem;
+      border-radius: 9999px;
+      border: 3px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      animation: aiSpin 0.8s linear infinite;
     }
 
     /* ── Animations ─────────────────────────────────────────── */
@@ -582,37 +602,50 @@ export interface AiExistingProperty {
       0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
       50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
     }
+    @keyframes aiSpin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes aiProgress {
+      0% { transform: translateX(-130%); }
+      100% { transform: translateX(330%); }
+    }
+
+    /* ── Narrow screens: stack the composer (textarea full-width on top) ── */
+    @media (max-width: 640px) {
+      .ai-composer-row {
+        flex-wrap: wrap;
+      }
+      .ai-composer-main {
+        order: 1;
+        flex-basis: 100%;
+        width: 100%;
+      }
+      .ai-mic-btn {
+        order: 2;
+      }
+      .ai-send-btn {
+        order: 3;
+        margin-left: auto;
+      }
+    }
   `],
 })
 export class AiAssistantPanelComponent implements OnDestroy {
   private readonly flow = inject(AiFlowService);
   private readonly translate = inject(TranslocoService);
-  private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
   private readonly composerInput = viewChild<ElementRef<HTMLTextAreaElement>>('composerInput');
 
-  /** Scenario key used for text-only requests. */
+  /** Scenario key used for text/voice requests. */
   readonly textScenarioKey = input.required<string>();
 
-  /** Scenario key used when photos are attached. Falls back to the text key. */
-  readonly photosScenarioKey = input<string>();
-
-  /** Scenario key used for editing an existing property from text. */
+  /** Scenario key used for editing an existing property from text/voice. */
   readonly editTextScenarioKey = input<string>();
 
-  /** Scenario key used for editing an existing property with photos. */
-  readonly editPhotosScenarioKey = input<string>();
-
-  /** Scenario key used to continue/correct an in-progress draft from text. */
+  /** Scenario key used to continue/correct an in-progress draft. */
   readonly completeTextScenarioKey = input<string>();
-
-  /** Scenario key used to continue/correct an in-progress draft with photos. */
-  readonly completePhotosScenarioKey = input<string>();
 
   /** Scenario key used to detect create-vs-edit intent from text/voice. */
   readonly intentTextScenarioKey = input<string>();
-
-  /** Scenario key used to detect create-vs-edit intent with photos. */
-  readonly intentPhotosScenarioKey = input<string>();
 
   /** Existing properties the AI can match against for edits. */
   readonly existingProperties = input<AiExistingProperty[]>([]);
@@ -629,6 +662,9 @@ export class AiAssistantPanelComponent implements OnDestroy {
   /** When true (default) the panel is wrapped in its own bordered frame. */
   readonly framed = input(true);
 
+  /** When true (default) the panel shows its own heading. */
+  readonly showHeading = input(true);
+
   /** Emits the validated form proposal when the flow completes. */
   readonly proposal = output<Record<string, unknown>>();
 
@@ -639,7 +675,6 @@ export class AiAssistantPanelComponent implements OnDestroy {
   readonly busy = output<boolean>();
 
   readonly prompt = signal('');
-  readonly images = signal<{ name: string; dataUrl: string }[]>([]);
   readonly running = signal(false);
   readonly status = signal('ai.filling');
   readonly summary = signal<string | null>(null);
@@ -656,30 +691,12 @@ export class AiAssistantPanelComponent implements OnDestroy {
   private mediaChunks: Blob[] = [];
   private recordingStartedAt = 0;
   private recordingTimer: ReturnType<typeof setInterval> | null = null;
-  private pendingPick: { hasPhotos: boolean; parts: AiContentPart[]; input: Record<string, unknown> } | null = null;
+  private pendingPick: { parts: AiContentPart[]; input: Record<string, unknown> } | null = null;
   private destroyed = false;
 
   /** True when there is something to send and no request is running. */
   canSend(): boolean {
-    return !this.running() && (this.prompt().trim().length > 0 || this.images().length > 0 || !!this.audio());
-  }
-
-  onSelectPhotos(): void {
-    this.fileInput()?.nativeElement.click();
-  }
-
-  async onFilesSelected(event: Event): Promise<void> {
-    const target = event.target as HTMLInputElement;
-    const files = Array.from(target.files ?? []);
-    for (const file of files) {
-      const dataUrl = await readFileAsDataUrl(file);
-      this.images.update((current) => [...current, { name: file.name, dataUrl }]);
-    }
-    target.value = '';
-  }
-
-  removeImage(index: number): void {
-    this.images.update((current) => current.filter((_, i) => i !== index));
+    return !this.running() && (this.prompt().trim().length > 0 || !!this.audio());
   }
 
   // ── Voice recording ──────────────────────────────────────────────────────
@@ -814,20 +831,17 @@ export class AiAssistantPanelComponent implements OnDestroy {
 
   async submit(): Promise<void> {
     const prompt = this.prompt().trim();
-    const images = this.images();
     const audio = this.audio();
-    if (this.running() || (!prompt && images.length === 0 && !audio)) return;
+    if (this.running() || (!prompt && !audio)) return;
 
-    const hasPhotos = images.length > 0;
     const parts: AiContentPart[] = [
-      ...images.map((img) => ({ type: 'image', url: img.dataUrl }) as AiContentPart),
       ...(audio ? [{ type: 'audio', url: audio.dataUrl, mime: audio.mime } as AiContentPart] : []),
     ];
     const input: Record<string, unknown> = { userPrompt: prompt, current: this.context() };
 
     this.pickProperty.set(false);
     this.pendingPick = null;
-    this.beginRun(hasPhotos);
+    this.beginRun();
 
     // "Ask again" — continue/correct the in-progress draft: run the edit
     // scenario (which preserves the draft's values) with the draft as context,
@@ -837,7 +851,6 @@ export class AiAssistantPanelComponent implements OnDestroy {
       // Dedicated complete scenario: applies the follow-up request on top of
       // the draft ("add address …"), keeping everything already filled.
       await this.runFlow(
-        hasPhotos,
         parts,
         { userPrompt: prompt, current: this.normalizePropertyForAi(draft) },
         this.draftIri(),
@@ -848,25 +861,25 @@ export class AiAssistantPanelComponent implements OnDestroy {
 
     try {
       // Figure out from the prompt (text or voice) whether this is a create or an edit.
-      const intent = await this.detectIntent(prompt, hasPhotos, parts);
+      const intent = await this.detectIntent(prompt, parts);
       if (intent?.intent === 'edit') {
         const target = this.existingProperties().find((p) => p.iri === intent.propertyIri);
         if (target) {
-          await this.runFlow(hasPhotos, parts, { ...input, current: this.normalizePropertyForAi(target) }, target.iri);
+          await this.runFlow(parts, { ...input, current: this.normalizePropertyForAi(target) }, target.iri);
           return;
         }
         if (this.existingProperties().length === 0) {
           // Nothing exists to edit — treat the request as a create.
-          await this.runFlow(hasPhotos, parts, input, null);
+          await this.runFlow(parts, input, null);
           return;
         }
         // Edit intended but nothing matched — ask the user which property.
-        this.pendingPick = { hasPhotos, parts, input };
+        this.pendingPick = { parts, input };
         this.finishRun();
         this.pickProperty.set(true);
         return;
       }
-      await this.runFlow(hasPhotos, parts, input, null);
+      await this.runFlow(parts, input, null);
     } catch {
       this.finishRun();
       this.failed.set(true);
@@ -877,12 +890,9 @@ export class AiAssistantPanelComponent implements OnDestroy {
   /** Detects create-vs-edit intent from the prompt (text or transcribed voice). */
   private async detectIntent(
     prompt: string,
-    hasPhotos: boolean,
     parts: AiContentPart[],
   ): Promise<{ intent: 'create' | 'edit'; propertyIri: string } | null> {
-    const key = hasPhotos
-      ? (this.intentPhotosScenarioKey() ?? this.intentTextScenarioKey())
-      : this.intentTextScenarioKey();
+    const key = this.intentTextScenarioKey();
     if (!key) return null;
 
     this.status.set('ai.detecting');
@@ -909,25 +919,19 @@ export class AiAssistantPanelComponent implements OnDestroy {
    * edit scenario preserves the draft's values even for a create draft).
    */
   private async runFlow(
-    hasPhotos: boolean,
     parts: AiContentPart[],
     input: Record<string, unknown>,
     editIri: string | null,
     mode: 'create' | 'edit' | 'complete' = editIri ? 'edit' : 'create',
   ): Promise<void> {
-    const scenarioKey = hasPhotos
-      ? (mode === 'edit'
-          ? (this.editPhotosScenarioKey() ?? this.photosScenarioKey() ?? this.textScenarioKey())
-          : mode === 'complete'
-            ? (this.completePhotosScenarioKey() ?? this.editPhotosScenarioKey() ?? this.photosScenarioKey() ?? this.textScenarioKey())
-            : (this.photosScenarioKey() ?? this.textScenarioKey()))
-      : (mode === 'edit'
-          ? (this.editTextScenarioKey() ?? this.textScenarioKey())
-          : mode === 'complete'
-            ? (this.completeTextScenarioKey() ?? this.editTextScenarioKey() ?? this.textScenarioKey())
-            : this.textScenarioKey());
+    const scenarioKey =
+      mode === 'edit'
+        ? (this.editTextScenarioKey() ?? this.textScenarioKey())
+        : mode === 'complete'
+          ? (this.completeTextScenarioKey() ?? this.editTextScenarioKey() ?? this.textScenarioKey())
+          : this.textScenarioKey();
 
-    this.beginRun(hasPhotos);
+    this.beginRun();
 
     let outcome;
     try {
@@ -967,7 +971,6 @@ export class AiAssistantPanelComponent implements OnDestroy {
     this.pickProperty.set(false);
     this.pendingPick = null;
     void this.runFlow(
-      pending.hasPhotos,
       pending.parts,
       { ...pending.input, current: this.normalizePropertyForAi(property) },
       property.iri,
@@ -990,12 +993,12 @@ export class AiAssistantPanelComponent implements OnDestroy {
     return out;
   }
 
-  private beginRun(hasPhotos: boolean): void {
+  private beginRun(): void {
     this.running.set(true);
     this.busy.emit(true);
     this.summary.set(null);
     this.failed.set(false);
-    this.status.set(hasPhotos ? 'ai.analyzing' : 'ai.filling');
+    this.status.set('ai.filling');
   }
 
   private finishRun(): void {
@@ -1027,7 +1030,7 @@ export class AiAssistantPanelComponent implements OnDestroy {
   private handleEvent(event: AiFlowEvent): void {
     switch (event.kind) {
       case 'step_started':
-        this.status.set(event.name === 'fill_form' ? 'ai.filling' : 'ai.analyzing');
+        this.status.set(event.name === 'detect_intent' ? 'ai.detecting' : 'ai.filling');
         break;
       case 'step_retry':
         this.status.set('ai.correcting');
@@ -1036,15 +1039,6 @@ export class AiAssistantPanelComponent implements OnDestroy {
         break;
     }
   }
-}
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {

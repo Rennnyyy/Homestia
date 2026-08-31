@@ -1,8 +1,8 @@
 /**
  * Unit tests for AiAssistantPanelComponent — verifies the voice recording
  * lifecycle: mic capture → raw (WebM) data URL with its real media type →
- * audio content part sent to the AI flow endpoint (multi-dimension input:
- * text + image + audio). The backend transcribes; no client-side re-encode.
+ * audio content part sent to the AI flow endpoint (text + voice input). The
+ * backend transcribes; no client-side re-encode.
  *
  * Regression: the fake MediaRecorder reports a parameterized mime
  * ("audio/webm;codecs=opus", as real browsers do) — the panel must normalize
@@ -81,7 +81,6 @@ describe('AiAssistantPanelComponent — voice input', () => {
 
     fixture = TestBed.createComponent(AiAssistantPanelComponent);
     fixture.componentRef.setInput('textScenarioKey', 'property.create.text');
-    fixture.componentRef.setInput('photosScenarioKey', 'property.create.photos');
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

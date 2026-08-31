@@ -26,13 +26,9 @@ public sealed class AiScenariosTests
         registry.Scenarios.Keys.ShouldBe(
             [
                 AiScenarios.CreateText,
-                AiScenarios.CreatePhotos,
                 AiScenarios.EditText,
-                AiScenarios.EditPhotos,
                 AiScenarios.CompleteText,
-                AiScenarios.CompletePhotos,
                 AiScenarios.IntentText,
-                AiScenarios.IntentPhotos,
             ],
             ignoreOrder: true);
     }
@@ -47,12 +43,6 @@ public sealed class AiScenariosTests
         complete.Steps[0].Name.ShouldBe("complete_form");
         // The lenient AI shape — a still-partial draft stays acceptable.
         complete.Steps[0].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
-
-        var completePhotos = registry.Scenarios[AiScenarios.CompletePhotos];
-        completePhotos.Steps.Count.ShouldBe(2);
-        completePhotos.Steps[0].Name.ShouldBe("describe_images");
-        completePhotos.Steps[1].Name.ShouldBe("complete_form");
-        completePhotos.Steps[1].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
     }
 
     [Fact]
@@ -64,14 +54,6 @@ public sealed class AiScenariosTests
         text.Steps.ShouldHaveSingleItem();
         text.Steps[0].Name.ShouldBe("detect_intent");
         text.Steps[0].ViewIri.ShouldBeNull();
-
-        // The photos variant first describes images, then detects intent.
-        var photos = registry.Scenarios[AiScenarios.IntentPhotos];
-        photos.Steps.Count.ShouldBe(2);
-        photos.Steps[0].Name.ShouldBe("describe_images");
-        photos.Steps[0].TextOutput.ShouldBeTrue();
-        photos.Steps[1].Name.ShouldBe("detect_intent");
-        photos.Steps[1].ViewIri.ShouldBeNull();
     }
 
     [Fact]
@@ -83,10 +65,6 @@ public sealed class AiScenariosTests
         edit.Steps.ShouldHaveSingleItem();
         edit.Steps[0].Name.ShouldBe("fill_form");
         edit.Steps[0].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
-
-        var editPhotos = registry.Scenarios[AiScenarios.EditPhotos];
-        editPhotos.Steps.Count.ShouldBe(2);
-        editPhotos.Steps[1].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
     }
 
     [Fact]

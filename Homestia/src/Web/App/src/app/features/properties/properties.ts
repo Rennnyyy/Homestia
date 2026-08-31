@@ -474,13 +474,9 @@ interface CreateStepDef {
       @if (aiWizardOpen()) {
         <app-ai-assistant-wizard
           [textScenarioKey]="AI_SCENARIO_CREATE_TEXT"
-          [photosScenarioKey]="AI_SCENARIO_CREATE_PHOTOS"
           [editTextScenarioKey]="AI_SCENARIO_EDIT_TEXT"
-          [editPhotosScenarioKey]="AI_SCENARIO_EDIT_PHOTOS"
           [completeTextScenarioKey]="AI_SCENARIO_COMPLETE_TEXT"
-          [completePhotosScenarioKey]="AI_SCENARIO_COMPLETE_PHOTOS"
           [intentTextScenarioKey]="AI_SCENARIO_INTENT_TEXT"
-          [intentPhotosScenarioKey]="AI_SCENARIO_INTENT_PHOTOS"
           [existingProperties]="aiExistingProperties()"
           [draft]="aiDraft()"
           [draftIri]="aiDraftIri()"
@@ -589,13 +585,9 @@ export class Properties implements OnInit {
   readonly PROPERTY_SHAPE_KEY = PROPERTY_SHAPE_IRI;
   readonly ROOM_SHAPE_KEY = ROOM_SHAPE_IRI;
   readonly AI_SCENARIO_CREATE_TEXT = 'property.create.text';
-  readonly AI_SCENARIO_CREATE_PHOTOS = 'property.create.photos';
   readonly AI_SCENARIO_EDIT_TEXT = 'property.edit.text';
-  readonly AI_SCENARIO_EDIT_PHOTOS = 'property.edit.photos';
   readonly AI_SCENARIO_COMPLETE_TEXT = 'property.complete.text';
-  readonly AI_SCENARIO_COMPLETE_PHOTOS = 'property.complete.photos';
   readonly AI_SCENARIO_INTENT_TEXT = 'property.intent.text';
-  readonly AI_SCENARIO_INTENT_PHOTOS = 'property.intent.photos';
   readonly formRef = viewChild(DynamicEntityFormComponent);
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);

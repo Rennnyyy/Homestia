@@ -121,6 +121,7 @@
     <ProjectReference Include="../../../../Aletheia/SDK/src/Operations.Http/Aletheia.Sdk.Operations.Http.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Repository/Aletheia.Sdk.Repository.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Repository.InMemory/Aletheia.Sdk.Repository.InMemory.csproj" />
+    <ProjectReference Include="../../../../Aletheia/SDK/src/Repository.GraphDb/Aletheia.Sdk.Repository.GraphDb.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Structure/Aletheia.Sdk.Structure.csproj" />
     <ProjectReference Include="../../../../Aletheia/SDK/src/Web/Aletheia.Sdk.Web.csproj" />
   </ItemGroup>

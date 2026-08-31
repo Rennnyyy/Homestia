@@ -12,6 +12,7 @@ using Aletheia.Sdk.Operations.Http;
 using Aletheia.Sdk.Operations.Http.DependencyInjection;
 using Aletheia.Sdk.Repository.DependencyInjection;
 using Aletheia.Sdk.Repository.InMemory.DependencyInjection;
+using Aletheia.Sdk.Repository.GraphDb.DependencyInjection;
 
 // ── Object Storage — blob references via IObjectReference ──────────────────
 using Aletheia.Sdk.ObjectStorage.Http;
@@ -103,8 +104,14 @@ builder.Services.AddCapabilityHandlersFromAssemblyContaining<GreetHandler>();
 builder.Services.AddCapabilityHttp();
 
 // Entities — full CRUD via [OperationEndpoints] + MapOperations().
+// The backend is chosen by the `EntityRepository:Backend` configuration key.
+// Deployed in the katharsis stack it is `GraphDb` (EntityRepository__Backend env);
+// local dev and tests default to `InMemory` (appsettings.json).
 var repoBuilder = builder.Services.AddEntityRepository(builder.Configuration);
-repoBuilder.UseInMemory();
+if (string.Equals(builder.Configuration["EntityRepository:Backend"], "GraphDb", StringComparison.OrdinalIgnoreCase))
+    repoBuilder.UseGraphDb();
+else
+    repoBuilder.UseInMemory();
 builder.Services.AddOperationEndpointsHttpFromAssemblyContaining<Property>();
 
 // Object storage — upload, download, delete blobs.

@@ -106,6 +106,9 @@
   <Folder Name="/sdk/Repository.InMemory/">
     <Project Path="../../Aletheia/SDK/src/Repository.InMemory/Aletheia.Sdk.Repository.InMemory.csproj" />
   </Folder>
+  <Folder Name="/sdk/Repository.GraphDb/">
+    <Project Path="../../Aletheia/SDK/src/Repository.GraphDb/Aletheia.Sdk.Repository.GraphDb.csproj" />
+  </Folder>
   <Folder Name="/sdk/Structure/">
     <Project Path="../../Aletheia/SDK/src/Structure/Aletheia.Sdk.Structure.csproj" />
   </Folder>

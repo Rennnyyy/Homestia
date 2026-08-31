@@ -43,7 +43,7 @@ describe('extractSchema', () => {
       <urn:test:shape>
           a sh:NodeShape ;
           sh:property [ sh:path <urn:test:foreign> ; sh:order 1 ] ;
-          sh:property [ sh:path <https://www.aletheia.arkenforge.de/json/name> ; sh:order 2 ] .
+          sh:property [ sh:path <https://aletheia.katharsis.digital/json/name> ; sh:order 2 ] .
     `;
     const parser = new Parser({ format: 'text/turtle' });
     const schema = extractSchema(new Store(parser.parse(ttl)), 'urn:test:shape');
@@ -57,7 +57,7 @@ describe('extractSchema', () => {
       <urn:test:shape>
           a sh:NodeShape ;
           sh:property [
-              sh:path <https://www.aletheia.arkenforge.de/json/name> ; sh:order 1 ;
+              sh:path <https://aletheia.katharsis.digital/json/name> ; sh:order 1 ;
               sh:description "A short human-readable name." ;
           ] .
     `;

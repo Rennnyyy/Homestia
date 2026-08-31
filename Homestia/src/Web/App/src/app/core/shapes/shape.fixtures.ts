@@ -8,7 +8,7 @@
 export const PROPERTY_TTL = `
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix json: <https://www.aletheia.arkenforge.de/json/> .
+@prefix json: <https://aletheia.katharsis.digital/json/> .
 
 <urn:aletheia:homestia:shapes:property>
     a sh:NodeShape ;
@@ -43,7 +43,7 @@ export const PROPERTY_TTL = `
 export const ROOM_TTL = `
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix json: <https://www.aletheia.arkenforge.de/json/> .
+@prefix json: <https://aletheia.katharsis.digital/json/> .
 
 <urn:aletheia:homestia:shapes:room>
     a sh:NodeShape ;

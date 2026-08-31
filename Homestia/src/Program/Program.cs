@@ -8,6 +8,7 @@ using Aletheia.Sdk.Capability.Http;
 using Aletheia.Sdk.Capability.Http.DependencyInjection;
 
 // ── Entities — full CRUD over REST ─────────────────────────────────────────
+using Aletheia.Sdk.Entity;
 using Aletheia.Sdk.Operations.Http;
 using Aletheia.Sdk.Operations.Http.DependencyInjection;
 using Aletheia.Sdk.Repository.DependencyInjection;
@@ -107,6 +108,13 @@ builder.Services.AddCapabilityHttp();
 // The backend is chosen by the `EntityRepository:Backend` configuration key.
 // Deployed in the katharsis stack it is `GraphDb` (EntityRepository__Backend env);
 // local dev and tests default to `InMemory` (appsettings.json).
+
+// Per-app canonical base URL override (Entity:BaseIri). Deployed as Homestia the
+// root is https://homestia.katharsis.digital (Entity__BaseIri in compose); local
+// dev and tests read it from appsettings.json (Entity:BaseIri).
+if (builder.Configuration["Entity:BaseIri"] is { Length: > 0 } baseIri)
+    EntityOptions.BaseIri = baseIri;
+
 var repoBuilder = builder.Services.AddEntityRepository(builder.Configuration);
 if (string.Equals(builder.Configuration["EntityRepository:Backend"], "GraphDb", StringComparison.OrdinalIgnoreCase))
     repoBuilder.UseGraphDb();

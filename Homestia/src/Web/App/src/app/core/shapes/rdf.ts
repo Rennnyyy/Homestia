@@ -11,7 +11,7 @@ import type { Term } from '@rdfjs/types';
  */
 
 /** Canonical JSON predicate namespace — local names are the JSON keys. */
-export const JSON_NS = 'https://www.aletheia.arkenforge.de/json/';
+export const JSON_NS = 'https://aletheia.katharsis.digital/json/';
 
 /** SHACL vocabulary. */
 export const SH = 'http://www.w3.org/ns/shacl#';

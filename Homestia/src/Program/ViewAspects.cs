@@ -73,7 +73,7 @@ public static class ViewAspects
     public const string PropertyTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:property>
             a sh:NodeShape ;
@@ -118,7 +118,7 @@ public static class ViewAspects
     public const string RoomTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:room>
             a sh:NodeShape ;
@@ -164,7 +164,7 @@ public static class ViewAspects
     public const string AiPropertyTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:property:ai>
             a sh:NodeShape ;
@@ -207,7 +207,7 @@ public static class ViewAspects
     public const string AiRoomTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:room:ai>
             a sh:NodeShape ;
@@ -253,7 +253,7 @@ public static class ViewAspects
     public const string RentalApplicationTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:application>
             a sh:NodeShape ;
@@ -292,7 +292,7 @@ public static class ViewAspects
     public const string RentalContractTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:contract>
             a sh:NodeShape ;
@@ -312,7 +312,7 @@ public static class ViewAspects
     public const string RentalDepositTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:deposit>
             a sh:NodeShape ;
@@ -345,7 +345,7 @@ public static class ViewAspects
     public const string RentalHandoverTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:handover>
             a sh:NodeShape ;
@@ -371,7 +371,7 @@ public static class ViewAspects
     public const string RentalTenancyTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:tenancy>
             a sh:NodeShape ;
@@ -392,7 +392,7 @@ public static class ViewAspects
     public const string RentalNoticedTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:noticed>
             a sh:NodeShape ;
@@ -419,7 +419,7 @@ public static class ViewAspects
     public const string RentalHandbackTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:handback>
             a sh:NodeShape ;
@@ -452,7 +452,7 @@ public static class ViewAspects
     public const string RentalTerminatedTtl = """
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://www.aletheia.arkenforge.de/json/> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:terminated>
             a sh:NodeShape ;

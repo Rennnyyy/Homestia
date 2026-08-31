@@ -24,6 +24,8 @@ namespace Homestia.Tests;
 /// </summary>
 public sealed class QueryAspectsTests
 {
+    static QueryAspectsTests() => EntityOptions.BaseIri = "https://homestia.katharsis.digital";
+
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();

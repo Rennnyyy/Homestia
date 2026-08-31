@@ -35,12 +35,12 @@ public static class QueryAspects
     /// </summary>
     public const string RentalStateConstruct = """
         CONSTRUCT {
-            ?entityIri <https://www.aletheia.arkenforge.de/predicates/rental/state> ?state
+            ?entityIri <https://homestia.katharsis.digital/predicates/rental/state> ?state
         }
         WHERE {
-            ?entityIri <https://www.aletheia.arkenforge.de/predicates/rental/currentStage> ?stage .
+            ?entityIri <https://homestia.katharsis.digital/predicates/rental/currentStage> ?stage .
             BIND(REPLACE(STR(?stage), "^.*/", "") AS ?stageKey)
-            OPTIONAL { ?entityIri <https://www.aletheia.arkenforge.de/predicates/rental/tenant> ?tenant }
+            OPTIONAL { ?entityIri <https://homestia.katharsis.digital/predicates/rental/tenant> ?tenant }
             BIND(
                 IF(?stageKey = "terminated", "closed",
                    IF(?stageKey = "handback" || ?stageKey = "noticed", "ending",

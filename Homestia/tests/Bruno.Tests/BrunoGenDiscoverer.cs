@@ -397,7 +397,7 @@ public static class BrunoGenDiscoverer
         if (type == typeof(Guid))
             return "\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"";
         if (type == typeof(Uri))
-            return "\"https://www.aletheia.arkenforge.de/\"";
+            return "\"https://homestia.katharsis.digital/\"";
 
         return "\"auto-generated\"";
     }

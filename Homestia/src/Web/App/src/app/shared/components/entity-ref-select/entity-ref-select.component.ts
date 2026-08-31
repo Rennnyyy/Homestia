@@ -3,6 +3,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { lastValueFrom } from 'rxjs';
 import { LucidePlus } from '@lucide/angular';
 import { AletheiaHttpClient } from '../../services/aletheia-http-client';
+import { EnumI18nService } from '../../../core/services/enum-i18n.service';
 
 /** One selectable option of an EntityRef dropdown. */
 export interface EntityRefOption {
@@ -29,6 +30,7 @@ export interface EntityRefOption {
 })
 export class EntityRefSelectComponent {
   private readonly aletheia = inject(AletheiaHttpClient);
+  private readonly enumI18n = inject(EnumI18nService);
 
   /** id forwarded to the native <select> so field labels stay associated. */
   readonly fieldId = input<string>('');
@@ -76,13 +78,15 @@ export class EntityRefSelectComponent {
    */
   readonly options = computed<EntityRefOption[]>(() => {
     const filter = this.filter();
+    // Reactivity: re-derive labels when the active language changes.
+    this.enumI18n.activeLang();
+    const labelFor = (item: Record<string, unknown>) => this.enumI18n.labelFor(this.entityPath(), item);
 
     // No dependency filter configured — show every loaded option.
     if (!filter) {
       return this.loaded().map((item) => ({
         iri: (item['iri'] as string) ?? '',
-        displayValue:
-          (item['displayName'] as string) ?? (item['key'] as string) ?? (item['name'] as string) ?? '',
+        displayValue: labelFor(item),
       }));
     }
 
@@ -94,8 +98,7 @@ export class EntityRefSelectComponent {
       .filter((item) => EntityRefSelectComponent.refIri(item[filter.predicate]) === filterValue)
       .map((item) => ({
         iri: (item['iri'] as string) ?? '',
-        displayValue:
-          (item['displayName'] as string) ?? (item['key'] as string) ?? (item['name'] as string) ?? '',
+        displayValue: labelFor(item),
       }));
   });
 

@@ -1,10 +1,13 @@
-import { Component, input, output, computed, model, signal, HostListener, effect, inject, TemplateRef } from '@angular/core';
+import { Component, input, output, computed, model, signal, HostListener, effect, inject, untracked, TemplateRef } from '@angular/core';
 import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmCard } from '@spartan-ng/helm/card';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { FormsModule } from '@angular/forms';
 import { ShaclValidatorService } from '../../../core/shapes';
+import { lastValueFrom } from 'rxjs';
+import { AletheiaHttpClient } from '../../services/aletheia-http-client';
+import { EnumI18nService } from '../../../core/services/enum-i18n.service';
 import {
   LucidePencil, LucideTrash, LucideEye,
   LucideMoreHorizontal, LucidePlus, LucideDownload,
@@ -176,6 +179,11 @@ const ICONS: Record<string, unknown> = {
 })
 export class DynamicEntityTableComponent {
   private readonly validator = inject(ShaclValidatorService);
+  private readonly aletheia = inject(AletheiaHttpClient);
+  private readonly enumI18n = inject(EnumI18nService);
+
+  /** Loaded options per EntityRef target path (iri → item) for cell labelling. */
+  private readonly refLookup = signal<Map<string, Map<string, Record<string, unknown>>>>(new Map());
 
   readonly entity = input.required<EntityInfo>();
   readonly items = input.required<any[]>();
@@ -297,6 +305,19 @@ export class DynamicEntityTableComponent {
         .then((schema) => this.shapeKeys.set(schema.keys.map((k) => k.key)))
         .catch(() => this.shapeKeys.set(null));
     });
+
+    // Load the option lists for every EntityRef column so cells can render
+    // human labels (and translate enum values by key) instead of raw IRIs.
+    effect(() => {
+      const paths = [
+        ...new Set(
+          this.allColumns()
+            .filter((p) => p.type === 'EntityRef' && p.targetEntityPath)
+            .map((p) => p.targetEntityPath as string)
+        ),
+      ];
+      void this.loadRefs(paths);
+    });
   }
 
   readonly pickerOpen = signal(false);
@@ -396,13 +417,44 @@ export class DynamicEntityTableComponent {
       return '—';
     }
     if (prop.type === 'EntityRef') {
-      if (typeof value === 'object' && value !== null && 'iri' in value) {
-        return String((value as { iri: string }).iri);
-      }
-      if (typeof value === 'string') return value;
-      return '—';
+      const iri = DynamicEntityTableComponent.refIri(value);
+      if (!iri) return '—';
+      const target = prop.targetEntityPath;
+      const item = target ? this.refLookup().get(target)?.get(iri) : undefined;
+      return item ? this.enumI18n.labelFor(target ?? '', item) : iri;
     }
     return String(value);
+  }
+
+  /** Loads the option lists for EntityRef columns into {@link refLookup}. */
+  private async loadRefs(paths: string[]): Promise<void> {
+    if (paths.length === 0) return;
+    // `untracked`: reading refLookup must NOT become an effect dependency,
+    // otherwise setting it below re-triggers the loading effect endlessly.
+    const lookup = new Map(untracked(() => this.refLookup()));
+    await Promise.all(
+      paths.map(async (path) => {
+        try {
+          const res = await lastValueFrom(this.aletheia.list<Record<string, unknown>>(path));
+          lookup.set(
+            path,
+            new Map((res.items ?? []).map((it) => [(it['iri'] as string) ?? '', it]))
+          );
+        } catch {
+          lookup.delete(path);
+        }
+      })
+    );
+    this.refLookup.set(lookup);
+  }
+
+  /** Normalizes a stored reference (IRI string or { iri }) to a plain IRI. */
+  private static refIri(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object' && 'iri' in (value as object)) {
+      return ((value as { iri: unknown }).iri as string) ?? '';
+    }
+    return '';
   }
 
   onRowClick(item: Record<string, unknown>): void {

@@ -7,7 +7,7 @@ import { Component, signal, Injectable } from '@angular/core';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideTransloco, TranslocoLoader } from '@jsverse/transloco';
+import { provideTransloco, TranslocoLoader, TranslocoService } from '@jsverse/transloco';
 import { of } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EntityRefSelectComponent } from './entity-ref-select.component';
@@ -185,5 +185,40 @@ describe('EntityRefSelectComponent', () => {
     host.detectChanges();
     expect(select.textContent).not.toContain('Kitchen');
     expect(select.textContent).toContain('Living');
+  });
+
+  it('translates enum option labels by key, falling back to displayName', async () => {
+    // A translation that deliberately differs from the backend displayName
+    // proves the dictionary (not the fallback) is used.
+    TestBed.inject(TranslocoService).setTranslation(
+      { 'enum.furnishing-statuses.unfurnished': 'Unmöbliert' },
+      'en'
+    );
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.path.set('furnishing-statuses');
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/furnishing-statuses').flush({
+      items: [
+        { iri: 'https://x/furnishing-statuses/unfurnished', key: 'unfurnished', displayName: 'Unfurnished' },
+        { iri: 'https://x/furnishing-statuses/blocked', key: 'blocked', displayName: 'Blocked' },
+      ],
+    });
+    await settle(host);
+
+    const select = selectOf(host);
+    expect(select.textContent).toContain('Unmöbliert'); // translated by key
+    expect(select.textContent).toContain('Blocked');     // untranslated -> backend displayName
+  });
+
+  it('leaves non-enum entities (no key) showing their displayName', async () => {
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.path.set('properties');
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/properties').flush({
+      items: [{ iri: 'https://x/properties/1', name: 'Haus am See', address: 'Seeufer 1' }],
+    });
+    await settle(host);
+
+    expect(selectOf(host).textContent).toContain('Haus am See');
   });
 });

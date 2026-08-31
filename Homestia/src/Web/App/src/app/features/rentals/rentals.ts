@@ -44,14 +44,14 @@ interface StageDef {
  * Handover → Tenancy → Termination Noticed → Handback → Terminated.
  */
 const STAGES: StageDef[] = [
-  { id: 0, key: 'application', labelKey: 'nav.rentals.stage.application', shapeIri: RENTAL_APPLICATION_SHAPE_IRI },
-  { id: 1, key: 'contract', labelKey: 'nav.rentals.stage.contract', shapeIri: RENTAL_CONTRACT_SHAPE_IRI },
-  { id: 2, key: 'deposit', labelKey: 'nav.rentals.stage.deposit', shapeIri: RENTAL_DEPOSIT_SHAPE_IRI },
-  { id: 3, key: 'handover', labelKey: 'nav.rentals.stage.handover', shapeIri: RENTAL_HANDOVER_SHAPE_IRI },
-  { id: 4, key: 'tenancy', labelKey: 'nav.rentals.stage.tenancy', shapeIri: RENTAL_TENANCY_SHAPE_IRI },
-  { id: 5, key: 'noticed', labelKey: 'nav.rentals.stage.noticed', shapeIri: RENTAL_NOTICED_SHAPE_IRI },
-  { id: 6, key: 'handback', labelKey: 'nav.rentals.stage.handback', shapeIri: RENTAL_HANDBACK_SHAPE_IRI },
-  { id: 7, key: 'terminated', labelKey: 'nav.rentals.stage.terminated', shapeIri: RENTAL_TERMINATED_SHAPE_IRI },
+  { id: 0, key: 'application', labelKey: 'enum.rental-stages.application', shapeIri: RENTAL_APPLICATION_SHAPE_IRI },
+  { id: 1, key: 'contract', labelKey: 'enum.rental-stages.contract', shapeIri: RENTAL_CONTRACT_SHAPE_IRI },
+  { id: 2, key: 'deposit', labelKey: 'enum.rental-stages.deposit', shapeIri: RENTAL_DEPOSIT_SHAPE_IRI },
+  { id: 3, key: 'handover', labelKey: 'enum.rental-stages.handover', shapeIri: RENTAL_HANDOVER_SHAPE_IRI },
+  { id: 4, key: 'tenancy', labelKey: 'enum.rental-stages.tenancy', shapeIri: RENTAL_TENANCY_SHAPE_IRI },
+  { id: 5, key: 'noticed', labelKey: 'enum.rental-stages.noticed', shapeIri: RENTAL_NOTICED_SHAPE_IRI },
+  { id: 6, key: 'handback', labelKey: 'enum.rental-stages.handback', shapeIri: RENTAL_HANDBACK_SHAPE_IRI },
+  { id: 7, key: 'terminated', labelKey: 'enum.rental-stages.terminated', shapeIri: RENTAL_TERMINATED_SHAPE_IRI },
 ];
 
 /** Resolves an entity reference value (IRI string or { iri } object) to its IRI. */
@@ -421,9 +421,7 @@ export class Rentals implements OnInit {
 
   // ── Reference lookups (for display labels + options) ────────────────────
   readonly tenants = signal<{ iri: string; displayName: string }[]>([]);
-  readonly properties = signal<{ iri: string; name: string }[]>([]);
   readonly rooms = signal<{ iri: string; name: string; isPartOf: unknown }[]>([]);
-  readonly stageList = signal<{ iri: string; key: string; displayName: string }[]>([]);
   private readonly stageByKey = signal<Map<string, string>>(new Map());
 
   // ── Create/edit state ───────────────────────────────────────────────────
@@ -529,16 +527,13 @@ export class Rentals implements OnInit {
    * the grouping stable even if the field is absent.
    */
   readonly displayItems = computed<Record<string, unknown>[]>(() => {
-    const tenantMap = new Map(this.tenants().map((t) => [t.iri, t.displayName]));
-    const propMap = new Map(this.properties().map((p) => [p.iri, p.name]));
-    const stageMap = new Map(this.stageList().map((s) => [s.iri, s.displayName]));
     const stageByKeyMap = this.stageByKey();
 
+    // EntityRef labels (tenant / property / currentStage) are resolved by the
+    // table itself — enums translated by key via the i18n dictionary — so the
+    // rows keep raw IRIs here.
     const decorated = this.items().map((r) => ({
       ...r,
-      tenant: this.refLabel(tenantMap, r['tenant']),
-      property: this.refLabel(propMap, r['property']),
-      currentStage: this.refLabel(stageMap, r['currentStage']),
       __stages: this.computeStages(r, stageByKeyMap),
       __state: this.stateOf(r),
     }));
@@ -589,11 +584,6 @@ export class Rentals implements OnInit {
     return [...this.stageByKey().entries()].find(([, v]) => v === iri)?.[0] ?? '';
   }
 
-  private refLabel(map: Map<string, string>, value: unknown): string {
-    const iri = refIri(value);
-    return iri ? (map.get(iri) ?? iri) : '';
-  }
-
   private computeStages(
     rental: Record<string, unknown>,
     stageByKeyMap: Map<string, string>,
@@ -620,16 +610,13 @@ export class Rentals implements OnInit {
     forkJoin({
       rentals: this.aletheia.list<Record<string, unknown>>('rentals', undefined, stateHeaders),
       tenants: this.aletheia.list<{ iri: string; displayName: string }>('tenants'),
-      properties: this.aletheia.list<{ iri: string; name: string }>('properties'),
       rooms: this.aletheia.list<{ iri: string; name: string; isPartOf: unknown }>('rooms'),
       stages: this.aletheia.list<{ iri: string; key: string; displayName: string }>('rental-stages'),
     }).subscribe({
-      next: ({ rentals, tenants, properties, rooms, stages }) => {
+      next: ({ rentals, tenants, rooms, stages }) => {
         this.items.set(rentals.items ?? []);
         this.tenants.set(tenants.items ?? []);
-        this.properties.set(properties.items ?? []);
         this.rooms.set(rooms.items ?? []);
-        this.stageList.set(stages.items ?? []);
         const keyMap = new Map<string, string>();
         for (const s of stages.items ?? []) keyMap.set(s.key, s.iri);
         this.stageByKey.set(keyMap);

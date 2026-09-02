@@ -1,3 +1,64 @@
 <Project>
-  <Import Project="../../Aletheia/SDK/Directory.Packages.props" />
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       Homestia central package versions — self-contained (no longer imports the
+       sibling Aletheia repo). Third-party versions mirror what the Aletheia SDK
+       consumes; Aletheia.Sdk.* versions are driven by the single
+       AletheiaSdkVersion property (Directory.Build.props) so a bump touches one
+       line. Add a PackageVersion here whenever a project gains a new direct
+       PackageReference.
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Transitive pinning stays OFF: Homestia is a consumer app, not a
+         multi-slice SDK. Aletheia packages bring their own (pinned) transitive
+         graph. -->
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Direct third-party references -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="Shouldly" Version="4.2.1" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.4.13" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+
+    <!-- Aletheia SDK packages (GitHub Packages feed) — all at AletheiaSdkVersion -->
+    <PackageVersion Include="Aletheia.Sdk.AI" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.AI.Http" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Aspects" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Aspects.Abstractions" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Aspects.Entity" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Authorization" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Authorization.Entity" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Authorization.Http" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Branch" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Branch.Http" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Capability" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Capability.Entity" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Capability.Http" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Capability.Messaging" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Entity" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Entity.Entity" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Entity.Generators" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Entity.Messaging" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Execution" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Messaging" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Messaging.InMemory" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.ObjectStorage" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.ObjectStorage.Http" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.ObjectStorage.InMemory" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Operations" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Operations.Generators" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Operations.Http" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Repository" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Repository.InMemory" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Repository.GraphDb" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Structure" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Testing" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Web" Version="$(AletheiaSdkVersion)" />
+  </ItemGroup>
 </Project>

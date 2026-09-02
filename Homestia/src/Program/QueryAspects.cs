@@ -51,6 +51,22 @@ public static class QueryAspects
         """;
 
     /// <summary>
+    /// Minimal SHACL Result shape binding the Rental state aspect to its base
+    /// entity — the stored <c>Rental</c> type (<c>…/types/rentals</c>), mirroring
+    /// how the Aletheia sample links its query shapes (sh:targetClass points at
+    /// the base entity type, no property constraints, so it never restricts
+    /// results). The exploration/architecture viewer resolves this target class
+    /// through the entity registry to render the aspect attached to the Rental
+    /// entity it governs.
+    /// </summary>
+    public const string RentalStateResultShapeTtl = """
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        <urn:aletheia:homestia:shapes:rental-state>
+            a sh:NodeShape ;
+            sh:targetClass <https://homestia.katharsis.digital/types/rentals> .
+        """;
+
+    /// <summary>
     /// Registers every query aspect into the SDK's aspect store. Runs alongside
     /// the view registrations before the store seals.
     /// </summary>
@@ -61,7 +77,7 @@ public static class QueryAspects
         store.RegisterQuery(new InlineTtlQueryAspect(
             RentalStateQueryAspectIri,
             filterWhere: null,
-            resultShapeTtl: null,
+            resultShapeTtl: RentalStateResultShapeTtl,
             enrichmentConstruct: RentalStateConstruct));
     }
 }

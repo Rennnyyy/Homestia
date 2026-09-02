@@ -25,8 +25,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Capabilities/Homestia.Capabilities.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability/Aletheia.Sdk.Capability.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Execution/Aletheia.Sdk.Execution.csproj" />
+    <PackageReference Include="Aletheia.Sdk.Capability" />
+    <PackageReference Include="Aletheia.Sdk.Execution" />
   </ItemGroup>
 
 </Project>

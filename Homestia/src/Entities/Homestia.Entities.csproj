@@ -10,12 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity/Aletheia.Sdk.Entity.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity.Generators/Aletheia.Sdk.Entity.Generators.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations/Aletheia.Sdk.Operations.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations.Generators/Aletheia.Sdk.Operations.Generators.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <PackageReference Include="Aletheia.Sdk.Entity" />
+    <PackageReference Include="Aletheia.Sdk.Entity.Generators" />
+    <PackageReference Include="Aletheia.Sdk.Operations" />
+    <PackageReference Include="Aletheia.Sdk.Operations.Generators" />
   </ItemGroup>
 
 </Project>

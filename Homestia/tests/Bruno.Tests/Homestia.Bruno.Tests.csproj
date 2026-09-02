@@ -28,11 +28,11 @@
     <ProjectReference Include="../../src/Program/Homestia.Program.csproj" />
     <ProjectReference Include="../../src/Capabilities/Homestia.Capabilities.csproj" />
     <ProjectReference Include="../../src/Entities/Homestia.Entities.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability/Aletheia.Sdk.Capability.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity/Aletheia.Sdk.Entity.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations/Aletheia.Sdk.Operations.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Execution/Aletheia.Sdk.Execution.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Testing/Aletheia.Sdk.Testing.csproj" />
+    <PackageReference Include="Aletheia.Sdk.Capability" />
+    <PackageReference Include="Aletheia.Sdk.Entity" />
+    <PackageReference Include="Aletheia.Sdk.Operations" />
+    <PackageReference Include="Aletheia.Sdk.Execution" />
+    <PackageReference Include="Aletheia.Sdk.Testing" />
   </ItemGroup>
 
   <!-- Copy the server DLL into the test output for subprocess hosting -->

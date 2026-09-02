@@ -1,7 +1,29 @@
 <Project>
-  <Import Project="../../Aletheia/SDK/Directory.Build.props" />
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       Homestia build settings — self-contained (no longer imports the sibling
+       Aletheia repo). The Aletheia SDK is consumed as NuGet packages from the
+       GitHub Packages feed (see ../nuget.config + Directory.Packages.props).
+       ══════════════════════════════════════════════════════════════════════════ -->
   <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <Deterministic>true</Deterministic>
     <!-- AngleSharp transitive dependency via dotNetRDF has a known moderate vulnerability. -->
     <NoWarn>$(NoWarn);NU1902</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Aletheia SDK version consumed from the GitHub Packages feed. Must match a
+         published package version: a stable tag (v0.9.0 → 0.9.0) or a CI
+         prerelease (<base>-ci.<sha>, e.g. 0.9.0-ci.d9b6416). Override locally
+         with -p:AletheiaSdkVersion=... (see scripts/build-local.sh).
+         NOTE: NuGet floating versions (e.g. 0.9.0-ci.*) are NOT supported under
+         central package management — bump this line to track a newer CI build. -->
+    <AletheiaSdkVersion>0.9.0-ci.d9b6416</AletheiaSdkVersion>
   </PropertyGroup>
 </Project>

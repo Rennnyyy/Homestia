@@ -7,69 +7,6 @@
        ══════════════════════════════════════════════════════════════════════════ -->
   <Import Project="../Web/build/Homestia.Web.targets" />
 
-  <!-- ══════════════════════════════════════════════════════════════════════════
-       Sdk.Web admin → /aletheia/
-       Aletheia.Sdk.Web copies its wwwroot into OUR output as wwwroot/, which
-       would collide with the Homestia facade (both ship browser/index.html).
-       We strip that copy and re-emit the admin into a dedicated
-       aletheia-wwwroot/ folder (output + publish) that Program.cs serves at
-       /aletheia/ — the same admin Sdk.Sample exposes via AddWebInterface.
-       ══════════════════════════════════════════════════════════════════════════ -->
-  <PropertyGroup>
-    <SdkWebAdminSource>$(MSBuildThisFileDirectory)../../../../Aletheia/SDK/src/Web/wwwroot</SdkWebAdminSource>
-  </PropertyGroup>
-
-  <!-- Dedicated content: glob the compiled Sdk.Web admin at load and redirect it
-       into aletheia-wwwroot/ (never wwwroot/). -->
-  <ItemGroup Condition="Exists('$(SdkWebAdminSource)')">
-    <Content Include="$(SdkWebAdminSource)/**/*"
-             Link="aletheia-wwwroot/%(RecursiveDir)%(Filename)%(Extension)"
-             ExcludeFromSingleFile="true"
-             CopyToOutputDirectory="PreserveNewest"
-             CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <!-- Strip the Sdk.Web wwwroot from the output-copy AND publish item lists so it
-       never lands in wwwroot/ and overwrites the Homestia facade's
-       browser/index.html.
-       The publish copy target (_CopyResolvedFilesToPublishPreserveNewest) copies
-       @(_ResolvedFileToPublishPreserveNewest), which _ComputeResolvedFilesToPublishTypes
-       computes from @(ResolvedFileToPublish). That split target runs AFTER
-       ComputeResolvedFilesToPublishList has populated ResolvedFileToPublish, so
-       hooking AfterTargets on the SPLIT target strips the Sdk.Web items at the
-       exact moment the copy inputs are finalized. We remove them everywhere,
-       keyed on the Sdk.Web source path, and only for items that would publish to
-       wwwroot/ — the dedicated aletheia-wwwroot/ copy (same source path,
-       different relative path) is kept. The facade's own wwwroot items come from
-       the Homestia source tree and are never touched. -->
-  <Target Name="RedirectSdkWebAdmin" AfterTargets="_ComputeResolvedFilesToPublishTypes">
-    <ItemGroup>
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                             Condition="$([System.String]::Copy('%(Identity)').Contains('/Aletheia/SDK/src/Web/wwwroot'))
-                                       And $([System.String]::Copy('%(RelativePath)').StartsWith('wwwroot/'))" />
-      <_ResolvedFileToPublishPreserveNewest Remove="@(_ResolvedFileToPublishPreserveNewest)"
-                                            Condition="$([System.String]::Copy('%(Identity)').Contains('/Aletheia/SDK/src/Web/wwwroot'))
-                                                      And $([System.String]::Copy('%(RelativePath)').StartsWith('wwwroot/'))" />
-      <_ResolvedFileToPublishAlways Remove="@(_ResolvedFileToPublishAlways)"
-                                    Condition="$([System.String]::Copy('%(Identity)').Contains('/Aletheia/SDK/src/Web/wwwroot'))
-                                              And $([System.String]::Copy('%(RelativePath)').StartsWith('wwwroot/'))" />
-    </ItemGroup>
-  </Target>
-
-  <!-- Build-side strip: keep the Sdk.Web content out of the normal build output
-       (bin/wwwroot) too. Hooked after GetCopyToOutputDirectoryItems populates the
-       copy lists. -->
-  <Target Name="StripSdkWebFromBuildOutput" AfterTargets="GetCopyToOutputDirectoryItems">
-    <ItemGroup>
-      <ContentWithTargetPath Remove="@(ContentWithTargetPath)"
-                             Condition="$([System.String]::Copy('%(TargetPath)').StartsWith('wwwroot'))" />
-      <_SourceItemsToCopyToOutputDirectory Remove="@(_SourceItemsToCopyToOutputDirectory)"
-                                           Condition="$([System.String]::Copy('%(TargetPath)').StartsWith('wwwroot'))" />
-      <_ResolvedCopyLocalPublishAssets Remove="@(_ResolvedCopyLocalPublishAssets)"
-                                       Condition="$([System.String]::Copy('%(Identity)').Contains('/Aletheia/SDK/src/Web/wwwroot'))" />
-    </ItemGroup>
-  </Target>
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -94,36 +31,36 @@
     Aletheia SDK — host-level slices needed for HTTP wiring.
   -->
   <ItemGroup>
-    <ProjectReference Include="../../../../Aletheia/SDK/src/AI/Aletheia.Sdk.AI.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/AI.Http/Aletheia.Sdk.AI.Http.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects/Aletheia.Sdk.Aspects.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects.Abstractions/Aletheia.Sdk.Aspects.Abstractions.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Aspects.Entity/Aletheia.Sdk.Aspects.Entity.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Authorization/Aletheia.Sdk.Authorization.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Authorization.Entity/Aletheia.Sdk.Authorization.Entity.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Authorization.Http/Aletheia.Sdk.Authorization.Http.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Branch/Aletheia.Sdk.Branch.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Branch.Http/Aletheia.Sdk.Branch.Http.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability/Aletheia.Sdk.Capability.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability.Entity/Aletheia.Sdk.Capability.Entity.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability.Http/Aletheia.Sdk.Capability.Http.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Capability.Messaging/Aletheia.Sdk.Capability.Messaging.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity/Aletheia.Sdk.Entity.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity.Entity/Aletheia.Sdk.Entity.Entity.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Entity.Messaging/Aletheia.Sdk.Entity.Messaging.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Execution/Aletheia.Sdk.Execution.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/ObjectStorage/Aletheia.Sdk.ObjectStorage.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/ObjectStorage.Http/Aletheia.Sdk.ObjectStorage.Http.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Messaging/Aletheia.Sdk.Messaging.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Messaging.InMemory/Aletheia.Sdk.Messaging.InMemory.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/ObjectStorage.InMemory/Aletheia.Sdk.ObjectStorage.InMemory.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations/Aletheia.Sdk.Operations.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Operations.Http/Aletheia.Sdk.Operations.Http.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Repository/Aletheia.Sdk.Repository.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Repository.InMemory/Aletheia.Sdk.Repository.InMemory.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Repository.GraphDb/Aletheia.Sdk.Repository.GraphDb.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Structure/Aletheia.Sdk.Structure.csproj" />
-    <ProjectReference Include="../../../../Aletheia/SDK/src/Web/Aletheia.Sdk.Web.csproj" />
+    <PackageReference Include="Aletheia.Sdk.AI" />
+    <PackageReference Include="Aletheia.Sdk.AI.Http" />
+    <PackageReference Include="Aletheia.Sdk.Aspects" />
+    <PackageReference Include="Aletheia.Sdk.Aspects.Abstractions" />
+    <PackageReference Include="Aletheia.Sdk.Aspects.Entity" />
+    <PackageReference Include="Aletheia.Sdk.Authorization" />
+    <PackageReference Include="Aletheia.Sdk.Authorization.Entity" />
+    <PackageReference Include="Aletheia.Sdk.Authorization.Http" />
+    <PackageReference Include="Aletheia.Sdk.Branch" />
+    <PackageReference Include="Aletheia.Sdk.Branch.Http" />
+    <PackageReference Include="Aletheia.Sdk.Capability" />
+    <PackageReference Include="Aletheia.Sdk.Capability.Entity" />
+    <PackageReference Include="Aletheia.Sdk.Capability.Http" />
+    <PackageReference Include="Aletheia.Sdk.Capability.Messaging" />
+    <PackageReference Include="Aletheia.Sdk.Entity" />
+    <PackageReference Include="Aletheia.Sdk.Entity.Entity" />
+    <PackageReference Include="Aletheia.Sdk.Entity.Messaging" />
+    <PackageReference Include="Aletheia.Sdk.Execution" />
+    <PackageReference Include="Aletheia.Sdk.ObjectStorage" />
+    <PackageReference Include="Aletheia.Sdk.ObjectStorage.Http" />
+    <PackageReference Include="Aletheia.Sdk.Messaging" />
+    <PackageReference Include="Aletheia.Sdk.Messaging.InMemory" />
+    <PackageReference Include="Aletheia.Sdk.ObjectStorage.InMemory" />
+    <PackageReference Include="Aletheia.Sdk.Operations" />
+    <PackageReference Include="Aletheia.Sdk.Operations.Http" />
+    <PackageReference Include="Aletheia.Sdk.Repository" />
+    <PackageReference Include="Aletheia.Sdk.Repository.InMemory" />
+    <PackageReference Include="Aletheia.Sdk.Repository.GraphDb" />
+    <PackageReference Include="Aletheia.Sdk.Structure" />
+    <PackageReference Include="Aletheia.Sdk.Web" />
   </ItemGroup>
 
 </Project>

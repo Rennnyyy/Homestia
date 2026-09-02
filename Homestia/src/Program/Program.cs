@@ -145,8 +145,9 @@ builder.Services.AddAITools();
 builder.Services.AddAI(builder.Configuration);
 
 // Web — generic entity admin at /aletheia/ (like Sdk.Sample). Serves the
-// compiled Sdk.Web Angular app from its wwwroot (dedicated aletheia-wwwroot
-// output folder, see RedirectSdkWebAdmin in the csproj).
+// compiled Sdk.Web Angular app from its aletheia-wwwroot, which the
+// Aletheia.Sdk.Web package build targets place in the output (kept separate
+// from this host's own wwwroot facade).
 builder.Services.AddWebInterface("/aletheia", ResolveSdkWebRoot());
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -209,16 +210,16 @@ app.Run();
 
 /// <summary>
 /// Locates the compiled Sdk.Web Angular admin (the "aletheia web" viewer served at
-/// /aletheia/). The build redirects the Sdk.Web wwwroot into a dedicated
-/// <c>aletheia-wwwroot</c> output folder so it never collides with the Homestia
-/// facade (both ship browser/index.html). Resolution order:
+/// /aletheia/). The Aletheia.Sdk.Web NuGet package's build targets deliver the
+/// admin into a dedicated <c>aletheia-wwwroot</c> output folder (build and
+/// publish) so it never collides with the Homestia facade (both ship
+/// browser/index.html). Resolution order:
 ///   1. dedicated output folder (bin + Docker publish) — <c>aletheia-wwwroot</c>
-///   2. Sdk.Web default output copy (bin/wwwroot, e.g. --no-build / manual runs)
-///   3. source tree — walk up to the sibling Aletheia repository
+///   2. Sdk.Web's own wwwroot copied to the output (project-reference / legacy)
 /// </summary>
 static string? ResolveSdkWebRoot()
 {
-    // 1) Dedicated folder shipped with the build (RedirectSdkWebAdmin target).
+    // 1) Dedicated folder delivered by the Aletheia.Sdk.Web package build targets.
     var dedicated = Path.Combine(AppContext.BaseDirectory, "aletheia-wwwroot");
     if (Directory.Exists(dedicated))
         return dedicated;
@@ -227,19 +228,6 @@ static string? ResolveSdkWebRoot()
     var outputWwwRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
     if (Directory.Exists(Path.Combine(outputWwwRoot, "browser")))
         return outputWwwRoot;
-
-    // 3) Source tree — walk up from cwd/base to the sibling Aletheia repo.
-    foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
-    {
-        var dir = new DirectoryInfo(start);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "Aletheia", "SDK", "src", "Web", "wwwroot");
-            if (Directory.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-    }
 
     // Let AddWebInterface fall back to its own default resolver / helpful error.
     return null;

@@ -42,6 +42,12 @@ COPY Homestia/nuget.config Homestia/nuget.config
 COPY Homestia/Homestia/ Homestia/Homestia/
 
 # Authenticate to the Aletheia NuGet feed when credentials are supplied.
+# Must run from inside Homestia/ so the repo nuget.config (which declares the
+# "github" source) is in scope — NuGet only walks UP the directory tree, so from
+# /src it would miss Homestia/nuget.config and the update throws
+# "Object reference not set to an instance of an object.". The credentials are
+# written to the user-level config (~/.nuget/...), which the later restore merges.
+WORKDIR /src/Homestia
 RUN if [ -n "$NUGET_USERNAME" ] && [ -n "$NUGET_PASSWORD" ]; then \
       dotnet nuget update source github -u "$NUGET_USERNAME" -p "$NUGET_PASSWORD" --store-password-in-clear-text; \
     fi

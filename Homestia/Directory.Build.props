@@ -15,6 +15,11 @@
     <Deterministic>true</Deterministic>
     <!-- AngleSharp transitive dependency via dotNetRDF has a known moderate vulnerability. -->
     <NoWarn>$(NoWarn);NU1902</NoWarn>
+    <!-- NU1507: multiple feeds (nuget.org + github, and the local folder feed in
+         scripts/build-local.sh) are intentional under central package management.
+         Package source mapping would break the local folder-feed restore
+         (-s <feed> is not a mapping key), so the advisory warning is suppressed. -->
+    <NoWarn>$(NoWarn);NU1507</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>

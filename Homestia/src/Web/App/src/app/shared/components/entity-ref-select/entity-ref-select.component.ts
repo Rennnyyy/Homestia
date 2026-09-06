@@ -1,4 +1,5 @@
 import { Component, input, output, signal, inject, effect, computed } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { lastValueFrom } from 'rxjs';
 import { LucidePlus } from '@lucide/angular';
@@ -24,7 +25,7 @@ export interface EntityRefOption {
 @Component({
   selector: 'app-entity-ref-select',
   standalone: true,
-  imports: [TranslocoPipe, LucidePlus],
+  imports: [FormsModule, TranslocoPipe, LucidePlus],
   templateUrl: './entity-ref-select.component.html',
   styleUrl: './entity-ref-select.component.scss',
 })
@@ -63,6 +64,13 @@ export class EntityRefSelectComponent {
    * means no filtering.
    */
   readonly filter = input<{ predicate: string; value: string | null } | null>(null);
+
+  /**
+   * Bumped by the parent to force a fresh option load (e.g. after an inline
+   * "create new" added an entity to this path). Unlike a value change this
+   * re-fetches the option list without re-mounting the component.
+   */
+  readonly reloadKey = input(0);
 
   readonly valueChange = output<string>();
   readonly create = output<void>();
@@ -105,11 +113,21 @@ export class EntityRefSelectComponent {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  /** Last (path, reloadKey) pair this selector loaded for — dedupes effect runs. */
+  private lastLoadPath = '';
+  private lastLoadKey = -1;
+
   constructor() {
-    // Load whenever the target path becomes available (or changes).
+    // Load whenever the target path appears/changes OR the parent bumps the
+    // reload key (inline-create + select flow) — without re-mounting.
     effect(() => {
       const path = this.entityPath();
-      if (path) void this.load(path);
+      const key = this.reloadKey();
+      if (!path) return;
+      if (path === this.lastLoadPath && key === this.lastLoadKey) return;
+      this.lastLoadPath = path;
+      this.lastLoadKey = key;
+      void this.load(path);
     });
   }
 
@@ -134,9 +152,5 @@ export class EntityRefSelectComponent {
       return ((value as { iri: unknown }).iri as string) ?? '';
     }
     return '';
-  }
-
-  onChange(event: Event): void {
-    this.valueChange.emit((event.target as HTMLSelectElement).value);
   }
 }

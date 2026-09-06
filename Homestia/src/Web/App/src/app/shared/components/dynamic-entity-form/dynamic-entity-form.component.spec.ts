@@ -12,6 +12,7 @@ import { provideTransloco, TranslocoLoader } from '@jsverse/transloco';
 import { of } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { DynamicEntityFormComponent } from './dynamic-entity-form.component';
+import { EntityRefSelectComponent } from '../entity-ref-select/entity-ref-select.component';
 import type { ShapeViolation } from '../../../core/shapes';
 import type { EntityInfo } from '../../services/aletheia-http-client.models';
 
@@ -35,6 +36,7 @@ class MockTranslocoLoader implements TranslocoLoader {
       [violations]="violations()"
       [createActions]="createActions()"
       [fieldDependencies]="fieldDependencies()"
+      [reloadActions]="reloadActions()"
       (saved)="onSaved($event)"
       (cancelled)="onCancelled()"
       (createRequested)="onCreateRequested($event)"
@@ -52,6 +54,7 @@ class TestHost {
   readonly violations = signal<ShapeViolation[]>([]);
   readonly createActions = signal<Record<string, { labelKey: string }>>({});
   readonly fieldDependencies = signal<Record<string, { dependsOn: string; via: string }>>({});
+  readonly reloadActions = signal<Record<string, number>>({});
 
   savedData: Record<string, unknown> | null = null;
   cancelledCount = 0;
@@ -357,6 +360,40 @@ describe('DynamicEntityFormComponent', () => {
     expect(button).toBeTruthy();
     button.click();
     expect(host.componentInstance.requested).toEqual({ propertyName: 'tenant', entityPath: 'tenants' });
+  });
+
+  it('forwards per-field reload keys to the EntityRef selectors', async () => {
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.entity.set(makeEntity({
+      properties: [
+        { name: 'tenant', type: 'EntityRef', isCollection: false, targetEntityPath: 'tenants' },
+      ],
+    }));
+    host.componentInstance.mode.set('edit');
+    host.componentInstance.value.set({ tenant: '' });
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/tenants').flush({ items: [{ iri: 'https://x/tenants/1', displayName: 'Anna' }] });
+    await settle(host);
+
+    const selector = host.debugElement
+      .queryAll(By.directive(EntityRefSelectComponent))
+      .map((d) => d.componentInstance as EntityRefSelectComponent);
+    expect(selector.length).toBe(1);
+    expect(selector[0].reloadKey()).toBe(0);
+
+    // Bumping the reloadActions forwards a new reloadKey to the selector,
+    // which re-fetches its options (the inline-create refresh flow).
+    host.componentInstance.reloadActions.set({ tenant: 3 });
+    host.detectChanges();
+    expect(selector[0].reloadKey()).toBe(3);
+    httpMock.expectOne('/api/entities/tenants').flush({
+      items: [
+        { iri: 'https://x/tenants/1', displayName: 'Anna' },
+        { iri: 'https://x/tenants/3', displayName: 'Carrie' },
+      ],
+    });
+    await settle(host);
+    expect(selector[0].reloadKey()).toBe(3);
   });
 
   it('filters a dependent EntityRef by the selected parent value', async () => {

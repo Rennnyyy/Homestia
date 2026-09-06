@@ -63,6 +63,7 @@ export const ROOM_TYPE = 'urn:aletheia:homestia:Room';
 /** Catalog IRIs of the Homestia shapes (served by the SDK exploration). */
 export const PROPERTY_SHAPE_IRI = 'urn:aletheia:homestia:shapes:property';
 export const ROOM_SHAPE_IRI = 'urn:aletheia:homestia:shapes:room';
+export const TENANT_SHAPE_IRI = 'urn:aletheia:homestia:shapes:tenant';
 
 /**
  * Catalog IRIs of the rental stage shapes. Each stage carries its own target

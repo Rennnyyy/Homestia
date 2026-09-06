@@ -66,6 +66,7 @@
               [allowCreate]="!!createCfg && isEditable()"
               [createLabelKey]="createCfg?.labelKey ?? 'entityRefSelect.createNew'"
               [filter]="dep ? { predicate: dep.via, value: depValue } : null"
+              [reloadKey]="reloadActions()[prop.name] ?? 0"
               (valueChange)="formData()[prop.name] = $event"
               (create)="createRequested.emit({ propertyName: prop.name, entityPath: prop.targetEntityPath })" />
           </div>

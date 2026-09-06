@@ -116,6 +116,13 @@ export class ObjectUploadComponent {
   /** Emits the new collection — an array of IRI strings — whenever it changes. */
   readonly changed = output<string[]>();
 
+  /**
+   * Emits the IRI of a document the user removed in the UI. The parent queues
+   * it and commits the server-side entity + blob deletion only once the owning
+   * record is persisted — so a removal without a save (Cancel) is undone.
+   */
+  readonly removed = output<string>();
+
   readonly uploading = signal(false);
   readonly deletingIri = signal<string | null>(null);
   readonly error = signal<string | null>(null);
@@ -166,17 +173,15 @@ export class ObjectUploadComponent {
     }
   }
 
-  /** Deletes the document entity and its blob, then emits the reduced collection. */
-  async remove(item: ObjectUploadItem): Promise<void> {
-    this.deletingIri.set(item.iri);
-    this.error.set(null);
-    try {
-      await lastValueFrom(this.aletheia.delete(this.entityPath(), item.iri));
-      this.changed.emit(this.toIris(this.documents()).filter((iri) => iri !== item.iri));
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Delete failed');
-    } finally {
-      this.deletingIri.set(null);
-    }
+  /**
+   * Removes the document from the working collection (the item disappears from
+   * the list). Nothing is deleted server-side here — the parent queues the
+   * removal and commits it (drop the reference via the owning record's save,
+   * then delete the entity + blob) only when the user saves. Leaving without
+   * saving (Cancel) leaves the document in place.
+   */
+  remove(item: ObjectUploadItem): void {
+    this.removed.emit(item.iri);
+    this.changed.emit(this.toIris(this.documents()).filter((iri) => iri !== item.iri));
   }
 }

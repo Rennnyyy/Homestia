@@ -6,6 +6,8 @@ import type { EntityInfo } from '../shared/services/aletheia-http-client.models'
 // ── API response interface ────────────────────────────────────────────────
 
 export interface Tenant {
+  /** displayName (inherited from Agent) */
+  displayName: string;
   /** email */
   email: string;
   /** phone */
@@ -22,6 +24,7 @@ export const TenantEntity: EntityInfo = {
   predicatePath: 'tenant',
   displayName: 'Tenant',
   properties: [
+    { name: 'displayName', type: 'String', isCollection: false },
     { name: 'email', type: 'String', isCollection: false },
     { name: 'phone', type: 'String', isCollection: false },
   ],

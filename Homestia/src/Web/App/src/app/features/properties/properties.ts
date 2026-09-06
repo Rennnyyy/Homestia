@@ -173,8 +173,7 @@ interface CreateStepDef {
                     [value]="pendingProperty()"
                     [shapeKey]="PROPERTY_SHAPE_KEY"
                     [showDescriptions]="false"
-                    (saved)="onPropertySaved($event)"
-                  />
+                    [violations]="propertyViolations()" />
                 </div>
               </hlm-accordion-content>
             </hlm-accordion-item>
@@ -221,7 +220,7 @@ interface CreateStepDef {
             <button hlmBtn variant="outline" class="text-foreground" (click)="exitCreate()">
               {{ 'common.cancel' | transloco }}
             </button>
-            <button hlmBtn (click)="formRef()?.save()">
+            <button hlmBtn (click)="saveDesktopCreate()">
               {{ 'nav.properties.save' | transloco }}
             </button>
           </div>
@@ -914,6 +913,18 @@ export class Properties implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  /**
+   * Desktop (non-mobile) create save — validates the property AND its rooms
+   * as ONE composite document, so every violation (property and room) shows on
+   * the first press instead of property errors first and room errors only on
+   * a second attempt. (The mobile wizard keeps its step-by-step flow.)
+   */
+  async saveDesktopCreate(): Promise<void> {
+    const form = this.formRef();
+    if (!form) return;
+    await this.onPropertySaved({ ...form.formData() });
   }
 
   /**

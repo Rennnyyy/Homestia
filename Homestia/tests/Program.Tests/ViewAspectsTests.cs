@@ -32,6 +32,7 @@ public sealed class ViewAspectsTests
                 ViewAspects.RoomShapeIri,
                 ViewAspects.AiPropertyShapeIri,
                 ViewAspects.AiRoomShapeIri,
+                ViewAspects.TenantShapeIri,
                 ViewAspects.RentalApplicationShapeIri,
                 ViewAspects.RentalContractShapeIri,
                 ViewAspects.RentalDepositShapeIri,

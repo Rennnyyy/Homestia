@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal, effect, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { HttpHeaders } from '@angular/common/http';
 import { forkJoin, lastValueFrom } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -14,7 +13,7 @@ import { ShaclValidatorService } from '../../core/shapes';
 import {
   RENTAL_APPLICATION_SHAPE_IRI, RENTAL_CONTRACT_SHAPE_IRI, RENTAL_DEPOSIT_SHAPE_IRI,
   RENTAL_HANDOVER_SHAPE_IRI, RENTAL_TENANCY_SHAPE_IRI, RENTAL_NOTICED_SHAPE_IRI,
-  RENTAL_HANDBACK_SHAPE_IRI, RENTAL_TERMINATED_SHAPE_IRI,
+  RENTAL_HANDBACK_SHAPE_IRI, RENTAL_TERMINATED_SHAPE_IRI, TENANT_SHAPE_IRI,
 } from '../../core/shapes';
 import type { ShapeViolation } from '../../core/shapes';
 import { DynamicEntityFormComponent, type EntityManageConfig } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
@@ -25,6 +24,7 @@ import {
 import { ObjectUploadComponent, type ObjectUploadItem } from '../../shared/components/object-upload/object-upload.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { RentalEntity } from '../../entities/rental.entity';
+import { TenantEntity } from '../../entities/tenant.entity';
 
 type PageMode = 'list' | 'create' | 'edit';
 type StageStatus = 'done' | 'current' | 'locked';
@@ -88,7 +88,6 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
   standalone: true,
   imports: [
     TranslocoPipe,
-    FormsModule,
     HlmButton,
     LucideFileSignature,
     LucidePlus,
@@ -217,21 +216,20 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                            selects; the viewing date replaces the application date. The tenant
                            quick-create form and the property/room manage links are projected
                            into their fields via fieldFooters. -->
-                      @for (form of [formNonce()]; track form) {
-                        <app-dynamic-entity-form
-                          [entity]="entity"
-                          [mode]="'edit'"
-                          [value]="workingRental()"
-                          [fieldNames]="['property', 'unit', 'tenant', 'viewingDate']"
-                          [shapeKey]="stage.shapeIri"
-                          [violations]="stageViolationsFor(stage.id)"
-                          [createActions]="{ tenant: { labelKey: 'nav.rentals.addTenant' } }"
-                          [fieldDependencies]="{ unit: { dependsOn: 'property', via: 'isPartOf' } }"
-                          [fieldFooters]="{ tenant: tenantCreateForm }"
-                          [manage]="manageConfig"
-                          [showDescriptions]="false"
-                          (createRequested)="onCreateRequested($event)" />
-                      }
+                      <app-dynamic-entity-form
+                        [entity]="entity"
+                        [mode]="'edit'"
+                        [value]="workingRental()"
+                        [fieldNames]="['property', 'unit', 'tenant', 'viewingDate']"
+                        [shapeKey]="stage.shapeIri"
+                        [violations]="stageViolationsFor(stage.id)"
+                        [createActions]="{ tenant: { labelKey: 'nav.rentals.addTenant' } }"
+                        [fieldDependencies]="{ unit: { dependsOn: 'property', via: 'isPartOf' } }"
+                        [fieldFooters]="{ tenant: tenantCreateForm }"
+                        [manage]="manageConfig"
+                        [reloadActions]="{ tenant: tenantReloadKey() }"
+                        [showDescriptions]="false"
+                        (createRequested)="onCreateRequested($event)" />
                     } @else if (stage.id === 1) {
                       <!-- Contract: a single field — the uploaded object-bearing documents.
                            The generic object-upload renders the list, upload, download, and
@@ -240,7 +238,8 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                         [entityPath]="'rental-documents'"
                         [documents]="contractDocuments()"
                         [labelKey]="'fields.rental.rentalDocuments'"
-                        (changed)="onContractDocumentsChanged($event)" />
+                        (changed)="onContractDocumentsChanged($event)"
+                        (removed)="onContractDocumentRemoved($event)" />
                     } @else {
                       <app-dynamic-entity-form
                         [entity]="entity"
@@ -262,7 +261,8 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
           }
         </hlm-accordion>
 
-        <!-- Footer actions -->
+        <!-- Footer actions — every stage persists on its own "Save & Continue",
+             so the only global actions here are Delete (edit mode) and Cancel. -->
         <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; padding-bottom: 32px;">
           @if (mode() === 'edit') {
             <button hlmBtn variant="outline" class="text-destructive hover:bg-destructive/10 border-destructive/30" (click)="deletingItem.set(editingItem()); confirmingDelete.set(true)">
@@ -273,9 +273,6 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
           }
           <button hlmBtn variant="outline" class="text-foreground" (click)="exitCreate()">
             {{ 'common.cancel' | transloco }}
-          </button>
-          <button hlmBtn (click)="saveRental()" [disabled]="loading()">
-            {{ 'nav.rentals.save' | transloco }}
           </button>
         </div>
       }
@@ -314,25 +311,25 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
         </div>
       </ng-template>
 
-      <!-- Inline tenant quick-create — projected under the tenant field via fieldFooters -->
+      <!-- Inline tenant quick-create — projected under the tenant field via fieldFooters.
+           It reuses the generic dynamic form + Tenant view shape, so the create button is
+           ALWAYS enabled and violations are fed back inline exactly like every other form. -->
       <ng-template #tenantCreateForm>
         @if (showTenantForm()) {
           <div class="border border-border rounded-lg p-3 mt-2 flex flex-col gap-2">
             <p class="text-xs text-muted-foreground">{{ 'nav.rentals.addTenantHint' | transloco }}</p>
-            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.displayName' | transloco }}</label>
-            <input type="text"
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-              [ngModel]="tenantName()" (ngModelChange)="tenantName.set($event)" />
-            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.email' | transloco }}</label>
-            <input type="text"
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-              [ngModel]="tenantEmail()" (ngModelChange)="tenantEmail.set($event)" />
-            <label class="text-sm font-medium text-foreground">{{ 'fields.tenant.phone' | transloco }}</label>
-            <input type="text"
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-              [ngModel]="tenantPhone()" (ngModelChange)="tenantPhone.set($event)" />
+            @if (tenantError(); as err) {
+              <p class="text-sm text-destructive">{{ err }}</p>
+            }
+            <app-dynamic-entity-form
+              #tenantForm
+              [entity]="tenantEntity"
+              [mode]="'create'"
+              [shapeKey]="tenantShapeKey"
+              [showDescriptions]="false"
+              (saved)="onTenantSaved($event)" />
             <div class="flex justify-end">
-              <button hlmBtn size="sm" (click)="saveTenant()" [disabled]="loading() || !tenantName().trim()">
+              <button hlmBtn size="sm" (click)="saveTenantFromForm(tenantForm)" [disabled]="savingTenant()">
                 {{ 'nav.rentals.saveTenant' | transloco }}
               </button>
             </div>
@@ -431,19 +428,33 @@ export class Rentals implements OnInit {
   readonly stageViolations = signal<Map<number, ShapeViolation[]>>(new Map());
   readonly savingStage = signal(false);
 
-  /** Bumped to re-mount the Application form so its dropdowns reload options (e.g. after creating a tenant). */
-  readonly formNonce = signal(0);
+  /**
+   * Bumped after an inline tenant create so the tenant EntityRef dropdown
+   * reloads its options and selects the new entry — WITHOUT re-mounting the
+   * whole Application form (which used to reset the other field selections).
+   */
+  readonly tenantReloadKey = signal(0);
 
   // ── Contract documents (Stage 2) ───────────────────────────────────────
 
   /** Loaded metadata of the uploaded contract documents (iri/name/contentType). */
   readonly contractDocuments = signal<ObjectUploadItem[]>([]);
 
+  /**
+   * IRIs the user removed in the Contract stage UI. The owning rental is
+   * saved without them (replace-set PUT drops the references) and THEN the
+   * server-side document entity + blob are deleted — only once the rental is
+   * persisted. Deleting without saving (Cancel) leaves the documents in place.
+   */
+  private pendingDocDeletes: string[] = [];
+
   // ── Tenant quick-create ─────────────────────────────────────────────────
   readonly showTenantForm = signal(false);
-  readonly tenantName = signal('');
-  readonly tenantEmail = signal('');
-  readonly tenantPhone = signal('');
+  readonly savingTenant = signal(false);
+  readonly tenantError = signal<string | null>(null);
+  /** The inline tenant create reuses the generic dynamic form + Tenant view shape. */
+  readonly tenantEntity = TenantEntity;
+  readonly tenantShapeKey = TENANT_SHAPE_IRI;
 
   readonly rowActions: TableAction[] = [
     { label: 'Edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
@@ -642,12 +653,12 @@ export class Rentals implements OnInit {
     this.pendingRental.set({});
     this.doneStages.set(new Set());
     this.stageViolations.set(new Map());
-    this.formNonce.set(0);
+    this.tenantReloadKey.set(0);
     this.contractDocuments.set([]);
+    this.pendingDocDeletes = [];
     this.showTenantForm.set(false);
-    this.tenantName.set('');
-    this.tenantEmail.set('');
-    this.tenantPhone.set('');
+    this.savingTenant.set(false);
+    this.tenantError.set(null);
     this.mode.set('create');
   }
 
@@ -657,7 +668,9 @@ export class Rentals implements OnInit {
     this.editingItem.set(normalized);
     this.pendingRental.set(null);
     this.stageViolations.set(new Map());
+    this.pendingDocDeletes = [];
     this.showTenantForm.set(false);
+    this.tenantError.set(null);
 
     // Replay progress: everything before the current stage is done.
     const curKey = [...this.stageByKey().entries()].find(([, iri]) => iri === refIri(normalized['currentStage']))?.[0];
@@ -665,8 +678,12 @@ export class Rentals implements OnInit {
     const done = new Set<number>();
     for (let i = 0; i < Math.max(idx, 0); i++) done.add(i);
     this.doneStages.set(done);
-    this.loadContractDocuments();
+    // Switch to edit mode FIRST — loadContractDocuments() reads the working
+    // rental, which only points at editingItem once mode is 'edit' (while in
+    // 'list' mode it is the null pendingRental, so the stored document
+    // references would never be loaded and the uploaded files would look lost).
     this.mode.set('edit');
+    this.loadContractDocuments();
   }
 
   exitCreate(): void {
@@ -676,7 +693,12 @@ export class Rentals implements OnInit {
     this.confirmingDelete.set(false);
     this.doneStages.set(new Set());
     this.stageViolations.set(new Map());
+    // Leaving without saving discards any queued document removals.
+    this.pendingDocDeletes = [];
     this.mode.set('list');
+    // Stage saves are durable now — reflect any rentals persisted before the
+    // user left the editor.
+    this.refresh();
   }
 
   /** Resolves the raw (undecorated) item by IRI — the table works on display copies. */
@@ -711,21 +733,60 @@ export class Rentals implements OnInit {
 
   // ── Stage gating ────────────────────────────────────────────────────────
 
-  /** Validates the current stage against its view aspect; passing unlocks the next. */
+  /**
+   * Validates the stage against its view aspect and, when it conforms,
+   * PERSISTS the rental (create on the first save, update afterwards) with
+   * currentStage advanced to the next incomplete stage. Every "Save &
+   * Continue" is therefore durable — uploaded documents and earlier stages
+   * survive a reload — and it is the only save action (no global Save button).
+   */
   async saveStage(stageId: number): Promise<void> {
     const working = this.workingRental();
     if (!working) return;
     this.savingStage.set(true);
+    this.error.set(null);
     try {
       const violations = await this.validator.validate(STAGES[stageId].shapeIri, working);
       const map = new Map(this.stageViolations());
       map.set(stageId, violations);
       this.stageViolations.set(map);
-      if (violations.length === 0) {
-        const done = new Set(this.doneStages());
-        done.add(stageId);
-        this.doneStages.set(done);
+      // Restrictions not satisfied — do NOT persist; the form shows the errors.
+      if (violations.length > 0) return;
+
+      // Persist with currentStage = the next stage still to fill, so a reload
+      // re-opens exactly where the user left off.
+      const done = new Set(this.doneStages());
+      done.add(stageId);
+      let nextIdx = 0;
+      while (nextIdx < STAGES.length && done.has(nextIdx)) nextIdx++;
+      const currentIdx = Math.min(nextIdx, STAGES.length - 1);
+      const stageIri = this.stageByKey().get(STAGES[currentIdx].key);
+      const data: Record<string, unknown> = { ...working };
+      // EntityRefCollection fields must be sent as arrays of IRI strings.
+      if (Array.isArray(data['rentalDocuments'])) {
+        data['rentalDocuments'] = (data['rentalDocuments'] as unknown[]).map((v) => refIri(v)).filter(Boolean);
       }
+      if (stageIri) data['currentStage'] = stageIri;
+
+      const iri = refIri(working['iri']);
+      if (iri) {
+        await lastValueFrom(this.aletheia.update('rentals', iri, data));
+      } else {
+        const created = await lastValueFrom(this.aletheia.create('rentals', data));
+        // Keep the mounted forms bound to the SAME working object (swapping it
+        // would orphan their two-way bound edits) — just record the new IRI so
+        // subsequent stage saves update instead of creating again.
+        working['iri'] = refIri(created['iri']);
+      }
+
+      // Only mark the stage done once the persist succeeded — otherwise the
+      // accordion would advance while nothing was actually saved.
+      this.doneStages.set(done);
+      // The rental now persists WITHOUT the removed documents (replace-set PUT
+      // drops the references) — commit their server-side deletion.
+      this.flushDocumentDeletes();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to save stage');
     } finally {
       this.savingStage.set(false);
     }
@@ -744,6 +805,26 @@ export class Rentals implements OnInit {
     if (!working) return;
     working['rentalDocuments'] = iris;
     this.loadContractDocuments();
+  }
+
+  /**
+   * The user removed a document in the UI — queue it for deletion. The actual
+   * server-side delete happens only once the rental is persisted (Save &
+   * Continue), so a removal without a save (Cancel) is undone.
+   */
+  onContractDocumentRemoved(iri: string): void {
+    if (iri && !this.pendingDocDeletes.includes(iri)) {
+      this.pendingDocDeletes.push(iri);
+    }
+  }
+
+  /** Deletes the queued document entities + blobs (best effort) after a persist. */
+  private flushDocumentDeletes(): void {
+    const queued = this.pendingDocDeletes;
+    this.pendingDocDeletes = [];
+    void Promise.allSettled(
+      queued.map((iri) => lastValueFrom(this.aletheia.delete('rental-documents', iri))),
+    );
   }
 
   /** Loads the metadata of every document IRI currently on the working rental. */
@@ -780,69 +861,45 @@ export class Rentals implements OnInit {
     }
   }
 
-  async saveTenant(): Promise<void> {
-    const name = this.tenantName().trim();
+  /**
+   * The inline tenant create button — always enabled. It delegates to the
+   * generic dynamic form, which validates against the Tenant view shape and
+   * feeds the errors back inline; only a conforming tenant emits `saved`.
+   */
+  async saveTenantFromForm(form: DynamicEntityFormComponent): Promise<void> {
+    if (this.savingTenant()) return;
+    this.tenantError.set(null);
+    await form.save();
+  }
+
+  /** The tenant view conformed — create the tenant and apply it to the rental. */
+  async onTenantSaved(data: Record<string, unknown>): Promise<void> {
+    const name = typeof data['displayName'] === 'string' ? data['displayName'].trim() : '';
     if (!name) return;
-    this.loading.set(true);
-    this.error.set(null);
+    this.savingTenant.set(true);
+    this.tenantError.set(null);
     try {
       const created = await lastValueFrom(this.aletheia.create('tenants', {
         displayName: name,
-        email: this.tenantEmail().trim(),
-        phone: this.tenantPhone().trim(),
+        email: (data['email'] as string) ?? '',
+        phone: (data['phone'] as string) ?? '',
       }));
       await this.loadTenants();
       const working = this.workingRental();
       if (working) working['tenant'] = created.iri;
-      // Re-mount the Application form so the new tenant appears in its dropdown.
-      this.formNonce.update((n) => n + 1);
+      // Reload the tenant dropdown's options; the selector reflects the new
+      // entry once it is in the list — no form re-mount, other selections stay.
+      this.tenantReloadKey.update((n) => n + 1);
       this.showTenantForm.set(false);
-      this.tenantName.set('');
-      this.tenantEmail.set('');
-      this.tenantPhone.set('');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create tenant';
-      this.error.set(message);
+      this.tenantError.set(message);
     } finally {
-      this.loading.set(false);
+      this.savingTenant.set(false);
     }
   }
 
-  // ── Save / delete the rental ────────────────────────────────────────────
-
-  /** Persists the draft/edit; currentStage advances to the first incomplete stage. */
-  async saveRental(): Promise<void> {
-    const working = this.workingRental();
-    if (!working) return;
-
-    const current = STAGES[Math.min(this.currentStageIndex(), STAGES.length - 1)];
-    const stageIri = this.stageByKey().get(current.key);
-    const data: Record<string, unknown> = { ...working };
-    // EntityRefCollection fields must be sent as arrays of IRI strings.
-    if (Array.isArray(data['rentalDocuments'])) {
-      data['rentalDocuments'] = (data['rentalDocuments'] as unknown[]).map((v) => refIri(v)).filter(Boolean);
-    }
-    if (stageIri) data['currentStage'] = stageIri;
-
-    this.loading.set(true);
-    this.error.set(null);
-    try {
-      if (this.mode() === 'create') {
-        await lastValueFrom(this.aletheia.create('rentals', data));
-      } else {
-        const iri = this.editingItem()?.['iri'];
-        if (typeof iri !== 'string') return;
-        await lastValueFrom(this.aletheia.update('rentals', iri, data));
-      }
-      this.exitCreate();
-      this.refresh();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save rental';
-      this.error.set(message);
-    } finally {
-      this.loading.set(false);
-    }
-  }
+  // ── Delete the rental ───────────────────────────────────────────────────
 
   onDelete(): void {
     const item = this.deletingItem();

@@ -32,6 +32,7 @@ class MockTranslocoLoader implements TranslocoLoader {
       [createLabelKey]="'nav.rentals.addTenant'"
       [hint]="hint()"
       [filter]="filter()"
+      [reloadKey]="reloadKey()"
       (valueChange)="value.set($event)"
       (create)="onCreate()"
     />
@@ -43,6 +44,7 @@ class TestHost {
   readonly allowCreate = signal(true);
   readonly hint = signal<string | null>(null);
   readonly filter = signal<{ predicate: string; value: string | null } | null>(null);
+  readonly reloadKey = signal(0);
   created = 0;
 
   onCreate(): void {
@@ -208,6 +210,52 @@ describe('EntityRefSelectComponent', () => {
     const select = selectOf(host);
     expect(select.textContent).toContain('Unmöbliert'); // translated by key
     expect(select.textContent).toContain('Blocked');     // untranslated -> backend displayName
+  });
+
+  it('selects a bound value once its option arrives (async options)', async () => {
+    const host = TestBed.createComponent(TestHost);
+    // The value is set BEFORE the option list is fetched — the exact
+    // inline-create flow: the parent records the new entity's IRI and the
+    // dropdown only sees it after its async reload.
+    host.componentInstance.value.set('https://x/tenants/2');
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/tenants').flush({
+      items: [
+        { iri: 'https://x/tenants/1', displayName: 'Anna' },
+        { iri: 'https://x/tenants/2', displayName: 'Ben' },
+      ],
+    });
+    await settle(host);
+
+    const select = selectOf(host);
+    expect(select.value).toBe('https://x/tenants/2');
+    expect(select.selectedOptions[0].textContent).toContain('Ben');
+  });
+
+  it('reloads options when the reloadKey bumps and selects a newly added value', async () => {
+    const host = TestBed.createComponent(TestHost);
+    host.componentInstance.value.set('https://x/tenants/3');
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/tenants').flush({
+      items: [{ iri: 'https://x/tenants/1', displayName: 'Anna' }],
+    });
+    await settle(host);
+
+    // The parent inline-creates a tenant and asks the dropdown to refresh.
+    host.componentInstance.reloadKey.set(1);
+    host.detectChanges();
+    httpMock.expectOne('/api/entities/tenants').flush({
+      items: [
+        { iri: 'https://x/tenants/1', displayName: 'Anna' },
+        { iri: 'https://x/tenants/3', displayName: 'Carrie' },
+      ],
+    });
+    await settle(host);
+
+    const select = selectOf(host);
+    expect(select.textContent).toContain('Carrie');
+    expect(select.value).toBe('https://x/tenants/3');
+    expect(select.selectedOptions[0].textContent).toContain('Carrie');
   });
 
   it('leaves non-enum entities (no key) showing their displayName', async () => {

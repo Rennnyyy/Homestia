@@ -41,6 +41,9 @@ public static class ViewAspects
     /// <summary>IRI of the lenient Room shape used by AI fill scenarios.</summary>
     public const string AiRoomShapeIri = "urn:aletheia:homestia:shapes:room:ai";
 
+    /// <summary>IRI of the Tenant shape (used by the inline tenant quick-create).</summary>
+    public const string TenantShapeIri = "urn:aletheia:homestia:shapes:tenant";
+
     /// <summary>IRI of the Rental shape for Stage 1 · Application.</summary>
     public const string RentalApplicationShapeIri = "urn:aletheia:homestia:shapes:rental:application";
 
@@ -242,6 +245,40 @@ public static class ViewAspects
                 sh:description "Optional IRI reference to the room status." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.roomStatus" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Tenant shape: <c>displayName</c> required, <c>email</c> and
+    /// <c>phone</c> optional. Governs the inline tenant quick-create so a
+    /// tenant is validated like every other form — the create button stays
+    /// enabled and violations are fed back against this view.
+    /// </summary>
+    public const string TenantTtl = """
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
+
+        <urn:aletheia:homestia:shapes:tenant>
+            a sh:NodeShape ;
+            sh:targetClass <urn:aletheia:homestia:Tenant> ;
+            sh:property [
+                sh:path json:displayName ; sh:order 1 ;
+                sh:description "The tenant's name." ;
+                sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
+                sh:message "shape.tenant.displayName" ;
+            ] ;
+            sh:property [
+                sh:path json:email ; sh:order 2 ;
+                sh:description "The tenant's email address (optional)." ;
+                sh:datatype xsd:string ;
+                sh:message "shape.tenant.email" ;
+            ] ;
+            sh:property [
+                sh:path json:phone ; sh:order 3 ;
+                sh:description "The tenant's phone number (optional)." ;
+                sh:datatype xsd:string ;
+                sh:message "shape.tenant.phone" ;
             ] .
         """;
 
@@ -490,6 +527,7 @@ public static class ViewAspects
         store.RegisterView(new InlineTtlViewAspect(RoomShapeIri, RoomTtl));
         store.RegisterView(new InlineTtlViewAspect(AiPropertyShapeIri, AiPropertyTtl));
         store.RegisterView(new InlineTtlViewAspect(AiRoomShapeIri, AiRoomTtl));
+        store.RegisterView(new InlineTtlViewAspect(TenantShapeIri, TenantTtl));
         store.RegisterView(new InlineTtlViewAspect(RentalApplicationShapeIri, RentalApplicationTtl));
         store.RegisterView(new InlineTtlViewAspect(RentalContractShapeIri, RentalContractTtl));
         store.RegisterView(new InlineTtlViewAspect(RentalDepositShapeIri, RentalDepositTtl));

@@ -108,6 +108,15 @@ export class DynamicEntityFormComponent {
   readonly manage = input<Record<string, EntityManageConfig>>({});
 
   /**
+   * Per-field reload keys, keyed by property name — when the key for a field
+   * bumps, that field's EntityRef selector re-fetches its options (e.g. after
+   * an inline create added an entity to the path). This lets the parent
+   * refresh a dropdown WITHOUT re-mounting the whole form, so the user's other
+   * input stays untouched.
+   */
+  readonly reloadActions = input<Record<string, number>>({});
+
+  /**
    * Whether per-field <c>sh:description</c> hints are shown under EntityRef
    * selects. Set to false when the surrounding layout already communicates
    * the field (e.g. jump buttons alongside).

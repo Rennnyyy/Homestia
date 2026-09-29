@@ -1,30 +1,34 @@
-import { Component, computed, inject, signal, effect, OnInit } from '@angular/core';
+import { AletheiaModelService, refIri, type EntityInfo } from '@rennnyyy/aletheia-core';
+import {
+  ConfirmDialogComponent,
+  EntityFormComponent,
+  EntityTableComponent,
+  ObjectUploadComponent,
+  type ColumnConfigs,
+  type ObjectUploadItem,
+  type TableAction,
+} from '@rennnyyy/aletheia-ui';
+import { Component, computed, inject, signal, effect, OnInit, viewChild } from '@angular/core';
 import { HttpHeaders } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { forkJoin, lastValueFrom } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmButton } from '@rennnyyy/aletheia-ui';
 import {
   LucideFileSignature, LucidePlus, LucideChevronRight, LucideTrash,
-  LucideCheck, LucideLock,
+  LucideCheck, LucideLock, LucideArrowUpRight,
 } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
-import { AletheiaHttpClient } from '../../shared/services/aletheia-http-client';
-import { ShaclValidatorService } from '../../core/shapes';
+import { AletheiaHttpClient } from '@rennnyyy/aletheia-core';
+import { ShaclValidatorService } from '@rennnyyy/aletheia-core';
+import { operationAspectHeaders, queryAspectHeaders } from '@rennnyyy/aletheia-core';
 import {
   RENTAL_APPLICATION_SHAPE_IRI, RENTAL_CONTRACT_SHAPE_IRI, RENTAL_DEPOSIT_SHAPE_IRI,
   RENTAL_HANDOVER_SHAPE_IRI, RENTAL_TENANCY_SHAPE_IRI, RENTAL_NOTICED_SHAPE_IRI,
   RENTAL_HANDBACK_SHAPE_IRI, RENTAL_TERMINATED_SHAPE_IRI, TENANT_SHAPE_IRI,
-} from '../../core/shapes';
-import type { ShapeViolation } from '../../core/shapes';
-import { DynamicEntityFormComponent, type EntityManageConfig } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
-import {
-  DynamicEntityTableComponent,
-  type TableAction,
-} from '../../shared/components/dynamic-entity-table/dynamic-entity-table.component';
-import { ObjectUploadComponent, type ObjectUploadItem } from '../../shared/components/object-upload/object-upload.component';
-import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { RentalEntity } from '../../entities/rental.entity';
-import { TenantEntity } from '../../entities/tenant.entity';
+  RENTAL_OPERATION_IRI, TENANT_OPERATION_IRI, RENTAL_STATE_QUERY_ASPECT_IRI,
+} from '../../core/shapes/shape.model';
+import type { ShapeViolation } from '@rennnyyy/aletheia-core';
 
 type PageMode = 'list' | 'create' | 'edit';
 type StageStatus = 'done' | 'current' | 'locked';
@@ -54,22 +58,6 @@ const STAGES: StageDef[] = [
   { id: 7, key: 'terminated', labelKey: 'enum.rental-stages.terminated', shapeIri: RENTAL_TERMINATED_SHAPE_IRI },
 ];
 
-/** Resolves an entity reference value (IRI string or { iri } object) to its IRI. */
-function refIri(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (value && typeof value === 'object' && 'iri' in (value as object)) {
-    return ((value as { iri: unknown }).iri as string) ?? '';
-  }
-  return '';
-}
-
-/**
- * The query aspect that derives each rental's lifecycle state from indirect
- * knowledge (currentStage reference + tenant presence) on the backend. Sending
- * its IRI on the rentals list request enables the read-time enrichment.
- */
-const RENTAL_STATE_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:rental-state';
-
 /** Derived lifecycle states, in overview order (top group first). */
 const RENTAL_STATES = ['new', 'progressing', 'active', 'ending', 'closed'] as const;
 type RentalState = (typeof RENTAL_STATES)[number];
@@ -95,8 +83,10 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
     LucideTrash,
     LucideCheck,
     LucideLock,
-    DynamicEntityFormComponent,
-    DynamicEntityTableComponent,
+    LucideArrowUpRight,
+    RouterLink,
+    EntityFormComponent,
+    EntityTableComponent,
     ObjectUploadComponent,
     ConfirmDialogComponent,
     ...HlmAccordionImports,
@@ -140,14 +130,13 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
 
       <!-- List mode: tree table — expand a rental to reveal its stages -->
       @if (mode() === 'list') {
-        <app-dynamic-entity-table
+        <aletheia-entity-table
           [entity]="entity"
           [items]="displayItems()"
           [loading]="loading()"
           [error]="error()"
-          [columnNames]="['tenant', 'rentalDocuments', 'property', 'currentStage']"
-          [defaultVisibleColumns]="['tenant', 'rentalDocuments', 'property', 'currentStage']"
-          [emptyMessage]="'nav.rentals.empty'"
+          [columns]="tableColumns"
+          [emptyMessage]="'nav.rentals.empty' | transloco"
           [actions]="rowActions"
           [expandable]="true"
           [rowDetail]="stageTimeline"
@@ -158,10 +147,10 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
           (refresh)="refresh()"
         />
         @if (confirmingDelete() && deletingItem()) {
-          <app-confirm-dialog
-            [title]="'nav.rentals.deleteTitle'"
-            [message]="'nav.rentals.deleteConfirm'"
-            [confirmLabel]="'nav.rentals.delete'"
+          <aletheia-confirm-dialog
+            [title]="'nav.rentals.deleteTitle' | transloco"
+            [message]="'nav.rentals.deleteConfirm' | transloco"
+            [confirmLabel]="'nav.rentals.delete' | transloco"
             [destructive]="true"
             (confirmed)="onDelete()"
             (cancelled)="confirmingDelete.set(false); deletingItem.set(null)" />
@@ -216,37 +205,37 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                            selects; the viewing date replaces the application date. The tenant
                            quick-create form and the property/room manage links are projected
                            into their fields via fieldFooters. -->
-                      <app-dynamic-entity-form
+                      <aletheia-entity-form
                         [entity]="entity"
                         [mode]="'edit'"
                         [value]="workingRental()"
+                        #stageForm
                         [fieldNames]="['property', 'unit', 'tenant', 'viewingDate']"
                         [shapeKey]="stage.shapeIri"
                         [violations]="stageViolationsFor(stage.id)"
                         [createActions]="{ tenant: { labelKey: 'nav.rentals.addTenant' } }"
                         [fieldDependencies]="{ unit: { dependsOn: 'property', via: 'isPartOf' } }"
                         [fieldFooters]="{ tenant: tenantCreateForm }"
-                        [manage]="manageConfig"
+                        [fieldActions]="{ property: propertyManageLink, unit: unitManageLink }"
                         [reloadActions]="{ tenant: tenantReloadKey() }"
-                        [showDescriptions]="false"
                         (createRequested)="onCreateRequested($event)" />
                     } @else if (stage.id === 1) {
                       <!-- Contract: a single field — the uploaded object-bearing documents.
-                           The generic object-upload renders the list, upload, download, and
+                            The generic object-upload renders the list, upload, download, and
                            delete; changes flow back into workingRental.rentalDocuments. -->
-                      <app-object-upload
-                        [entityPath]="'rental-documents'"
+                      <aletheia-object-upload
+                        [route]="'rental-documents'"
                         [documents]="contractDocuments()"
                         [labelKey]="'fields.rental.rentalDocuments'"
                         (changed)="onContractDocumentsChanged($event)"
                         (removed)="onContractDocumentRemoved($event)" />
                     } @else {
-                      <app-dynamic-entity-form
+                      <aletheia-entity-form
                         [entity]="entity"
                         [mode]="'edit'"
                         [value]="workingRental()"
+                        #stageForm
                         [shapeKey]="stage.shapeIri"
-                        [showDescriptions]="false"
                         [violations]="stageViolationsFor(stage.id)" />
                     }
                     <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
@@ -311,6 +300,49 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
         </div>
       </ng-template>
 
+      <!-- Application-stage "New / Edit" jump buttons — the SDK form renders them
+           behind the field's value via [fieldActions]. The semantics are the ones
+           the form's old [manage] config had: the property link edits the selected
+           property or creates a new one, and the room link is only offered once a
+           property is chosen. -->
+      <ng-template #propertyManageLink let-value>
+        <div class="flex shrink-0 items-center gap-1.5">
+          @if (value) {
+            <a [routerLink]="'/properties'" [queryParams]="propertyManageParams(value)"
+              class="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              title="{{ 'entityRefSelect.edit' | transloco }}">
+              <svg lucideArrowUpRight class="size-3.5 text-muted-foreground"></svg>
+              {{ 'entityRefSelect.edit' | transloco }}
+            </a>
+          }
+          <a [routerLink]="'/properties'" [queryParams]="propertyManageParams(null)"
+            class="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            title="{{ 'entityRefSelect.new' | transloco }}">
+            <svg lucideArrowUpRight class="size-3.5 text-muted-foreground"></svg>
+            {{ 'entityRefSelect.new' | transloco }}
+          </a>
+        </div>
+      </ng-template>
+
+      <ng-template #unitManageLink let-value>
+        <div class="flex shrink-0 items-center gap-1.5">
+          @if (value && parentPropertyIri()) {
+            <a [routerLink]="'/properties'" [queryParams]="roomManageParams(value)"
+              class="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              title="{{ 'entityRefSelect.edit' | transloco }}">
+              <svg lucideArrowUpRight class="size-3.5 text-muted-foreground"></svg>
+              {{ 'entityRefSelect.edit' | transloco }}
+            </a>
+          }
+          <a [routerLink]="'/properties'" [queryParams]="roomManageParams(null)"
+            class="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            title="{{ 'entityRefSelect.new' | transloco }}">
+            <svg lucideArrowUpRight class="size-3.5 text-muted-foreground"></svg>
+            {{ 'entityRefSelect.new' | transloco }}
+          </a>
+        </div>
+      </ng-template>
+
       <!-- Inline tenant quick-create — projected under the tenant field via fieldFooters.
            It reuses the generic dynamic form + Tenant view shape, so the create button is
            ALWAYS enabled and violations are fed back inline exactly like every other form. -->
@@ -321,12 +353,11 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
             @if (tenantError(); as err) {
               <p class="text-sm text-destructive">{{ err }}</p>
             }
-            <app-dynamic-entity-form
+            <aletheia-entity-form
               #tenantForm
               [entity]="tenantEntity"
               [mode]="'create'"
               [shapeKey]="tenantShapeKey"
-              [showDescriptions]="false"
               (saved)="onTenantSaved($event)" />
             <div class="flex justify-end">
               <button hlmBtn size="sm" (click)="saveTenantFromForm(tenantForm)" [disabled]="savingTenant()">
@@ -337,8 +368,8 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
         }
       </ng-template>
 
-      <!-- Property & room "New / Edit" jump buttons are rendered generically by the
-           dynamic form's [manage] config — no per-field templates needed here. -->
+      <!-- Property & room jump buttons are projected per field via [fieldActions]
+           (see the templates above). -->
     </div>
   `,
   styles: [`
@@ -387,26 +418,73 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
 export class Rentals implements OnInit {
   private readonly aletheia = inject(AletheiaHttpClient);
   private readonly validator = inject(ShaclValidatorService);
+  private readonly model = inject(AletheiaModelService);
 
-  readonly entity = RentalEntity;
+  readonly entity = this.entityInfoFor('rental');
+
+  /**
+   * The `EntityInfo` the SDK's table and form take, straight from the backend's
+   * definitions (loaded before the app boots — see app.config). Routes and IRIs
+   * come from the generated identity const, which is compiled from the same model.
+   */
+  private entityInfoFor(predicatePath: string): EntityInfo {
+    const info = this.model.getEntity(predicatePath);
+    if (!info) {
+      throw new Error(
+        `The backend's definitions carry no '${predicatePath}' entity — the model did not load, so this page cannot render its fields.`,
+      );
+    }
+    return info;
+  }
+
+  /**
+   * The rentals table's columns — exactly these four, in this order, and no
+   * others offered: the tree shows a stage timeline under each row, so the
+   * remaining properties are noise, not options.
+   *
+   * Keyed by the entity's API ROUTE, which is what identifies the entity here.
+   */
+  readonly tableColumns: ColumnConfigs = {
+    rentals: {
+      order: ['tenant', 'rentalDocuments', 'property', 'currentStage'],
+      visible: ['tenant', 'rentalDocuments', 'property', 'currentStage'],
+      restrict: true,
+    },
+  };
   readonly stages = STAGES;
 
   /**
-   * Generic "New / Edit" manage targets for the Application-stage EntityRefs —
-   * keyed by entity path; the dynamic form renders the jump buttons.
+   * Router targets for the Application stage's "New / Edit" jump buttons.
+   *
+   * The SDK form renders them through `fieldActions` (one template per field),
+   * which is the successor of the old `[manage]` config: the property field
+   * edits the selected property or creates a new one, and a room is always
+   * managed inside its property — so the room link needs the property that is
+   * selected right now.
    */
-  readonly manageConfig: Record<string, EntityManageConfig> = {
-    properties: {
-      route: '/properties',
-      create: () => ({ mode: 'create' }),
-      edit: (iri) => ({ mode: 'edit', iri }),
-    },
-    rooms: {
-      route: '/properties',
-      create: (parentIri) => (parentIri ? { mode: 'edit', iri: parentIri } : { mode: 'create' }),
-      edit: (iri, parentIri) => (parentIri ? { mode: 'edit', iri: parentIri, room: iri } : null),
-    },
-  };
+  readonly parentPropertyIri = computed<string | null>(() => {
+    // `refIri` answers an absent reference with an EMPTY STRING, which `?? null`
+    // would pass straight through — so the null has to be asked for explicitly,
+    // or the computed never satisfies the type it declares.
+    const iri = refIri((this.workingRental() ?? {})['property']);
+    return iri || null;
+  });
+
+  /** Jump params for the property field. */
+  propertyManageParams(value: unknown): Record<string, unknown> {
+    const iri = refIri(value as Record<string, unknown> | string | null);
+    return iri ? { mode: 'edit', iri } : { mode: 'create' };
+  }
+
+  /** Jump params for the room field — a room lives inside the selected property. */
+  roomManageParams(value: unknown): Record<string, unknown> {
+    const parentIri = this.parentPropertyIri();
+    const roomIri = refIri(value as Record<string, unknown> | string | null);
+    if (!parentIri) return { mode: 'create' };
+    return roomIri
+      ? { mode: 'edit', iri: parentIri, room: roomIri }
+      : { mode: 'edit', iri: parentIri };
+  }
 
   // ── List state ──────────────────────────────────────────────────────────
   readonly items = signal<Record<string, unknown>[]>([]);
@@ -453,7 +531,7 @@ export class Rentals implements OnInit {
   readonly savingTenant = signal(false);
   readonly tenantError = signal<string | null>(null);
   /** The inline tenant create reuses the generic dynamic form + Tenant view shape. */
-  readonly tenantEntity = TenantEntity;
+  readonly tenantEntity = this.entityInfoFor('tenant');
   readonly tenantShapeKey = TENANT_SHAPE_IRI;
 
   readonly rowActions: TableAction[] = [
@@ -617,12 +695,12 @@ export class Rentals implements OnInit {
     this.error.set(null);
     // Opt into the QueryAspect enrichment so the backend derives the `state`
     // field per rental from indirect knowledge (currentStage + tenant).
-    const stateHeaders = new HttpHeaders({ 'X-Aletheia-Query-AspectIri': RENTAL_STATE_QUERY_ASPECT_IRI });
+    const stateHeaders = queryAspectHeaders(RENTAL_STATE_QUERY_ASPECT_IRI);
     forkJoin({
-      rentals: this.aletheia.list<Record<string, unknown>>('rentals', undefined, stateHeaders),
-      tenants: this.aletheia.list<{ iri: string; displayName: string }>('tenants'),
-      rooms: this.aletheia.list<{ iri: string; name: string; isPartOf: unknown }>('rooms'),
-      stages: this.aletheia.list<{ iri: string; key: string; displayName: string }>('rental-stages'),
+      rentals: this.aletheia.query<Record<string, unknown>>('rentals', {}, stateHeaders),
+      tenants: this.aletheia.query<{ iri: string; displayName: string }>('tenants'),
+      rooms: this.aletheia.query<{ iri: string; name: string; isPartOf: unknown }>('rooms'),
+      stages: this.aletheia.query<{ iri: string; key: string; displayName: string }>('rental-stages'),
     }).subscribe({
       next: ({ rentals, tenants, rooms, stages }) => {
         this.items.set(rentals.items ?? []);
@@ -641,7 +719,7 @@ export class Rentals implements OnInit {
   }
 
   private loadTenants(): Promise<void> {
-    return lastValueFrom(this.aletheia.list<{ iri: string; displayName: string }>('tenants')).then((res) => {
+    return lastValueFrom(this.aletheia.query<{ iri: string; displayName: string }>('tenants')).then((res) => {
       this.tenants.set(res.items ?? []);
     });
   }
@@ -740,8 +818,35 @@ export class Rentals implements OnInit {
    * Continue" is therefore durable — uploaded documents and earlier stages
    * survive a reload — and it is the only save action (no global Save button).
    */
+  /**
+   * The form of the stage that is open, when it has one (the contract stage uploads instead).
+   *
+   * The stage forms bind `value` one way and the stage's Save button persists the PAGE's draft, so
+   * the draft has to be read back from the form before the write — without that loop the picks a
+   * reader made in the form were never the ones written: the draft stayed empty, the stage validated
+   * as incomplete, and the save reported what looked like a validation problem on fields the reader
+   * had filled.
+   */
+  readonly stageForm = viewChild<EntityFormComponent>('stageForm');
+
+  /**
+   * The draft as the form shows it: the page's own draft, with everything the open stage form
+   * carries merged into IT — the same object, not a copy.
+   *
+   * The mounted forms are bound to that object, and the first save records the new rental's IRI on it
+   * so the next stage updates instead of creating a second rental. `payload()` is the same object
+   * `save()` emits: every field at the arity its entity declares, which is what a write has to carry.
+   */
+  private draftToSave(): Record<string, unknown> | null {
+    const draft = this.workingRental();
+    if (!draft) return null;
+    const edited = this.stageForm()?.payload();
+    if (edited) Object.assign(draft, edited);
+    return draft;
+  }
+
   async saveStage(stageId: number): Promise<void> {
-    const working = this.workingRental();
+    const working = this.draftToSave();
     if (!working) return;
     this.savingStage.set(true);
     this.error.set(null);
@@ -770,9 +875,9 @@ export class Rentals implements OnInit {
 
       const iri = refIri(working['iri']);
       if (iri) {
-        await lastValueFrom(this.aletheia.update('rentals', iri, data));
+        await lastValueFrom(this.aletheia.update('rentals', iri, data, operationAspectHeaders(RENTAL_OPERATION_IRI)));
       } else {
-        const created = await lastValueFrom(this.aletheia.create('rentals', data));
+        const created = await lastValueFrom(this.aletheia.create('rentals', data, operationAspectHeaders(RENTAL_OPERATION_IRI)));
         // Keep the mounted forms bound to the SAME working object (swapping it
         // would orphan their two-way bound edits) — just record the new IRI so
         // subsequent stage saves update instead of creating again.
@@ -823,7 +928,9 @@ export class Rentals implements OnInit {
     const queued = this.pendingDocDeletes;
     this.pendingDocDeletes = [];
     void Promise.allSettled(
-      queued.map((iri) => lastValueFrom(this.aletheia.delete('rental-documents', iri))),
+      queued.map((iri) =>
+        lastValueFrom(this.aletheia.delete('rental-documents', iri, operationAspectHeaders(RENTAL_OPERATION_IRI))),
+      ),
     );
   }
 
@@ -855,8 +962,8 @@ export class Rentals implements OnInit {
   // ── Tenant quick-create ─────────────────────────────────────────────────
 
   /** Toggles the tenant quick-create card when the inline selector action fires. */
-  onCreateRequested(event: { propertyName: string; entityPath: string }): void {
-    if (event.propertyName === 'tenant') {
+  onCreateRequested(field: string): void {
+    if (field === 'tenant') {
       this.showTenantForm.set(!this.showTenantForm());
     }
   }
@@ -866,7 +973,7 @@ export class Rentals implements OnInit {
    * generic dynamic form, which validates against the Tenant view shape and
    * feeds the errors back inline; only a conforming tenant emits `saved`.
    */
-  async saveTenantFromForm(form: DynamicEntityFormComponent): Promise<void> {
+  async saveTenantFromForm(form: EntityFormComponent): Promise<void> {
     if (this.savingTenant()) return;
     this.tenantError.set(null);
     await form.save();
@@ -883,7 +990,7 @@ export class Rentals implements OnInit {
         displayName: name,
         email: (data['email'] as string) ?? '',
         phone: (data['phone'] as string) ?? '',
-      }));
+      }, operationAspectHeaders(TENANT_OPERATION_IRI)));
       await this.loadTenants();
       const working = this.workingRental();
       if (working) working['tenant'] = created.iri;
@@ -907,7 +1014,7 @@ export class Rentals implements OnInit {
     if (typeof iri !== 'string') return;
     this.loading.set(true);
     this.error.set(null);
-    this.aletheia.delete('rentals', iri).subscribe({
+    this.aletheia.delete('rentals', iri, operationAspectHeaders(RENTAL_OPERATION_IRI)).subscribe({
       next: () => {
         this.confirmingDelete.set(false);
         this.deletingItem.set(null);

@@ -122,16 +122,6 @@ interface CreateStepDef {
           (rowClick)="onRowClick($event)"
           (refresh)="refresh()"
         />
-        <!-- Delete confirmation dialog for list view -->
-        @if (confirmingDelete() && deletingItem()) {
-          <aletheia-confirm-dialog
-            [title]="'nav.properties.deleteTitle' | transloco"
-            [message]="'nav.properties.deleteConfirm' | transloco"
-            [confirmLabel]="'nav.properties.delete' | transloco"
-            [destructive]="true"
-            (confirmed)="onDelete()"
-            (cancelled)="confirmingDelete.set(false); deletingItem.set(null)" />
-        }
       }
 
       <!-- Mobile-only Add Property button (below table) -->
@@ -449,7 +439,9 @@ interface CreateStepDef {
         </div>
       }
 
-      <!-- Delete confirmation dialog -->
+      <!-- Delete confirmation dialog — ONE dialog for the whole page: it is mode-agnostic, and a
+           second copy inside the list section stacked a second backdrop on top of it, dimming the
+           page twice and swallowing the click meant for the dialog underneath. -->
       @if (confirmingDelete()) {
         <aletheia-confirm-dialog
           [title]="'nav.properties.deleteTitle' | transloco"

@@ -23,6 +23,14 @@ async function settle(page: Page, ready: string): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
 }
 
+/**
+ * A name no earlier run can own. The store is one per host and the whole suite shares it, so a
+ * fixed name makes a test pass or fail depending on what ran before it.
+ */
+function unique(base: string): string {
+  return `${base} ${Date.now().toString(36)}`;
+}
+
 test.describe('creating a property with a room', () => {
   /**
    * Opens the create flow and returns the property's own form.
@@ -60,8 +68,10 @@ test.describe('creating a property with a room', () => {
     page,
     request,
   }) => {
+    const propertyName = unique('Villa E2E');
+    const roomName = unique('Küche');
     const propertyForm = await openCreateForm(page);
-    await propertyForm.locator('[data-field="name"] input').fill('Villa E2E');
+    await propertyForm.locator('[data-field="name"] input').fill(propertyName);
     await propertyForm.locator('[data-field="address"] input').fill('Main Straße 1');
     // The view requires a property type (an IRI reference), so one must be chosen
     // for the save to be allowed at all. Option 0 is the empty "-- Select --".
@@ -69,12 +79,12 @@ test.describe('creating a property with a room', () => {
 
     // A room is written by the SAME save, under the same aspect — the aggregate
     // the shape has to admit in both halves.
-    await addRoom(page, 'Küche', 'Nord', '42');
+    await addRoom(page, roomName, 'Nord', '42');
 
     await page.getByRole('button', { name: 'Save Property' }).click();
 
     // The page returns to the list with the new property in it.
-    await expect(page.locator('aletheia-entity-table tbody')).toContainText('Villa E2E');
+    await expect(page.locator('aletheia-entity-table tbody')).toContainText(propertyName);
 
     // ── The real assertion: read back what the server kept ──────────────────
     const properties = await request.post('/api/entities/properties/query', {
@@ -82,13 +92,13 @@ test.describe('creating a property with a room', () => {
     });
     expect(properties.ok()).toBeTruthy();
     const propertyRows = (await properties.json()).items as Record<string, unknown>[];
-    const property = propertyRows.find((row) => row['name'] === 'Villa E2E');
+    const property = propertyRows.find((row) => row['name'] === propertyName);
     expect(property, 'the property was persisted').toBeTruthy();
     expect(property!['address']).toBe('Main Straße 1');
 
     const rooms = await request.post('/api/entities/rooms/query', { data: { count: 'none' } });
     const roomRows = (await rooms.json()).items as Record<string, unknown>[];
-    const room = roomRows.find((row) => row['name'] === 'Küche');
+    const room = roomRows.find((row) => row['name'] === roomName);
     expect(room, 'the room was persisted').toBeTruthy();
 
     // Every one of these is a field the write filter could have dropped without
@@ -108,20 +118,22 @@ test.describe('creating a property with a room', () => {
    * the form is the thing that was wrong.
    */
   test('keeps the room size the user typed', async ({ page, request }) => {
+    const propertyName = unique('Villa Size');
+    const roomName = unique('Bad');
     const propertyForm = await openCreateForm(page);
-    await propertyForm.locator('[data-field="name"] input').fill('Villa Size');
+    await propertyForm.locator('[data-field="name"] input').fill(propertyName);
     await propertyForm.locator('[data-field="address"] input').fill('Main 2');
     await propertyForm.locator('[data-field="propertyType"] select').selectOption({ index: 1 });
 
     // Typed, not set: the field must accept keystrokes as a number input does.
-    await addRoom(page, 'Bad', 'Nord', '42');
+    await addRoom(page, roomName, 'Nord', '42');
 
     await page.getByRole('button', { name: 'Save Property' }).click();
-    await expect(page.locator('aletheia-entity-table tbody')).toContainText('Villa Size');
+    await expect(page.locator('aletheia-entity-table tbody')).toContainText(propertyName);
 
     const rooms = await request.post('/api/entities/rooms/query', { data: { count: 'none' } });
     const room = ((await rooms.json()).items as Record<string, unknown>[]).find(
-      (row) => row['name'] === 'Bad',
+      (row) => row['name'] === roomName,
     );
     expect(room, 'the room was persisted').toBeTruthy();
     expect(room!['roomSize']).toBe(42);

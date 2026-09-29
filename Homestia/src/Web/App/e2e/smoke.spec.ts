@@ -21,11 +21,21 @@ async function settle(page: Page, ready: string): Promise<void> {
 }
 
 /**
- * Rows come from the (in-memory) backend and therefore differ per host start —
- * masking the table body keeps the baseline about the LOOK (chrome, typography,
- * spacing, colours) instead of about today's data.
+ * The band a list page's baseline compares: the chrome, the page heading and the table's header.
+ *
+ * A full-viewport baseline cannot be independent of the data, however it is masked. Rows come from
+ * the (in-memory) backend and differ per host start, and a longer table changes more than its own
+ * pixels: the mask box itself grows, everything below it moves, and the page gains a scrollbar. A
+ * baseline taken on an empty store then fails against a populated one, which is why this suite once
+ * passed only in one order. Clipping to the band that does NOT depend on the data removes the
+ * coupling; the table's own look is asserted where the table is built.
  */
-const VOLATILE_ROWS = 'aletheia-entity-table tbody';
+const CHROME_BAND = 300;
+
+function topBand(page: Page): { x: number; y: number; width: number; height: number } {
+  const size = page.viewportSize() ?? { width: 1280, height: 720 };
+  return { x: 0, y: 0, width: size.width, height: Math.min(CHROME_BAND, size.height) };
+}
 
 test.describe('Homestia routes', () => {
   test('home renders', async ({ page }) => {
@@ -37,17 +47,13 @@ test.describe('Homestia routes', () => {
   test('properties render', async ({ page }) => {
     await page.goto('/properties');
     await settle(page, 'app-properties');
-    await expect(page).toHaveScreenshot('properties.png', {
-      mask: [page.locator(VOLATILE_ROWS)],
-    });
+    await expect(page).toHaveScreenshot('properties.png', { clip: topBand(page) });
   });
 
   test('rentals render', async ({ page }) => {
     await page.goto('/rentals');
     await settle(page, 'app-rentals');
-    await expect(page).toHaveScreenshot('rentals.png', {
-      mask: [page.locator(VOLATILE_ROWS)],
-    });
+    await expect(page).toHaveScreenshot('rentals.png', { clip: topBand(page) });
   });
 
   /**
@@ -95,9 +101,7 @@ test.describe('Homestia mobile chrome', () => {
     expect(rail).toBeTruthy();
     expect(rail!.x + rail!.width).toBeLessThanOrEqual(0);
 
-    await expect(page).toHaveScreenshot('mobile-properties.png', {
-      mask: [page.locator(VOLATILE_ROWS)],
-    });
+    await expect(page).toHaveScreenshot('mobile-properties.png', { clip: topBand(page) });
   });
 
   test('the opened drawer keeps its chrome inside its own box', async ({ page }) => {
@@ -113,8 +117,6 @@ test.describe('Homestia mobile chrome', () => {
     });
     expect(fit.scrollWidth).toBeLessThanOrEqual(fit.clientWidth + 1);
 
-    await expect(page).toHaveScreenshot('mobile-drawer-open.png', {
-      mask: [page.locator(VOLATILE_ROWS)],
-    });
+    await expect(page).toHaveScreenshot('mobile-drawer-open.png', { clip: topBand(page) });
   });
 });

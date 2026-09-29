@@ -34,7 +34,9 @@ export default defineConfig({
     toHaveScreenshot: {
       // Theme changes and font loading settle asynchronously; a small ratio
       // keeps the baseline honest without turning antialiasing into a failure.
-      maxDiffPixelRatio: 0.02,
+      // It must stay tight enough to catch a layout change: at 2% a whole
+      // header control could move and a 32px-wider rail slide past unnoticed.
+      maxDiffPixelRatio: 0.01,
       animations: 'disabled',
     },
   },

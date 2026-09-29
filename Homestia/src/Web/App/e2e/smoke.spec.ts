@@ -49,4 +49,72 @@ test.describe('Homestia routes', () => {
       mask: [page.locator(VOLATILE_ROWS)],
     });
   });
+
+  /**
+   * Chrome lives in the header, and a screenshot cannot say so: the accent cycler is three small
+   * controls, so moving it between the header and the rail footer changes well under the 1% pixel
+   * ratio the visual comparison allows — the baselines accepted that move. Geometry does not have a
+   * tolerance: the control is in the header band, and the rail holds no chrome of its own.
+   */
+  test('the header carries the chrome, not the rail', async ({ page }) => {
+    await page.goto('/properties');
+    await settle(page, 'app-properties');
+
+    const picker = page.locator('app-theme-picker');
+    await expect(picker).toBeVisible();
+
+    const header = (await page.locator('header').boundingBox())!;
+    const box = (await picker.boundingBox())!;
+    expect(box.y).toBeGreaterThanOrEqual(header.y);
+    expect(box.y + box.height).toBeLessThanOrEqual(header.y + header.height);
+
+    expect(await page.locator('aside app-theme-picker').count()).toBe(0);
+  });
+});
+
+/**
+ * The phone chrome. The rail is off-canvas there, so its chrome must stay
+ * inside the panel: content that overflows the drawer's own box is visible even
+ * while the drawer is shut, because the panel sits exactly one width off the
+ * left edge. These assertions are geometry, not pixels — the screenshots only
+ * record what the bar and the drawer look like at 390px.
+ */
+test.describe('Homestia mobile chrome', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('the closed drawer is fully off-canvas and nothing spills into the page', async ({ page }) => {
+    await page.goto('/properties');
+    await settle(page, 'app-properties');
+
+    const spill = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(spill).toBeLessThanOrEqual(1);
+
+    const rail = await page.locator('aside').boundingBox();
+    expect(rail).toBeTruthy();
+    expect(rail!.x + rail!.width).toBeLessThanOrEqual(0);
+
+    await expect(page).toHaveScreenshot('mobile-properties.png', {
+      mask: [page.locator(VOLATILE_ROWS)],
+    });
+  });
+
+  test('the opened drawer keeps its chrome inside its own box', async ({ page }) => {
+    await page.goto('/properties');
+    await settle(page, 'app-properties');
+
+    await page.getByRole('button', { name: 'Menu' }).click();
+    await expect(page.locator('aside')).toBeInViewport();
+
+    const fit = await page.evaluate(() => {
+      const rail = document.querySelector('aside')!;
+      return { scrollWidth: rail.scrollWidth, clientWidth: rail.clientWidth };
+    });
+    expect(fit.scrollWidth).toBeLessThanOrEqual(fit.clientWidth + 1);
+
+    await expect(page).toHaveScreenshot('mobile-drawer-open.png', {
+      mask: [page.locator(VOLATILE_ROWS)],
+    });
+  });
 });

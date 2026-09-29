@@ -1,73 +1,74 @@
 <div class="flex flex-col overflow-hidden" style="height: 100dvh;">
-  <!-- Header (desktop) -->
-  <header class="border-b border-border bg-card shrink-0 z-50 hidden md:block">
-    <div class="flex items-center px-6 py-3 gap-2">
-      <div class="flex items-center gap-3">
-        <svg lucideHouse class="size-7 text-primary shrink-0"></svg>
-        <h1 class="text-2xl font-bold tracking-tight text-foreground">
-          {{ 'app.title' | transloco }}
-        </h1>
-      </div>
+  <!-- Header — one bar for every breakpoint. On a phone it holds the menu
+       button, the brand and the two chrome buttons; the rail carries the rest. -->
+  <header class="border-b border-border bg-card shrink-0 z-50 flex items-center gap-2 px-4 md:px-6 py-3">
+    <button
+      hlmBtn
+      variant="ghost"
+      size="icon-sm"
+      (click)="sidebarOpen.set(true)"
+      class="md:hidden text-muted-foreground hover:text-foreground"
+      [attr.aria-label]="'nav.menu' | transloco"
+    >
+      <svg lucideMenu class="size-5"></svg>
+    </button>
 
-      <div class="flex-1"></div>
-
-      <app-theme-picker />
-
-      <button
-        hlmBtn
-        variant="ghost"
-        size="icon-xs"
-        (click)="toggleLang()"
-        class="text-muted-foreground hover:text-foreground text-xs font-medium"
-      >
-        {{ currentLang() === 'en' ? 'EN' : 'DE' }}
-      </button>
-
-      <button
-        hlmBtn
-        variant="ghost"
-        size="icon-sm"
-        class="ml-2 rounded-full size-8 bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20"
-      >
-        RR
-      </button>
+    <div class="flex items-center gap-2 min-w-0 flex-1">
+      <!-- The mark yields to the wordmark on the narrowest screens: the title
+           is the one element that must survive a 320px bar intact. -->
+      <svg lucideHouse class="hidden sm:block size-7 text-primary shrink-0"></svg>
+      <h1 class="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-foreground truncate">
+        {{ 'app.title' | transloco }}
+      </h1>
     </div>
+
+    <!-- The chrome axis: accent, then mode, then language. The accent cycler is
+         three controls wide — the rail's 64px icon strip could never hold it,
+         so it lives here with the other chrome, on every breakpoint. -->
+    <app-theme-picker />
+
+    <!-- Dark / light — one button, no skin selector: Homestia ships a single
+         skin, so there is nothing to cycle through. -->
+    <button
+      hlmBtn
+      variant="ghost"
+      size="icon-sm"
+      (click)="theme.toggleDark()"
+      class="text-muted-foreground hover:text-foreground"
+      [attr.aria-pressed]="theme.isDark()"
+      [attr.aria-label]="(theme.isDark() ? 'theme.light' : 'theme.dark') | transloco"
+    >
+      @if (theme.isDark()) {
+        <svg lucideMoon class="size-4"></svg>
+      } @else {
+        <svg lucideSun class="size-4"></svg>
+      }
+    </button>
+
+    <aletheia-language-switcher />
+
+    <button
+      hlmBtn
+      variant="ghost"
+      size="icon-sm"
+      class="ml-1 rounded-full size-8 bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 hidden sm:inline-flex"
+    >
+      RR
+    </button>
   </header>
 
-  <!-- Body: sidebar + content -->
+  <!-- Body: the SDK rail + the routed page -->
   <div class="flex flex-1 overflow-hidden">
-    <app-sidebar
+    <aletheia-sidebar
+      [sections]="sections"
       [mobileOpen]="sidebarOpen()"
-      [currentLang]="currentLang()"
       (mobileOpenChange)="sidebarOpen.set($event)"
-      (toggleLang)="toggleLang()"
-    />
+      [(collapsed)]="railCollapsed"
+    >
+    </aletheia-sidebar>
+
     <main class="flex-1 overflow-y-auto bg-background">
       <router-outlet />
     </main>
   </div>
-
-  <!-- Mobile footer navigation -->
-  <footer class="md:hidden border-t border-border bg-card shrink-0 z-50">
-    <div class="flex items-center justify-evenly" style="padding: 10px 0;">
-      <button
-        hlmBtn
-        variant="ghost"
-        class="text-muted-foreground hover:text-foreground"
-        (click)="toggleSidebar()"
-        style="padding: 10px 20px;"
-      >
-        <svg lucideMenu class="size-7"></svg>
-      </button>
-      <a routerLink="/" routerLinkActive="text-primary" [routerLinkActiveOptions]="{ exact: true }" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px 20px;">
-        <svg lucideHouse class="size-7"></svg>
-      </a>
-      <a routerLink="/properties" routerLinkActive="text-primary" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px 20px;">
-        <svg lucideBuilding class="size-7"></svg>
-      </a>
-      <a routerLink="/rentals" routerLinkActive="text-primary" class="text-muted-foreground hover:text-foreground" (click)="sidebarOpen.set(false)" style="padding: 10px 20px;">
-        <svg lucideFileSignature class="size-7"></svg>
-      </a>
-    </div>
-  </footer>
 </div>

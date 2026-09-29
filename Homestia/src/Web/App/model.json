@@ -1,0 +1,2019 @@
+{
+  "entityDefinitions": [
+    {
+      "clrTypeIdentifier": "Aletheia.Authentication.Agent",
+      "name": "Agent",
+      "clrNamespace": "Aletheia.Authentication",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "agents",
+      "predicatePath": "agents",
+      "iriPrefix": "https://aletheia.katharsis.digital/agents/",
+      "typeIri": "https://aletheia.katharsis.digital/types/agents",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "DisplayName",
+          "predicate": "displayName",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "Agent",
+          "predicate": "representedBy",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+          "relatedEntityName": "Landlord",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.CommonArea",
+      "name": "CommonArea",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "segmentations",
+      "predicatePath": "commonArea",
+      "iriPrefix": "https://aletheia.katharsis.digital/segmentations/",
+      "typeIri": "https://aletheia.katharsis.digital/types/segmentations/CommonArea",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": "Segmentation",
+      "properties": [
+        {
+          "propertyName": "IsCommonArea",
+          "predicate": "isCommonArea",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Name",
+          "predicate": "name",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [
+        {
+          "propertyName": "Inventory",
+          "predicate": "equippedWith",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e",
+          "relatedEntityName": "InventoryItem",
+          "relationKind": "owning-collection",
+          "isCollection": true,
+          "isInferred": false
+        },
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "incomingRelations": [],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.FurnishingStatus",
+      "name": "FurnishingStatus",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "furnishing-statuses",
+      "predicatePath": "furnishingStatus",
+      "iriPrefix": "https://aletheia.katharsis.digital/furnishing-statuses/",
+      "typeIri": "https://aletheia.katharsis.digital/types/furnishing-statuses",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "PropertyBasedPlain",
+      "isEnumeration": true,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "Key",
+          "predicate": "key",
+          "clrType": "String",
+          "isIdentityPart": true,
+          "identityPartOrder": 0,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DisplayName",
+          "predicate": "displayName",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "FurnishingStatus",
+          "predicate": "furnishingStatus",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+          "relatedEntityName": "Room",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [
+        {
+          "key": "unfurnished",
+          "iri": "https://homestia.katharsis.digital/furnishing-statuses/unfurnished",
+          "displayName": "Unfurnished",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "partially-furnished",
+          "iri": "https://homestia.katharsis.digital/furnishing-statuses/partially-furnished",
+          "displayName": "Partially Furnished",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "fully-furnished",
+          "iri": "https://homestia.katharsis.digital/furnishing-statuses/fully-furnished",
+          "displayName": "Fully Furnished",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/90dd99c2-9b87-58f9-b19c-2db6de2245b4"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.InventoryItem",
+      "name": "InventoryItem",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "inventory-items",
+      "predicatePath": "inventoryItem",
+      "iriPrefix": "https://aletheia.katharsis.digital/inventory-items/",
+      "typeIri": "https://aletheia.katharsis.digital/types/inventory-items",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "Name",
+          "predicate": "name",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "Inventory",
+          "predicate": "equippedWith",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966",
+          "relatedEntityName": "CommonArea",
+          "relationKind": "owning-collection",
+          "isCollection": true,
+          "isInferred": false
+        },
+        {
+          "propertyName": "Inventory",
+          "predicate": "equippedWith",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+          "relatedEntityName": "Room",
+          "relationKind": "owning-collection",
+          "isCollection": true,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.Landlord",
+      "name": "Landlord",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "landlords",
+      "predicatePath": "landlords",
+      "iriPrefix": "https://aletheia.katharsis.digital/landlords/",
+      "typeIri": "https://aletheia.katharsis.digital/types/landlords",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": null,
+      "properties": [],
+      "owningRelations": [
+        {
+          "propertyName": "Agent",
+          "predicate": "representedBy",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
+          "relatedEntityName": "Agent",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "Properties",
+          "predicate": "owns",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-collection",
+          "isCollection": true,
+          "isInferred": false
+        },
+        {
+          "propertyName": "LandlordType",
+          "predicate": "landlordType",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/73d02aa5-ee17-5db1-8af2-3b1fb8f2cf57",
+          "relatedEntityName": "PropertyType",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "incomingRelations": [],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.Property",
+      "name": "Property",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "segmentations",
+      "predicatePath": "property",
+      "iriPrefix": "https://aletheia.katharsis.digital/segmentations/",
+      "typeIri": "https://aletheia.katharsis.digital/types/segmentations/Property",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": "Segmentation",
+      "properties": [
+        {
+          "propertyName": "IsCommonArea",
+          "predicate": "isCommonArea",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Name",
+          "predicate": "name",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Address",
+          "predicate": "address",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "PropertyType",
+          "predicate": "propertyType",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/73d02aa5-ee17-5db1-8af2-3b1fb8f2cf57",
+          "relatedEntityName": "PropertyType",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "RentalModel",
+          "predicate": "rentalModel",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/b22360ed-5fa5-576f-bcb7-b86ea26cbd6f",
+          "relatedEntityName": "RentalModel",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "incomingRelations": [
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966",
+          "relatedEntityName": "CommonArea",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "Properties",
+          "predicate": "owns",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+          "relatedEntityName": "Landlord",
+          "relationKind": "owning-collection",
+          "isCollection": true,
+          "isInferred": false
+        },
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "Property",
+          "predicate": "property",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+          "relatedEntityName": "Rental",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+          "relatedEntityName": "Room",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74",
+          "relatedEntityName": "Segmentation",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86911364-c276-5265-939e-e6239faa7729",
+          "relatedEntityName": "Studio",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.PropertyType",
+      "name": "PropertyType",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "property-types",
+      "predicatePath": "propertyType",
+      "iriPrefix": "https://aletheia.katharsis.digital/property-types/",
+      "typeIri": "https://aletheia.katharsis.digital/types/property-types",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "PropertyBasedPlain",
+      "isEnumeration": true,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "Key",
+          "predicate": "key",
+          "clrType": "String",
+          "isIdentityPart": true,
+          "identityPartOrder": 0,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DisplayName",
+          "predicate": "displayName",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "LandlordType",
+          "predicate": "landlordType",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+          "relatedEntityName": "Landlord",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "PropertyType",
+          "predicate": "propertyType",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [
+        {
+          "key": "apartment",
+          "iri": "https://homestia.katharsis.digital/property-types/apartment",
+          "displayName": "Apartment",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "studio",
+          "iri": "https://homestia.katharsis.digital/property-types/studio",
+          "displayName": "Studio",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/73d02aa5-ee17-5db1-8af2-3b1fb8f2cf57"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.Rental",
+      "name": "Rental",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "rentals",
+      "predicatePath": "rental",
+      "iriPrefix": "https://aletheia.katharsis.digital/rentals/",
+      "typeIri": "https://aletheia.katharsis.digital/types/rentals",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "DamageConfirmed",
+          "predicate": "damageConfirmed",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DepositAmount",
+          "predicate": "depositAmount",
+          "clrType": "Decimal",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DepositPaid",
+          "predicate": "depositPaid",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DepositPaymentDate",
+          "predicate": "depositPaymentDate",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DepositReturned",
+          "predicate": "depositReturned",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "HandbackDate",
+          "predicate": "handbackDate",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "HandbackNotes",
+          "predicate": "handbackNotes",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "HandoverDate",
+          "predicate": "handoverDate",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "HandoverNotes",
+          "predicate": "handoverNotes",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "NoticeDate",
+          "predicate": "noticeDate",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "NoticeReason",
+          "predicate": "noticeReason",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "SettlementDate",
+          "predicate": "settlementDate",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "SettlementNotes",
+          "predicate": "settlementNotes",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "TenancyActive",
+          "predicate": "tenancyActive",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "ViewingDate",
+          "predicate": "viewingDate",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [
+        {
+          "propertyName": "Property",
+          "predicate": "property",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "RentalDocuments",
+          "predicate": "rentalDocuments",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+          "relatedEntityName": "RentalDocument",
+          "relationKind": "owning-collection",
+          "isCollection": true,
+          "isInferred": false
+        },
+        {
+          "propertyName": "CurrentStage",
+          "predicate": "currentStage",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/f3475c2c-f6cf-5571-88a0-200d4472db82",
+          "relatedEntityName": "RentalStage",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "Unit",
+          "predicate": "unit",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+          "relatedEntityName": "Room",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "Tenant",
+          "predicate": "tenant",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/c5c198af-e9c0-57fa-9020-3327b6c640b0",
+          "relatedEntityName": "Tenant",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "incomingRelations": [],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.RentalDocument",
+      "name": "RentalDocument",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "rental-documents",
+      "predicatePath": "rentalDocument",
+      "iriPrefix": "https://aletheia.katharsis.digital/rental-documents/",
+      "typeIri": "https://aletheia.katharsis.digital/types/rental-documents",
+      "definitionOrigin": "platform",
+      "isObjectBearing": true,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "Name",
+          "predicate": "name",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "RentalDocuments",
+          "predicate": "rentalDocuments",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+          "relatedEntityName": "Rental",
+          "relationKind": "owning-collection",
+          "isCollection": true,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.RentalModel",
+      "name": "RentalModel",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "rental-models",
+      "predicatePath": "rentalModel",
+      "iriPrefix": "https://aletheia.katharsis.digital/rental-models/",
+      "typeIri": "https://aletheia.katharsis.digital/types/rental-models",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "PropertyBasedPlain",
+      "isEnumeration": true,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "Key",
+          "predicate": "key",
+          "clrType": "String",
+          "isIdentityPart": true,
+          "identityPartOrder": 0,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DisplayName",
+          "predicate": "displayName",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "RentalModel",
+          "predicate": "rentalModel",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [
+        {
+          "key": "entire-property",
+          "iri": "https://homestia.katharsis.digital/rental-models/entire-property",
+          "displayName": "Entire Property",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "single-room-rental-shared-living",
+          "iri": "https://homestia.katharsis.digital/rental-models/single-room-rental-shared-living",
+          "displayName": "Single Room Rental — Shared Living",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/b22360ed-5fa5-576f-bcb7-b86ea26cbd6f"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.RentalStage",
+      "name": "RentalStage",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "rental-stages",
+      "predicatePath": "rentalStage",
+      "iriPrefix": "https://aletheia.katharsis.digital/rental-stages/",
+      "typeIri": "https://aletheia.katharsis.digital/types/rental-stages",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "PropertyBasedPlain",
+      "isEnumeration": true,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "Key",
+          "predicate": "key",
+          "clrType": "String",
+          "isIdentityPart": true,
+          "identityPartOrder": 0,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DisplayName",
+          "predicate": "displayName",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "CurrentStage",
+          "predicate": "currentStage",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+          "relatedEntityName": "Rental",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [
+        {
+          "key": "application",
+          "iri": "https://homestia.katharsis.digital/rental-stages/application",
+          "displayName": "Application",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "contract",
+          "iri": "https://homestia.katharsis.digital/rental-stages/contract",
+          "displayName": "Contract",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "deposit",
+          "iri": "https://homestia.katharsis.digital/rental-stages/deposit",
+          "displayName": "Deposit",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "handover",
+          "iri": "https://homestia.katharsis.digital/rental-stages/handover",
+          "displayName": "Handover",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "tenancy",
+          "iri": "https://homestia.katharsis.digital/rental-stages/tenancy",
+          "displayName": "Tenancy",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "noticed",
+          "iri": "https://homestia.katharsis.digital/rental-stages/noticed",
+          "displayName": "Termination Noticed",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "handback",
+          "iri": "https://homestia.katharsis.digital/rental-stages/handback",
+          "displayName": "Handback",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "terminated",
+          "iri": "https://homestia.katharsis.digital/rental-stages/terminated",
+          "displayName": "Terminated",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/f3475c2c-f6cf-5571-88a0-200d4472db82"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.Room",
+      "name": "Room",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "segmentations",
+      "predicatePath": "room",
+      "iriPrefix": "https://aletheia.katharsis.digital/segmentations/",
+      "typeIri": "https://aletheia.katharsis.digital/types/segmentations/Room",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": "Segmentation",
+      "properties": [
+        {
+          "propertyName": "IsCommonArea",
+          "predicate": "isCommonArea",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Name",
+          "predicate": "name",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Location",
+          "predicate": "location",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "RoomSize",
+          "predicate": "roomSize",
+          "clrType": "Nullable<Decimal>",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [
+        {
+          "propertyName": "FurnishingStatus",
+          "predicate": "furnishingStatus",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/90dd99c2-9b87-58f9-b19c-2db6de2245b4",
+          "relatedEntityName": "FurnishingStatus",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "Inventory",
+          "predicate": "equippedWith",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e",
+          "relatedEntityName": "InventoryItem",
+          "relationKind": "owning-collection",
+          "isCollection": true,
+          "isInferred": false
+        },
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        },
+        {
+          "propertyName": "RoomStatus",
+          "predicate": "roomStatus",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/29db6043-e027-541e-890b-73ad19ca3a66",
+          "relatedEntityName": "RoomStatus",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "incomingRelations": [
+        {
+          "propertyName": "Unit",
+          "predicate": "unit",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+          "relatedEntityName": "Rental",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.RoomStatus",
+      "name": "RoomStatus",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "room-statuses",
+      "predicatePath": "roomStatus",
+      "iriPrefix": "https://aletheia.katharsis.digital/room-statuses/",
+      "typeIri": "https://aletheia.katharsis.digital/types/room-statuses",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "PropertyBasedPlain",
+      "isEnumeration": true,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "Key",
+          "predicate": "key",
+          "clrType": "String",
+          "isIdentityPart": true,
+          "identityPartOrder": 0,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "DisplayName",
+          "predicate": "displayName",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "RoomStatus",
+          "predicate": "roomStatus",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+          "relatedEntityName": "Room",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [
+        {
+          "key": "available",
+          "iri": "https://homestia.katharsis.digital/room-statuses/available",
+          "displayName": "Available",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "reserved",
+          "iri": "https://homestia.katharsis.digital/room-statuses/reserved",
+          "displayName": "Reserved",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "actively-rented",
+          "iri": "https://homestia.katharsis.digital/room-statuses/actively-rented",
+          "displayName": "Actively Rented",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "key": "blocked",
+          "iri": "https://homestia.katharsis.digital/room-statuses/blocked",
+          "displayName": "Blocked",
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/29db6043-e027-541e-890b-73ad19ca3a66"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.Segmentation",
+      "name": "Segmentation",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "segmentations",
+      "predicatePath": "segmentations",
+      "iriPrefix": "https://aletheia.katharsis.digital/segmentations/",
+      "typeIri": "https://aletheia.katharsis.digital/types/segmentations",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": null,
+      "properties": [
+        {
+          "propertyName": "IsCommonArea",
+          "predicate": "isCommonArea",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Name",
+          "predicate": "name",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "incomingRelations": [],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.Studio",
+      "name": "Studio",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "segmentations",
+      "predicatePath": "studio",
+      "iriPrefix": "https://aletheia.katharsis.digital/segmentations/",
+      "typeIri": "https://aletheia.katharsis.digital/types/segmentations/Studio",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": "Segmentation",
+      "properties": [
+        {
+          "propertyName": "IsCommonArea",
+          "predicate": "isCommonArea",
+          "clrType": "Boolean",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Name",
+          "predicate": "name",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [
+        {
+          "propertyName": "IsPartOf",
+          "predicate": "isPartOf",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "incomingRelations": [],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/86911364-c276-5265-939e-e6239faa7729"
+    },
+    {
+      "clrTypeIdentifier": "Homestia.Entities.RealEstate.Tenant",
+      "name": "Tenant",
+      "clrNamespace": "Homestia.Entities.RealEstate",
+      "assemblyName": "Homestia.Entities",
+      "entityPath": "agents",
+      "predicatePath": "tenant",
+      "iriPrefix": "https://aletheia.katharsis.digital/agents/",
+      "typeIri": "https://aletheia.katharsis.digital/types/agents/Tenant",
+      "definitionOrigin": "platform",
+      "isObjectBearing": false,
+      "identityStrategy": "Random",
+      "isEnumeration": false,
+      "baseEntityName": "Agent",
+      "properties": [
+        {
+          "propertyName": "DisplayName",
+          "predicate": "displayName",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Email",
+          "predicate": "email",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        },
+        {
+          "propertyName": "Phone",
+          "predicate": "phone",
+          "clrType": "String",
+          "isIdentityPart": false,
+          "identityPartOrder": -1,
+          "isRequired": false,
+          "description": "",
+          "labels": {},
+          "descriptions": {}
+        }
+      ],
+      "owningRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "Tenant",
+          "predicate": "tenant",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+          "relatedEntityName": "Rental",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false
+        }
+      ],
+      "description": "",
+      "labels": {},
+      "descriptions": {},
+      "enumerationValues": [],
+      "iri": "https://homestia.katharsis.digital/aletheia/entities/c5c198af-e9c0-57fa-9020-3327b6c640b0"
+    }
+  ],
+  "operationDefinitions": [
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/agents",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/bbbec863-f562-5710-a6d7-81a83a72d9e1"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/agents",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/ecb06bdd-4af1-5d38-bcef-dd09207f0731"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/agents",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/66f465e0-346d-59b6-b784-a70f5a9ec9bc"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/agents",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/4d241f46-b3b4-5ab1-b788-02a165937af2"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/agents",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/2b3562ef-1138-53ff-b98f-59293bc01f8f"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/common-areas",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/8936b731-7a13-5daf-8a79-122b538106d9"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/common-areas",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/b1b2ec2a-e40b-5a95-a571-13f541580975"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/common-areas",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/b2231191-d474-55f3-81bb-fef8b70c6d42"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/common-areas",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/5e35ca0f-9001-5626-a9fa-e2379882c2fd"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/common-areas",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/dabdce0f-0eb4-54dc-96aa-2446008b4007"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/90dd99c2-9b87-58f9-b19c-2db6de2245b4",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/furnishing-statuses",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/809e0f4c-a252-5898-a079-6e49d2a6fd5f"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/90dd99c2-9b87-58f9-b19c-2db6de2245b4",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/furnishing-statuses",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/6e4b4f4a-8161-5f20-bbb5-4eeaeb47a031"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/inventory-items",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/03408a73-c7e0-5c0b-a1b7-16231d9bcb86"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/inventory-items",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/b66cdcbf-0a78-5b1c-a4c8-e4c708f1e13d"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/inventory-items",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/b185699b-0e14-528c-85ce-e49bb337fb9d"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/inventory-items",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/1fb639dc-6497-5ec3-a089-4ed96c28841f"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/inventory-items",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/4f505c01-65b0-549e-bf60-af3d5d870dea"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/landlords",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/558fc8b2-2d5f-5177-b2ab-4516e9e63452"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/landlords",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/cb792f5b-f1b3-53ba-bd1a-7438773dfe88"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/landlords",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/29f39b3b-bf61-54ff-8555-769c774dda9b"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/landlords",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/26faba77-d54e-54a8-94fb-28d23a9bace5"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/landlords",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/489369b5-58bd-580e-a27c-8c569ebef895"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/properties",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/e8551066-6d84-500a-9a47-1ebffd2ccb00"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/properties",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/8c1dc057-aca7-5f1c-b4da-1e978ad72e2b"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/properties",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/d4bef6e7-2174-595c-bd1d-0bee65a1260f"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/properties",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/688bd88f-e5c2-5100-ae38-7e1279836c23"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/properties",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/2bf00ff4-bed3-57ab-a863-0571b7d3a742"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/73d02aa5-ee17-5db1-8af2-3b1fb8f2cf57",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/property-types",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/8b6a6b55-d711-5e98-9479-004c3f765741"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/73d02aa5-ee17-5db1-8af2-3b1fb8f2cf57",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/property-types",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/38f23dd6-0db8-5aa3-83fe-57ea219a3da0"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/rentals",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/b909e16f-850a-5b79-b100-5bb01da6deeb"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rentals",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/4b678117-7364-5c8c-a7dd-4975d64465fa"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rentals",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/80adc4d9-807e-555d-b23f-f811bd5a8c48"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/rentals",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/f48ce726-e4a4-5fc0-84ac-b2a292e570ba"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/rentals",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/8e14865f-691b-58e7-b9f1-9e3aca082009"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/rental-documents",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/53114247-5e60-5a71-8dc3-ba116b3b8be4"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rental-documents",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/00c6f91c-33ae-512e-a79f-f46f851908db"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rental-documents",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/39703304-8310-55a2-b1ae-438b9c5ccfc7"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/rental-documents",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/ff2117ae-de93-5055-9620-e3516cce2636"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/rental-documents",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/3f047c29-b4d7-5a01-ae99-41726235f48d"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+      "kind": "upload-content",
+      "httpMethod": "PUT",
+      "routePath": "api/objects/rental-documents/content",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/08ccfefb-5b54-5346-998b-a739bb6ad7ec"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+      "kind": "download-content",
+      "httpMethod": "GET",
+      "routePath": "api/objects/rental-documents/content",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/1c82220e-71a6-5102-8705-8f915ee75913"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb",
+      "kind": "delete-content",
+      "httpMethod": "DELETE",
+      "routePath": "api/objects/rental-documents/content",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/be7a968f-0abf-5fdc-bbfa-ceebe08637c8"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/b22360ed-5fa5-576f-bcb7-b86ea26cbd6f",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rental-models",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/cd4a098c-8f62-5a1e-b922-37b4735b1c8a"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/b22360ed-5fa5-576f-bcb7-b86ea26cbd6f",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rental-models",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/0e471b41-e7f6-5202-bcd7-143f7865612a"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/f3475c2c-f6cf-5571-88a0-200d4472db82",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rental-stages",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/12bfcd91-f54c-5ade-9b7d-49d393f39bab"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/f3475c2c-f6cf-5571-88a0-200d4472db82",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rental-stages",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/38d72411-4429-5e7c-9fba-421eaf29c08c"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/rooms",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/6ea02ff4-9f59-54a5-99d8-3b6d24450f5d"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rooms",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/76170329-8394-553b-9f4f-edf1df3b4388"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/rooms",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/701cc5b1-9774-50df-8ebe-c674c47c1821"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/rooms",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/f191833f-e7f7-5bce-aa5a-5f14817d8bb2"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/rooms",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/7a8dea4c-a107-5663-a01f-0c75db4ae1f8"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/29db6043-e027-541e-890b-73ad19ca3a66",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/room-statuses",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/840ee508-2ea2-54f5-a3c2-0cc8dc4ad2a2"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/29db6043-e027-541e-890b-73ad19ca3a66",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/room-statuses",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/dcc0cc04-08e1-5a01-a0d8-337cfb3ba130"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/segmentations",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/cbab59da-394a-534d-8701-9ed5865eb8c5"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/segmentations",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/c987cf6e-05db-5d43-b897-14abc5c66c92"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/segmentations",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/36c01f9b-3ee3-5c66-9246-a8156a00e20d"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/segmentations",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/03a324b9-8d54-5097-9390-5a46bf17dddc"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/segmentations",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/2ec1be2d-e016-5d99-b587-290b52d4eef1"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86911364-c276-5265-939e-e6239faa7729",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/studios",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/278fb790-8742-526e-8c17-0e79be58ae26"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86911364-c276-5265-939e-e6239faa7729",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/studios",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/8cb865dd-c084-526f-994d-8b2a0932bbaf"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86911364-c276-5265-939e-e6239faa7729",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/studios",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/b20585fd-71d5-5c4d-b707-1cdaa05f36aa"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86911364-c276-5265-939e-e6239faa7729",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/studios",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/b050c495-94e9-59c4-a51f-f5fb05e9ec99"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86911364-c276-5265-939e-e6239faa7729",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/studios",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/fc7ea9b0-2296-5783-b7f1-c3168e70a661"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/c5c198af-e9c0-57fa-9020-3327b6c640b0",
+      "kind": "create",
+      "httpMethod": "POST",
+      "routePath": "api/entities/tenants",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/f8872d0a-46e6-5296-b416-f38c725de549"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/c5c198af-e9c0-57fa-9020-3327b6c640b0",
+      "kind": "list",
+      "httpMethod": "GET",
+      "routePath": "api/entities/tenants",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/79038330-a588-5454-83d4-e7031a372837"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/c5c198af-e9c0-57fa-9020-3327b6c640b0",
+      "kind": "read",
+      "httpMethod": "GET",
+      "routePath": "api/entities/tenants",
+      "isExposed": true,
+      "isReadOnly": true,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/745b2db8-4e25-5d13-9e2b-acc6428c5f5a"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/c5c198af-e9c0-57fa-9020-3327b6c640b0",
+      "kind": "update",
+      "httpMethod": "PUT",
+      "routePath": "api/entities/tenants",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/deb73d02-07e9-5ade-97d3-8817d1d6afb6"
+    },
+    {
+      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/c5c198af-e9c0-57fa-9020-3327b6c640b0",
+      "kind": "delete",
+      "httpMethod": "DELETE",
+      "routePath": "api/entities/tenants",
+      "isExposed": true,
+      "isReadOnly": false,
+      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/63789043-de8f-57fb-af82-2cc02cac8097"
+    }
+  ],
+  "capabilityDefinitions": [
+    {
+      "capabilityIdentity": "program.greet",
+      "handlerTypeIdentifier": "Homestia.Capabilities.GreetHandler",
+      "handlerTypeName": "GreetHandler",
+      "handlerClrNamespace": "Homestia.Capabilities",
+      "assemblyName": "Homestia.Capabilities",
+      "commandTypeIdentifier": "Homestia.Capabilities.GreetCommand",
+      "commandTypeName": "GreetCommand",
+      "responseTypeIdentifier": "Homestia.Capabilities.GreetResponse",
+      "responseTypeName": "GreetResponse",
+      "routePath": "api/capabilities/program/greet",
+      "httpMethod": "POST",
+      "definitionOrigin": "platform",
+      "iri": "https://homestia.katharsis.digital/aletheia/capabilities/792ae33b-8f49-5c7b-842d-a42e6b3c062e"
+    }
+  ]
+}

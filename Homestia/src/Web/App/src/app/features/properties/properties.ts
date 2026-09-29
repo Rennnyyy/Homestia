@@ -1,25 +1,19 @@
-import { Component, computed, inject, signal, OnInit, viewChild, effect } from '@angular/core';
+import { AletheiaModelService, EntitySyncService, type EntityInfo } from '@rennnyyy/aletheia-core';
+import { ConfirmDialogComponent, EntityFormComponent, EntityTableComponent, type ColumnConfigs, type TableAction } from '@rennnyyy/aletheia-ui';
+
+import { Component, computed, inject, signal, OnInit, viewChild, viewChildren, effect } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmButton } from '@rennnyyy/aletheia-ui';
 import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen, LucideCheck, LucideSparkles, LucideAlertTriangle } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
-import { AletheiaHttpClient } from '../../shared/services/aletheia-http-client';
-import { EntitySyncService } from '../../shared/services/entity-sync.service';
-import { DynamicEntityFormComponent } from '../../shared/components/dynamic-entity-form/dynamic-entity-form.component';
-import { DynamicEntityTableComponent, type TableAction } from '../../shared/components/dynamic-entity-table/dynamic-entity-table.component';
-import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { AletheiaHttpClient } from '@rennnyyy/aletheia-core';
 import { AiAssistantWizardComponent } from '../../shared/components/ai-assistant-wizard/ai-assistant-wizard.component';
-import { PropertyEntity, type Property } from '../../entities/property.entity';
-import { RoomEntity } from '../../entities/room.entity';
-import {
-  ShaclValidatorService,
-  PROPERTY_SHAPE_IRI,
-  ROOM_SHAPE_IRI,
-  type ShapeViolation,
-} from '../../core/shapes';
-import type { AletheiaCollection } from '../../shared/services/aletheia-http-client.models';
+import { PropertyEntity, RoomEntity, type Property } from '../../entities';
+import { ShaclValidatorService, type ShapeViolation } from '@rennnyyy/aletheia-core';
+import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI } from '../../core/shapes/shape.model';
+import type { AletheiaCollection } from '@rennnyyy/aletheia-core';
 
 type PageMode = 'list' | 'create' | 'edit';
 type CreateStep = 'details' | 'room' | 'review';
@@ -43,8 +37,8 @@ interface CreateStepDef {
     LucideCheck,
     LucideSparkles,
     LucideAlertTriangle,
-    DynamicEntityFormComponent,
-    DynamicEntityTableComponent,
+    EntityFormComponent,
+    EntityTableComponent,
     ConfirmDialogComponent,
     AiAssistantWizardComponent,
     ...HlmAccordionImports,
@@ -116,24 +110,24 @@ interface CreateStepDef {
 
       <!-- List mode: table -->
       @if (mode() === 'list') {
-        <app-dynamic-entity-table
+        <aletheia-entity-table
           [entity]="entity"
-          [items]="items()"
+          [items]="tableItems()"
           [loading]="loading()"
           [error]="error()"
           [shapeKey]="PROPERTY_SHAPE_KEY"
-          [defaultVisibleColumns]="['name', 'address']"
-          [emptyMessage]="'nav.properties.empty'"
+          [columns]="tableColumns"
+          [emptyMessage]="'nav.properties.empty' | transloco"
           [actions]="rowActions"
           (rowClick)="onRowClick($event)"
           (refresh)="refresh()"
         />
         <!-- Delete confirmation dialog for list view -->
         @if (confirmingDelete() && deletingItem()) {
-          <app-confirm-dialog
-            [title]="'nav.properties.deleteTitle'"
-            [message]="'nav.properties.deleteConfirm'"
-            [confirmLabel]="'nav.properties.delete'"
+          <aletheia-confirm-dialog
+            [title]="'nav.properties.deleteTitle' | transloco"
+            [message]="'nav.properties.deleteConfirm' | transloco"
+            [confirmLabel]="'nav.properties.delete' | transloco"
             [destructive]="true"
             (confirmed)="onDelete()"
             (cancelled)="confirmingDelete.set(false); deletingItem.set(null)" />
@@ -167,13 +161,13 @@ interface CreateStepDef {
               </hlm-accordion-trigger>
               <hlm-accordion-content>
                 <div class="px-4" style="margin-top: 20px;">
-                  <app-dynamic-entity-form
+                  <aletheia-entity-form
                     [entity]="entity"
                     [mode]="pendingProperty() ? 'edit' : 'create'"
                     [value]="pendingProperty()"
                     [shapeKey]="PROPERTY_SHAPE_KEY"
-                    [showDescriptions]="false"
-                    [violations]="propertyViolations()" />
+                    [violations]="propertyViolations()"
+                    (saved)="onPropertySaved($event)" />
                 </div>
               </hlm-accordion-content>
             </hlm-accordion-item>
@@ -198,11 +192,12 @@ interface CreateStepDef {
                   </hlm-accordion-trigger>
                   <hlm-accordion-content>
                     <div class="px-4" style="margin-top: 15px;">
-                      <app-dynamic-entity-form
+                      <aletheia-entity-form
+                        #roomForm
                         [entity]="RoomEntity"
                         [mode]="'edit'"
                         [value]="room"
-                        [shapeKey]="ROOM_SHAPE_KEY" [showDescriptions]="false" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
+                        [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                     </div>
                   </hlm-accordion-content>
                 </hlm-accordion-item>
@@ -262,12 +257,11 @@ interface CreateStepDef {
           <!-- Step 1: Property details -->
           <div [class.hidden]="createStep() !== 'details'">
             <div class="border border-border rounded-lg px-4" style="padding-top: 12px;">
-              <app-dynamic-entity-form
+              <aletheia-entity-form
                 #mobileDetailsForm
                 [entity]="entity"
                 [mode]="'create'"
                 [shapeKey]="PROPERTY_SHAPE_KEY"
-                [showDescriptions]="false"
                 (saved)="pendingProperty.set($event)"
               />
             </div>
@@ -292,13 +286,12 @@ interface CreateStepDef {
                   <svg lucideChevronRight class="size-5"></svg>
                   <span>{{ rooms()[rooms().length - 1]['name'] || ('nav.properties.roomNew' | transloco) }}</span>
                 </div>
-                <app-dynamic-entity-form
+                <aletheia-entity-form
                   #mobileRoomForm
                   [entity]="RoomEntity"
                   [mode]="'edit'"
                   [value]="rooms()[rooms().length - 1]"
                   [shapeKey]="ROOM_SHAPE_KEY"
-                  [showDescriptions]="false"
                   [violations]="violationsForRoom(rooms().length - 1)"
                   (saved)="updateRoom(rooms().length - 1, $event)" />
               </div>
@@ -323,12 +316,11 @@ interface CreateStepDef {
             <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.reviewSubtext' | transloco }}</p>
             @if (pendingProperty()) {
               <div class="border border-border rounded-lg px-4" style="padding-top: 12px;">
-                <app-dynamic-entity-form
+                <aletheia-entity-form
                   [entity]="entity"
                   [mode]="'edit'"
                   [value]="pendingProperty()"
                   [shapeKey]="PROPERTY_SHAPE_KEY"
-                  [showDescriptions]="false"
                   [violations]="propertyViolations()" />
               </div>
             }
@@ -350,11 +342,12 @@ interface CreateStepDef {
                     </hlm-accordion-trigger>
                     <hlm-accordion-content>
                       <div class="px-4" style="margin-top: 15px;">
-                        <app-dynamic-entity-form
+                        <aletheia-entity-form
+                          #roomForm
                           [entity]="RoomEntity"
                           [mode]="'edit'"
                           [value]="room"
-                          [shapeKey]="ROOM_SHAPE_KEY" [showDescriptions]="false" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
+                          [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                       </div>
                     </hlm-accordion-content>
                   </hlm-accordion-item>
@@ -391,12 +384,11 @@ interface CreateStepDef {
             </hlm-accordion-trigger>
             <hlm-accordion-content>
               <div class="px-4" style="margin-top: 20px;">
-                <app-dynamic-entity-form
+                <aletheia-entity-form
                   [entity]="entity"
                   [mode]="'edit'"
                   [value]="editingItem()"
                   [shapeKey]="PROPERTY_SHAPE_KEY"
-                  [showDescriptions]="false"
                   (saved)="onPropertySaved($event)"
                 />
               </div>
@@ -423,11 +415,12 @@ interface CreateStepDef {
                 </hlm-accordion-trigger>
                 <hlm-accordion-content>
                   <div class="px-4" style="margin-top: 15px;">
-                    <app-dynamic-entity-form
+                    <aletheia-entity-form
+                      #roomForm
                       [entity]="RoomEntity"
                       [mode]="'edit'"
                       [value]="room"
-                      [shapeKey]="ROOM_SHAPE_KEY" [showDescriptions]="false" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
+                      [shapeKey]="ROOM_SHAPE_KEY" [violations]="violationsForRoom(i)" (saved)="updateRoom(i, $event)" />
                   </div>
                 </hlm-accordion-content>
               </hlm-accordion-item>
@@ -458,10 +451,10 @@ interface CreateStepDef {
 
       <!-- Delete confirmation dialog -->
       @if (confirmingDelete()) {
-        <app-confirm-dialog
-          [title]="'nav.properties.deleteTitle'"
-          [message]="'nav.properties.deleteConfirm'"
-          [confirmLabel]="'nav.properties.delete'"
+        <aletheia-confirm-dialog
+          [title]="'nav.properties.deleteTitle' | transloco"
+          [message]="'nav.properties.deleteConfirm' | transloco"
+          [confirmLabel]="'nav.properties.delete' | transloco"
           [destructive]="true"
           (confirmed)="onDelete()"
           (cancelled)="confirmingDelete.set(false); deletingItem.set(null)" />
@@ -576,19 +569,75 @@ interface CreateStepDef {
 export class Properties implements OnInit {
   private readonly aletheia = inject(AletheiaHttpClient);
   private readonly sync = inject(EntitySyncService);
+  private readonly model = inject(AletheiaModelService);
   private readonly validator = inject(ShaclValidatorService);
   private readonly route = inject(ActivatedRoute);
 
-  readonly entity = PropertyEntity;
-  readonly RoomEntity = RoomEntity;
+  readonly entity = this.entityInfoFor('property');
+
+  /**
+   * The properties table's columns: name first, then the address, with the
+   * other properties waiting in the column picker — the order the table showed
+   * before it derived its columns from the entity.
+   *
+   * Keyed by the entity's API ROUTE, which is what identifies the entity here.
+   */
+  readonly tableColumns: ColumnConfigs = {
+    properties: { order: ['name', 'address'], visible: ['name', 'address'] },
+  };
+  /** The room form's entity — the same source as the property's. */
+  readonly RoomEntity = this.entityInfoFor('room');
+
+  /**
+   * The `EntityInfo` the SDK's table and form take, straight from the backend's
+   * definitions (loaded before the app boots — see app.config). Reading it in a
+   * field initializer is why the model is an initializer and not a page fetch:
+   * without the definitions the page has no columns, no fields and no flags.
+   */
+  private entityInfoFor(predicatePath: string): EntityInfo {
+    const info = this.model.getEntity(predicatePath);
+    if (!info) {
+      throw new Error(
+        `The backend's definitions carry no '${predicatePath}' entity — the model did not load, so this page cannot render its fields.`,
+      );
+    }
+    return info;
+  }
   readonly PROPERTY_SHAPE_KEY = PROPERTY_SHAPE_IRI;
   readonly ROOM_SHAPE_KEY = ROOM_SHAPE_IRI;
   readonly AI_SCENARIO_CREATE_TEXT = 'property.create.text';
   readonly AI_SCENARIO_EDIT_TEXT = 'property.edit.text';
   readonly AI_SCENARIO_COMPLETE_TEXT = 'property.complete.text';
   readonly AI_SCENARIO_INTENT_TEXT = 'property.intent.text';
-  readonly formRef = viewChild(DynamicEntityFormComponent);
+  readonly formRef = viewChild(EntityFormComponent);
+
+  /**
+   * The operation aspect a property write carries. The PROPERTY view DECLARES it, so the form
+   * answers and the page never repeats the IRI — the constant stays as the fallback for a shape
+   * that declares nothing, and the conformance spec keeps the declaration in place.
+   */
+  private writeAspect(): string {
+    return this.formRef()?.operationAspect() ?? PROPERTY_OPERATION_IRI;
+  }
+
+  /**
+   * The room forms, by their own template ref — see {@link saveDesktopCreate}.
+   * A ref per room keeps the property's form out of the query, rather than
+   * relying on it happening to come first in the DOM.
+   */
+  readonly roomForms = viewChildren<EntityFormComponent>('roomForm');
   readonly items = signal<Property[]>([]);
+
+  /**
+   * The same rows in the shape the SDK table addresses them by: it reads a cell
+   * as `row[column.name]`, so its row contract is a string map, while `items`
+   * keeps the typed view the rest of the page works with. One documented
+   * widening at the one boundary that needs it.
+   */
+  readonly tableItems = computed<Record<string, unknown>[]>(
+    () => this.items() as unknown as Record<string, unknown>[],
+  );
+
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly mode = signal<PageMode>('list');
@@ -660,8 +709,8 @@ export class Properties implements OnInit {
   ];
   readonly createStep = signal<CreateStep>('details');
   readonly pendingProperty = signal<Record<string, unknown> | null>(null);
-  readonly mobileDetailsForm = viewChild<DynamicEntityFormComponent>('mobileDetailsForm');
-  readonly mobileRoomForm = viewChild<DynamicEntityFormComponent>('mobileRoomForm');
+  readonly mobileDetailsForm = viewChild<EntityFormComponent>('mobileDetailsForm');
+  readonly mobileRoomForm = viewChild<EntityFormComponent>('mobileRoomForm');
 
   readonly rowActions: TableAction[] = [
     { label: 'Edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
@@ -669,7 +718,10 @@ export class Properties implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.refresh();
+    // The link is recorded BEFORE the first load, and applied on arrival as well:
+    // the query params can change while this page is already on screen (a second
+    // "manage" click from rentals reuses the component), and waiting for a load
+    // that has already happened would silently drop the link.
     this.route.queryParams.subscribe((qp) => {
       const mode = qp['mode'];
       if (mode === 'create') {
@@ -679,25 +731,31 @@ export class Properties implements OnInit {
       } else {
         this.deepLink = null;
       }
+      this.processDeepLink();
     });
+    this.refresh();
   }
 
-  /** Applies a deep link (e.g. from rentals) once the list has loaded. */
+  /** Applies a deep link (e.g. from rentals) as soon as the list can satisfy it. */
   private processDeepLink(): void {
     const dl = this.deepLink;
     if (!dl) return;
-    this.deepLink = null;
     if (dl.mode === 'create') {
+      this.deepLink = null;
       this.enterCreate();
       return;
     }
-    if (dl.iri) {
-      const item = this.items().find((p) => p['iri'] === dl.iri);
-      if (item) {
-        this.pendingRoomIri = dl.room ?? null;
-        this.enterEdit(item as unknown as Record<string, unknown>);
-      }
+    if (!dl.iri) {
+      this.deepLink = null;
+      return;
     }
+    const item = this.items().find((p) => p['iri'] === dl.iri);
+    // The list may not have arrived yet: keep the link pending, so the load that
+    // follows still applies it instead of the link being consumed for nothing.
+    if (!item) return;
+    this.deepLink = null;
+    this.pendingRoomIri = dl.room ?? null;
+    this.enterEdit(item as unknown as Record<string, unknown>);
   }
 
   /** Open the AI creation wizard as an overlay over the list view. */
@@ -758,26 +816,7 @@ export class Properties implements OnInit {
 
     // No rooms in the proposal — load the existing ones as in enterEdit.
     this.rooms.set([]);
-    // segmentedInto is a runtime inverse field (not part of the entity definition).
-    const children = (existing as unknown as Record<string, unknown>)['segmentedInto'];
-    if (Array.isArray(children) && children.length > 0) {
-      const roomIRIs: string[] = children
-        .map((c: unknown) => {
-          if (typeof c === 'object' && c !== null && 'iri' in (c as object)) return (c as { iri: string }).iri;
-          if (typeof c === 'string') return c;
-          return '';
-        })
-        .filter(Boolean);
-      if (roomIRIs.length > 0) {
-        const fetches = roomIRIs.map((riri) =>
-          this.aletheia.get<Record<string, unknown>>(RoomEntity.entityPath!, riri),
-        );
-        forkJoin(fetches).subscribe((loadedRooms) => {
-          this.rooms.set(loadedRooms as Record<string, unknown>[]);
-          this.originalRooms.set(structuredClone(loadedRooms) as Record<string, unknown>[]);
-        });
-      }
-    }
+    this.loadRooms(existing as unknown as Record<string, unknown>);
     await this.refreshAiWarnings(data);
   }
 
@@ -818,7 +857,7 @@ export class Properties implements OnInit {
   refresh(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.aletheia.list<Property>(this.entity.entityPath!).subscribe({
+    this.aletheia.query<Property>(PropertyEntity.operationRoute).subscribe({
       next: (res: AletheiaCollection<Property>) => {
         this.items.set(res.items ?? []);
         this.loading.set(false);
@@ -857,23 +896,33 @@ export class Properties implements OnInit {
     this.aiWarnings.set([]);
     this.mode.set('edit');
 
-    // Load existing rooms from segmentedInto (inherited from Segmentation)
-    const children = item['segmentedInto'];
-    if (Array.isArray(children) && children.length > 0) {
-      const roomIRIs: string[] = children.map((c: unknown) => {
-        if (typeof c === 'object' && c !== null && 'iri' in (c as object)) return (c as { iri: string }).iri;
-        if (typeof c === 'string') return c;
-        return '';
-      }).filter(Boolean);
+    // Load the rooms that name this property as their parent.
+    this.loadRooms(item);
+  }
 
-      if (roomIRIs.length > 0) {
-        const fetches = roomIRIs.map((iri) => this.aletheia.get<Record<string, unknown>>(RoomEntity.entityPath!, iri));
-        forkJoin(fetches).subscribe((loadedRooms) => {
-          this.rooms.set(loadedRooms as Record<string, unknown>[]);
-          this.originalRooms.set(structuredClone(loadedRooms) as Record<string, unknown>[]);
-        });
-      }
-    }
+  /**
+   * The rooms of a property, read from the rooms themselves.
+   *
+   * A room names its property in `isPartOf`; the property's `segmentedInto` is a runtime INVERSE
+   * field that this store never materializes — reading it returned nothing, so a property that had
+   * just been saved with rooms looked as if its rooms had been lost, even though every room had
+   * been written with the parent link. The child's own predicate is the only side of the link that
+   * is always true, so it is the side this page reads.
+   */
+  private loadRooms(property: Record<string, unknown>): void {
+    const iri = typeof property['iri'] === 'string' ? (property['iri'] as string) : '';
+    if (!iri) return;
+
+    this.aletheia
+      .query<Record<string, unknown>>(RoomEntity.operationRoute, {
+        where: { pred: 'isPartOf', op: 'eq', value: iri },
+        count: 'none',
+      })
+      .subscribe((res) => {
+        const loadedRooms = res.items ?? [];
+        this.rooms.set(loadedRooms as Record<string, unknown>[]);
+        this.originalRooms.set(structuredClone(loadedRooms) as Record<string, unknown>[]);
+      });
   }
 
   exitCreate(): void {
@@ -895,10 +944,11 @@ export class Properties implements OnInit {
     this.error.set(null);
 
     this.sync.deleteWithChildren({
-      parentPath: this.entity.entityPath!,
+      parentPath: PropertyEntity.operationRoute,
       parentIRI: item['iri'] as string,
-      childPath: RoomEntity.entityPath!,
+      childPath: RoomEntity.operationRoute,
       children: this.rooms(),
+      operationAspectIri: this.writeAspect(),
     }).subscribe({
       next: () => {
         this.confirmingDelete.set(false);
@@ -922,9 +972,15 @@ export class Properties implements OnInit {
    * a second attempt. (The mobile wizard keeps its step-by-step flow.)
    */
   async saveDesktopCreate(): Promise<void> {
-    const form = this.formRef();
-    if (!form) return;
-    await this.onPropertySaved({ ...form.formData() });
+    // A form owns its draft and hands it back only when it saves, so the room
+    // forms must be asked FIRST: the composite validation below reads the page's
+    // `rooms()`, and judging the untouched copies would reject the very rooms the
+    // user just filled. A room whose own view does not conform returns false and
+    // emits nothing — its errors then surface through the composite validation,
+    // which is what the user sees.
+    for (const room of this.roomForms()) await room.save();
+
+    await this.formRef()?.save();
   }
 
   /**
@@ -951,11 +1007,12 @@ export class Properties implements OnInit {
     this.error.set(null);
 
     this.sync.saveWithChildren({
-      parentPath: this.entity.entityPath!,
+      parentPath: PropertyEntity.operationRoute,
       parentData: data,
-      childPath: RoomEntity.entityPath!,
+      childPath: RoomEntity.operationRoute,
       childParentField: 'isPartOf',
       children: this.rooms(),
+      operationAspectIri: this.writeAspect(),
     }).subscribe({
       next: () => {
         this.mode.set('list');
@@ -977,13 +1034,14 @@ export class Properties implements OnInit {
     this.error.set(null);
 
     this.sync.saveWithChildren({
-      parentPath: this.entity.entityPath!,
+      parentPath: PropertyEntity.operationRoute,
       parentData: data,
       parentIRI: item['iri'] as string,
-      childPath: RoomEntity.entityPath!,
+      childPath: RoomEntity.operationRoute,
       childParentField: 'isPartOf',
       children: this.rooms(),
       originalChildren: this.originalRooms(),
+      operationAspectIri: this.writeAspect(),
     }).subscribe({
       next: () => {
         this.mode.set('list');

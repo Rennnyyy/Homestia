@@ -739,7 +739,7 @@ describe('Rentals page', () => {
       mount();
       await fixture.whenStable();
 
-      page.rowActions.find((a) => a.label === 'Delete')!.action(page.items()[0]);
+      page.rowActions.find((a) => a.label === 'common.delete')!.action(page.items()[0]);
       fixture.detectChanges();
       expect(page.confirmingDelete()).toBe(true);
 

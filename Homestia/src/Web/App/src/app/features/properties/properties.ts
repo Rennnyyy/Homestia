@@ -176,7 +176,7 @@ interface CreateStepDef {
                       <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
                     </div>
                     <div class="flex-1"></div>
-                    <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="order: 10; margin-left: 30px; margin-right: 8px;">
+                    <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" [title]="'nav.properties.removeRoom' | transloco" style="order: 10; margin-left: 30px; margin-right: 8px;">
                       <svg lucideTrash style="width: 30px; height: 30px;"></svg>
                     </button>
                   </hlm-accordion-trigger>
@@ -205,7 +205,7 @@ interface CreateStepDef {
             <button hlmBtn variant="outline" class="text-foreground" (click)="exitCreate()">
               {{ 'common.cancel' | transloco }}
             </button>
-            <button hlmBtn (click)="saveDesktopCreate()">
+            <button hlmBtn (click)="saveWithRooms()">
               {{ 'nav.properties.save' | transloco }}
             </button>
           </div>
@@ -326,7 +326,7 @@ interface CreateStepDef {
                         <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
                       </div>
                       <div class="flex-1"></div>
-                      <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="order: 10; margin-left: 30px; margin-right: 8px;">
+                      <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" [title]="'nav.properties.removeRoom' | transloco" style="order: 10; margin-left: 30px; margin-right: 8px;">
                         <svg lucideTrash style="width: 30px; height: 30px;"></svg>
                       </button>
                     </hlm-accordion-trigger>
@@ -399,7 +399,7 @@ interface CreateStepDef {
                     <span>{{ room['name'] || ('nav.properties.roomNew' | transloco) }}</span>
                   </div>
                   <div class="flex-1"></div>
-                  <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" title="Remove room" style="order: 10; margin-left: 30px; margin-right: 8px;">
+                  <button hlmBtn variant="ghost" size="icon-xs" class="text-destructive" (click)="removeRoom(i); $event.stopPropagation()" [title]="'nav.properties.removeRoom' | transloco" style="order: 10; margin-left: 30px; margin-right: 8px;">
                     <svg lucideTrash style="width: 30px; height: 30px;"></svg>
                   </button>
                 </hlm-accordion-trigger>
@@ -433,7 +433,7 @@ interface CreateStepDef {
           <button hlmBtn variant="outline" class="text-foreground" (click)="exitCreate()">
             {{ 'common.cancel' | transloco }}
           </button>
-          <button hlmBtn (click)="formRef()?.save()">
+          <button hlmBtn (click)="saveWithRooms()">
             {{ 'nav.properties.save' | transloco }}
           </button>
         </div>
@@ -613,7 +613,7 @@ export class Properties implements OnInit {
   }
 
   /**
-   * The room forms, by their own template ref — see {@link saveDesktopCreate}.
+   * The room forms, by their own template ref — see {@link saveWithRooms}.
    * A ref per room keeps the property's form out of the query, rather than
    * relying on it happening to come first in the DOM.
    */
@@ -704,9 +704,10 @@ export class Properties implements OnInit {
   readonly mobileDetailsForm = viewChild<EntityFormComponent>('mobileDetailsForm');
   readonly mobileRoomForm = viewChild<EntityFormComponent>('mobileRoomForm');
 
+  /** A row action's `label` is a TRANSLATION KEY, not a literal — see the rentals page. */
   readonly rowActions: TableAction[] = [
-    { label: 'Edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
-    { label: 'Delete', icon: 'trash', action: (item) => { this.deletingItem.set(item); this.confirmingDelete.set(true); } },
+    { label: 'common.edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
+    { label: 'common.delete', icon: 'trash', action: (item) => { this.deletingItem.set(item); this.confirmingDelete.set(true); } },
   ];
 
   ngOnInit(): void {
@@ -958,21 +959,32 @@ export class Properties implements OnInit {
   }
 
   /**
-   * Desktop (non-mobile) create save — validates the property AND its rooms
-   * as ONE composite document, so every violation (property and room) shows on
-   * the first press instead of property errors first and room errors only on
-   * a second attempt. (The mobile wizard keeps its step-by-step flow.)
+   * Save the property together with its rooms — the ONE save path, for the create form and the
+   * edit form alike.
+   *
+   * The property form's `save()` emits the payload that `onPropertySaved` validates as ONE composite
+   * document, so every violation — property and room — shows on the first press instead of property
+   * errors first and room errors only on a second attempt. (The mobile wizard keeps its step-by-step
+   * flow.)
    */
-  async saveDesktopCreate(): Promise<void> {
-    // A form owns its draft and hands it back only when it saves, so the room
-    // forms must be asked FIRST: the composite validation below reads the page's
-    // `rooms()`, and judging the untouched copies would reject the very rooms the
-    // user just filled. A room whose own view does not conform returns false and
-    // emits nothing — its errors then surface through the composite validation,
-    // which is what the user sees.
-    for (const room of this.roomForms()) await room.save();
-
+  async saveWithRooms(): Promise<void> {
+    await this.captureRooms();
     await this.formRef()?.save();
+  }
+
+  /**
+   * Ask every room form for the draft it owns.
+   *
+   * A form owns its draft and hands it back only when it saves, so a room's typed values reach the
+   * page's `rooms()` — the collection every save path sends — only through the room form's own
+   * `save()`. Skipping this leaves `rooms()` holding the drafts the page seeded, so the save
+   * validates rooms the user has just filled in, reports them as blank, and the write is rejected.
+   *
+   * A room whose own view does not conform returns false and emits nothing — its errors then surface
+   * through the composite validation, which is what the user sees.
+   */
+  private async captureRooms(): Promise<void> {
+    for (const room of this.roomForms()) await room.save();
   }
 
   /**
@@ -1160,8 +1172,15 @@ export class Properties implements OnInit {
     });
   }
 
-  /** Persist the drafted property and its rooms — backend-validated. */
+  /**
+   * Persist the drafted property and its rooms — backend-validated.
+   *
+   * The rooms are captured first for the same reason the create and edit saves capture them: a room
+   * added or edited in the review step lives in its own form's draft, and this validation reads
+   * `rooms()`.
+   */
   async finalSave(): Promise<void> {
+    await this.captureRooms();
     const data = this.pendingProperty() ?? {};
     this.validationErrors.set([]);
     const violations = await this.validator.validate(PROPERTY_SHAPE_IRI, {

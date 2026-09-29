@@ -311,14 +311,27 @@ describe('Properties page', () => {
       expect(page.mode()).toBe('list');
     });
 
-    it('asks the desktop form to save rather than reading it itself', async () => {
+    it('asks the room forms for their drafts BEFORE the property form saves', async () => {
       mount();
-      const save = vi.fn(async () => undefined);
-      vi.spyOn(page, 'formRef').mockReturnValue({ save } as never);
+      // A form hands its draft back only when it saves, so a room's typed values reach `rooms()` —
+      // the collection the composite validation reads — only if the room forms are asked FIRST.
+      // Saving the property first validates the drafts the page seeded: the values the user typed
+      // are reported blank and the write is rejected.
+      const order: string[] = [];
+      const roomSave = vi.fn(async () => {
+        order.push('room');
+        return true;
+      });
+      const propertySave = vi.fn(async () => {
+        order.push('property');
+        return true;
+      });
+      vi.spyOn(page, 'roomForms').mockReturnValue([{ save: roomSave }] as never);
+      vi.spyOn(page, 'formRef').mockReturnValue({ save: propertySave } as never);
 
-      await page.saveDesktopCreate();
+      await page.saveWithRooms();
 
-      expect(save).toHaveBeenCalled();
+      expect(order).toEqual(['room', 'property']);
     });
   });
 
@@ -327,7 +340,7 @@ describe('Properties page', () => {
       mount();
       const item = { iri: 'https://example.test/properties/1', name: 'Haus A' };
 
-      const deleteAction = page.rowActions.find((a) => a.label === 'Delete')!;
+      const deleteAction = page.rowActions.find((a) => a.label === 'common.delete')!;
       deleteAction.action(item);
       fixture.detectChanges();
 
@@ -348,7 +361,7 @@ describe('Properties page', () => {
       mount();
       const item = { iri: 'https://example.test/properties/1', name: 'Haus A' };
 
-      page.rowActions.find((a) => a.label === 'Edit')!.action(item);
+      page.rowActions.find((a) => a.label === 'common.edit')!.action(item);
       fixture.detectChanges();
 
       expect(page.mode()).toBe('edit');
@@ -507,6 +520,19 @@ describe('Properties page', () => {
       );
       expect(page.validationErrors()).toHaveLength(1);
       expect(sync.saveWithChildren).not.toHaveBeenCalled();
+    });
+
+    it('asks the room forms before the mobile review validates', async () => {
+      validator.validate.mockResolvedValue([]);
+      mount();
+      page.enterCreate();
+      page.pendingProperty.set({ name: 'Haus A' });
+      const roomSave = vi.fn(async () => true);
+      vi.spyOn(page, 'roomForms').mockReturnValue([{ save: roomSave }] as never);
+
+      await page.finalSave();
+
+      expect(roomSave).toHaveBeenCalled();
     });
 
     it('saves the drafted property and its rooms once the shape conforms', async () => {

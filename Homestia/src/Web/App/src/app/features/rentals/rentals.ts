@@ -459,6 +459,10 @@ export class Rentals implements OnInit {
         tenant: (value) => this.tenantLabel(value),
         property: (value) => this.propertyLabel(value),
         currentStage: (value) => this.stageLabel(value),
+        // A count of documents reads as documents, not as "3 item(s)" — the count is this column's
+        // sentence, and the table asks the row type for it. (The SDK's own count is English for
+        // every host that does not name its unit.)
+        rentalDocuments: (value) => this.documentCountLabel(value),
       },
     },
   };
@@ -547,6 +551,19 @@ export class Rentals implements OnInit {
     const known = this.stages.find((stage) => this.stageByKey().get(stage.key) === wanted);
     return known ? this.transloco.translate(known.labelKey) : wanted;
   }
+
+  /**
+   * What the list's Rental Documents cell shows: how many documents the rental carries.
+   *
+   * The count is a sentence, so it is translated with its number as a parameter, and the fallback is
+   * written here rather than assumed — a key that stops resolving must not print itself.
+   */
+  documentCountLabel(value: unknown): string {
+    const count = Array.isArray(value) ? value.length : 0;
+    const key = 'rentals.documentCount';
+    const translated = this.transloco.translate(key, { count });
+    return translated && translated !== key ? translated : `${count} item(s)`;
+  }
   readonly rooms = signal<{ iri: string; name: string; isPartOf: unknown }[]>([]);
   private readonly stageByKey = signal<Map<string, string>>(new Map());
 
@@ -585,9 +602,13 @@ export class Rentals implements OnInit {
   readonly tenantEntity = this.entityInfoFor('tenant');
   readonly tenantShapeKey = TENANT_SHAPE_IRI;
 
+  /**
+   * A row action's `label` is a TRANSLATION KEY — the table renders it through the transloco pipe.
+   * Literals here read as English in every language, which is what they used to do.
+   */
   readonly rowActions: TableAction[] = [
-    { label: 'Edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
-    { label: 'Delete', icon: 'trash', action: (item) => { this.deletingItem.set(item); this.confirmingDelete.set(true); } },
+    { label: 'common.edit', icon: 'pencil', action: (item) => this.enterEdit(item) },
+    { label: 'common.delete', icon: 'trash', action: (item) => { this.deletingItem.set(item); this.confirmingDelete.set(true); } },
   ];
 
   ngOnInit(): void {

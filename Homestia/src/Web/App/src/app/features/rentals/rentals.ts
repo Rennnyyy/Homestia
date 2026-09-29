@@ -12,7 +12,7 @@ import { Component, computed, inject, signal, effect, OnInit, viewChild } from '
 import { HttpHeaders } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { forkJoin, lastValueFrom } from 'rxjs';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { HlmButton } from '@rennnyyy/aletheia-ui';
 import {
   LucideFileSignature, LucidePlus, LucideChevronRight, LucideTrash,
@@ -419,6 +419,7 @@ export class Rentals implements OnInit {
   private readonly aletheia = inject(AletheiaHttpClient);
   private readonly validator = inject(ShaclValidatorService);
   private readonly model = inject(AletheiaModelService);
+  private readonly transloco = inject(TranslocoService);
 
   readonly entity = this.entityInfoFor('rental');
 
@@ -444,11 +445,21 @@ export class Rentals implements OnInit {
    *
    * Keyed by the entity's API ROUTE, which is what identifies the entity here.
    */
+  /**
+   * The list's columns. A rental names its tenant, its property and its stage by IRI, and the table
+   * shows a reference it cannot resolve as its last path segment — a bare identifier. Naming them is
+   * the row type's job, and `formatters` is where the table asks for it.
+   */
   readonly tableColumns: ColumnConfigs = {
     rentals: {
       order: ['tenant', 'rentalDocuments', 'property', 'currentStage'],
       visible: ['tenant', 'rentalDocuments', 'property', 'currentStage'],
       restrict: true,
+      formatters: {
+        tenant: (value) => this.tenantLabel(value),
+        property: (value) => this.propertyLabel(value),
+        currentStage: (value) => this.stageLabel(value),
+      },
     },
   };
   readonly stages = STAGES;
@@ -495,7 +506,47 @@ export class Rentals implements OnInit {
   readonly deletingItem = signal<Record<string, unknown> | null>(null);
 
   // ── Reference lookups (for display labels + options) ────────────────────
+  /**
+   * The tenants, for the reference cells of the list. Kept as `{iri, displayName}` because that is
+   * what the list needs and what the selector already receives.
+   */
   readonly tenants = signal<{ iri: string; displayName: string }[]>([]);
+
+  /** The properties, for the list's Property cell — a rental names one by IRI alone. */
+  readonly properties = signal<{ iri: string; name: string }[]>([]);
+
+  /**
+   * What the list's Tenant cell shows: the tenant's name, or its IRI when the name is not loaded.
+   *
+   * The table renders a reference it was handed the raw IRI for as an em dash, because resolving
+   * one entity from another is not the table's business — and a row of em dashes tells a reader
+   * nothing about which rental is which. This page holds both registries already, so it names them.
+   */
+  tenantLabel(iri: unknown): string {
+    const wanted = refIri(iri);
+    if (!wanted) return '';
+    return this.tenants().find((tenant) => tenant.iri === wanted)?.displayName ?? wanted;
+  }
+
+  /** What the list's Property cell shows: the property's name, or its IRI. */
+  propertyLabel(iri: unknown): string {
+    const wanted = refIri(iri);
+    if (!wanted) return '';
+    return this.properties().find((property) => property.iri === wanted)?.name ?? wanted;
+  }
+
+  /**
+   * What the list's Current Stage cell shows: the stage's translated name.
+   *
+   * The stage registry maps a KEY to an IRI, so its inverse names the stage a rental stands on; a
+   * stage the registry does not know is shown as the IRI it was given rather than as nothing.
+   */
+  stageLabel(iri: unknown): string {
+    const wanted = refIri(iri);
+    if (!wanted) return '';
+    const known = this.stages.find((stage) => this.stageByKey().get(stage.key) === wanted);
+    return known ? this.transloco.translate(known.labelKey) : wanted;
+  }
   readonly rooms = signal<{ iri: string; name: string; isPartOf: unknown }[]>([]);
   private readonly stageByKey = signal<Map<string, string>>(new Map());
 
@@ -700,12 +751,14 @@ export class Rentals implements OnInit {
       rentals: this.aletheia.query<Record<string, unknown>>('rentals', {}, stateHeaders),
       tenants: this.aletheia.query<{ iri: string; displayName: string }>('tenants'),
       rooms: this.aletheia.query<{ iri: string; name: string; isPartOf: unknown }>('rooms'),
+      properties: this.aletheia.query<{ iri: string; name: string }>('properties'),
       stages: this.aletheia.query<{ iri: string; key: string; displayName: string }>('rental-stages'),
     }).subscribe({
-      next: ({ rentals, tenants, rooms, stages }) => {
+      next: ({ rentals, tenants, rooms, properties, stages }) => {
         this.items.set(rentals.items ?? []);
         this.tenants.set(tenants.items ?? []);
         this.rooms.set(rooms.items ?? []);
+        this.properties.set(properties.items ?? []);
         const keyMap = new Map<string, string>();
         for (const s of stages.items ?? []) keyMap.set(s.key, s.iri);
         this.stageByKey.set(keyMap);

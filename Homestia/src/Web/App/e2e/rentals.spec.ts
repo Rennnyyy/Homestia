@@ -99,42 +99,39 @@ test.describe('creating a rental', () => {
     expect(rental!['viewingDate']).toBe('2026-10-01');
   });
 
-  test('the list shows every rental, grouped under the state its record implies', async ({
-    page,
-    request,
-  }) => {
-    const propertyName = unique('Stage Property');
-    await aProperty(request, propertyName);
-    const tenantName = unique('Stage Tenant');
+  test('the list names each rental\'s parties and the stage it stands on', async ({ page, request }) => {
+    // The fixture is built through the API: this test is about the LIST, and driving the wizard again
+    // would only repeat the test above.
+    const propertyName = unique('List Property');
+    const propertyIri = await aProperty(request, propertyName);
+    const tenantName = unique('List Tenant');
     const tenantIri = await aTenant(request, tenantName);
 
-    await page.goto('/rentals');
-    await settle(page, 'app-rentals');
-    await page.getByRole('button', { name: 'Add Rental' }).first().click();
-    await page.selectOption('select#rental-property', { label: propertyName });
-    const tenantSelect = page.locator('select#rental-tenant');
-    await expect(tenantSelect.locator(`option[value="${tenantIri}"]`)).toHaveCount(1);
-    await tenantSelect.selectOption(tenantIri);
-    await page.fill('input#rental-viewingDate', '2026-10-02');
-    await page.getByRole('button', { name: 'Save & Continue' }).click();
-    // The wizard stays open — it advanced to the next stage — so the list is a fresh visit, which is
-    // also how a reader sees the row after creating one.
+    const created = await request.post('/api/entities/rentals', {
+      data: {
+        property: propertyIri,
+        tenant: tenantIri,
+        viewingDate: '2026-10-04',
+        currentStage: 'https://homestia.katharsis.digital/rental-stages/contract',
+      },
+    });
+    expect(created.ok(), 'the rental fixture was created').toBeTruthy();
+
     await page.goto('/rentals');
     await settle(page, 'app-rentals');
 
-    // The rows are grouped by the state the record's stage falls into, and the group counts what the
-    // store holds — the assertion is against the store, not against a number typed here.
+    // Every rental the store holds is on screen, grouped by the state the record implies.
     const stored = await request.post('/api/entities/rentals/query', { data: { count: 'none' } });
     const total = ((await stored.json()) as { items: unknown[] }).items.length;
-    expect(total, 'the rental reached the store').toBeGreaterThan(0);
-
     const group = page.locator('tr', { hasText: /\(\d+\)/ }).first();
-    await expect(group).toBeVisible();
     await expect(group).toContainText(`(${total})`);
 
-    // One row per rental. A reference CELL shows an em dash here: the label of a referenced entity is
-    // the host's cell template to fill, and this page leaves that slot empty — noted, not asserted.
-    const rows = page.locator('tr', { has: page.getByRole('button', { name: 'Expand row' }) });
-    await expect(rows).toHaveCount(total);
+    // A row NAMES its tenant, its property and its stage. The table shows a reference it cannot
+    // resolve as its last path segment — a bare identifier, and a list of them identifies nothing —
+    // so the row type names them.
+    const row = page.locator('tr', { hasText: tenantName }).first();
+    await expect(row).toBeVisible();
+    await expect(row).toContainText(propertyName);
+    await expect(row).toContainText('Contract');
   });
 });

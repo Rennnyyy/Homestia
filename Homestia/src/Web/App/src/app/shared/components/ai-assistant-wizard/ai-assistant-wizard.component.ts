@@ -1,6 +1,6 @@
 import { Component, HostListener, inject, input, output, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmButton } from '@rennnyyy/aletheia-ui';
 import { LucideSparkles, LucideX, LucideCheck, LucideChevronRight } from '@lucide/angular';
 import { AiAssistantPanelComponent } from '../ai-assistant-panel/ai-assistant-panel.component';
 

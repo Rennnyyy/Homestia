@@ -23,12 +23,13 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Aletheia SDK version consumed from the GitHub Packages feed. Must match a
-         published package version: a stable tag (v0.9.0 → 0.9.0) or a CI
-         prerelease (<base>-ci.<sha>, e.g. 0.9.0-ci.d9b6416). Override locally
+    <!-- Aletheia SDK version consumed from the GitHub Packages feed — the single
+         source of truth: Directory.Packages.props drives every Aletheia.Sdk.*
+         package version from this property, so an upgrade is one edit here.
+         Must match a published package version (e.g. 0.9.5). Override locally
          with -p:AletheiaSdkVersion=... (see scripts/build-local.sh).
-         NOTE: NuGet floating versions (e.g. 0.9.0-ci.*) are NOT supported under
-         central package management — bump this line to track a newer CI build. -->
-    <AletheiaSdkVersion>0.9.0-ci.d9b6416</AletheiaSdkVersion>
+         NOTE: NuGet floating versions are NOT supported under central package
+         management. The pin is deliberate — there is no version resolution. -->
+    <AletheiaSdkVersion>0.9.6-rc.63ed641</AletheiaSdkVersion>
   </PropertyGroup>
 </Project>

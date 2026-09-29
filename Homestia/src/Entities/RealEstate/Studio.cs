@@ -8,6 +8,8 @@ namespace Homestia.Entities.RealEstate;
 /// representing a self-contained living unit that combines living, sleeping, and
 /// kitchenette areas in a single open space without separate bedrooms.
 /// </summary>
+    [Label("Studio")]
+    [Label("de", "Studio")]
 [Entity(PredicatePath = "studio")]
 [OperationEndpoints("studios")]
 public partial class Studio : Segmentation

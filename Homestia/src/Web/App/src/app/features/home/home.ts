@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { HlmCard } from '@spartan-ng/helm/card';
+import { HlmCard } from '@rennnyyy/aletheia-ui';
 import { LucideHouse } from '@lucide/angular';
 
 @Component({

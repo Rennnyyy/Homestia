@@ -1,40 +1,17 @@
-// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
-// Entity: Property  |  predicatePath: "property"  |  enum: false
-
-import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
-
-// ── API response interface ────────────────────────────────────────────────
-
+/** Entity type for Property — generated from backend introspection. Do not edit. */
 export interface Property {
+  /** The record's IRI — the identity every route is called with. */
+  iri: string;
+  /** isCommonArea */
+  isCommonArea: boolean;
+  /** name */
+  name: string;
   /** address */
   address: string;
-  /** isPartOf → Property */
+  /** isPartOf (EntityRef → Property) */
   isPartOf: unknown;
-  /** propertyType → PropertyType */
+  /** propertyType (EntityRef → PropertyType) */
   propertyType: unknown;
-  /** rentalModel → RentalModel */
+  /** rentalModel (EntityRef → RentalModel) */
   rentalModel: unknown;
-  /** The entity's unique IRI. */
-  iri: string;
-  /** Inherited — resolved from entity hierarchy. */
-  isCommonArea: boolean;
-  /** Inherited — resolved from entity hierarchy. */
-  name: string;
 }
-
-// ── Dynamic form definition ───────────────────────────────────────────────
-
-/** Pass to &lt;app-dynamic-entity-form [entity]="PropertyEntity"&gt; */
-export const PropertyEntity: EntityInfo = {
-  entityPath: 'properties',
-  predicatePath: 'property',
-  displayName: 'Property',
-  properties: [
-    { name: 'address', type: 'String', isCollection: false },
-    { name: 'isPartOf', type: 'EntityRef', isCollection: false, targetEntityPath: 'properties' },
-    { name: 'propertyType', type: 'EntityRef', isCollection: false, targetEntityPath: 'property-types' },
-    { name: 'rentalModel', type: 'EntityRef', isCollection: false, targetEntityPath: 'rental-models' },
-    { name: 'isCommonArea', type: 'Boolean', isCollection: false },
-    { name: 'name', type: 'String', isCollection: false },
-  ],
-};

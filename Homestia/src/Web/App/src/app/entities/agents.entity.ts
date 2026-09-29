@@ -1,25 +1,7 @@
-// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
-// Entity: Agent  |  predicatePath: "agents"  |  enum: false
-
-import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
-
-// ── API response interface ────────────────────────────────────────────────
-
+/** Entity type for Agent — generated from backend introspection. Do not edit. */
 export interface Agents {
+  /** The record's IRI — the identity every route is called with. */
+  iri: string;
   /** displayName */
   displayName: string;
-  /** The entity's unique IRI. */
-  iri: string;
 }
-
-// ── Dynamic form definition ───────────────────────────────────────────────
-
-/** Pass to &lt;app-dynamic-entity-form [entity]="AgentsEntity"&gt; */
-export const AgentsEntity: EntityInfo = {
-  entityPath: 'agents',
-  predicatePath: 'agents',
-  displayName: 'Agent',
-  properties: [
-    { name: 'displayName', type: 'String', isCollection: false },
-  ],
-};

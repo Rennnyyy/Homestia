@@ -3,7 +3,8 @@ name: build-and-deploy
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
 
 env:
   IMAGE: ghcr.io/rennnyyy/homestia
@@ -16,13 +17,72 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
         with:
           path: Homestia
-      - name: Tests
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # The frontend packages live in the Aletheia repo's GitHub Packages feed,
+      # so the npm registry needs the PAT (read:packages) — a GITHUB_TOKEN from
+      # this repo cannot read another repo's packages.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://npm.pkg.github.com
+          scope: "@rennnyyy"
+
+      - name: Authenticate the Aletheia NuGet feed
+        working-directory: Homestia/Homestia
         run: |
-          echo "No tests wired for Homestia yet. Add dotnet test here."
+          dotnet nuget update source github \
+            --source https://nuget.pkg.github.com/rennnyyy/index.json \
+            --username rennnyyy \
+            --password "${{ secrets.ALETHEIA_PAT }}" \
+            --store-password-in-clear-text
+
+      - name: Restore
+        working-directory: Homestia/Homestia
+        run: dotnet restore Homestia.slnx
+
+      # Bruno.Tests drives a live host through the Bruno CLI — it is a manual
+      # integration suite, not a CI unit gate, so the three offline suites run.
+      - name: Backend tests
+        working-directory: Homestia/Homestia
+        run: |
+          dotnet test tests/Program.Tests/Homestia.Tests.csproj --no-restore -p:SkipAngularBuild=true
+          dotnet test tests/Entities.Tests/Homestia.Entities.Tests.csproj --no-restore -p:SkipAngularBuild=true
+          dotnet test tests/Capabilities.Tests/Homestia.Capabilities.Tests.csproj --no-restore -p:SkipAngularBuild=true
+
+      - name: Frontend dependencies
+        working-directory: Homestia/Homestia/src/Web/App
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.ALETHEIA_PAT }}
+        run: npm ci
+
+      - name: Generated-code drift gate
+        working-directory: Homestia/Homestia/src/Web/App
+        run: npm run codegen:check
+
+      - name: Frontend tests + coverage floors
+        working-directory: Homestia/Homestia/src/Web/App
+        run: npm run test:coverage
+
+      - name: Frontend build
+        working-directory: Homestia/Homestia/src/Web/App
+        run: npm run build
+
+      - name: Publish frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: homestia-wwwroot
+          path: Homestia/Homestia/src/Program/wwwroot
 
   build:
     needs: test
@@ -38,21 +98,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: Homestia
-      # Ride the latest Aletheia CI build: resolve its newest -ci.* package version
-      # from the feed and pass it to the Docker build as ALETHEIA_SDK_VERSION.
-      # If resolution fails (no token / no CI build yet) the Docker build falls
-      # back to the committed AletheiaSdkVersion default in Directory.Build.props.
-      - name: Resolve latest Aletheia CI version
-        env:
-          ALETHEIA_PAT: ${{ secrets.ALETHEIA_PAT }}
-        run: |
-          VER="$(bash Homestia/scripts/resolve-aletheia-version.sh 2>/dev/null || true)"
-          if [ -n "${VER:-}" ]; then
-            echo "ALETHEIA_SDK_VERSION=${VER}" >> "$GITHUB_ENV"
-            echo "Riding latest Aletheia CI: ${VER}"
-          else
-            echo "No Aletheia CI version resolved - using committed AletheiaSdkVersion default."
-          fi
+      # The facade was built once in the `test` job; the image reuses it
+      # (SKIP_ANGULAR=true) so Node never runs inside the Docker build.
+      - uses: actions/download-artifact@v4
+        with:
+          name: homestia-wwwroot
+          path: Homestia/Homestia/src/Program/wwwroot
+      # The image consumes the Aletheia SDK version pinned in
+      # Directory.Build.props — one deliberate bump per SDK upgrade, no dynamic
+      # version resolution.
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -68,7 +122,8 @@ jobs:
           build-args: |
             NUGET_USERNAME=rennnyyy
             NUGET_PASSWORD=${{ secrets.ALETHEIA_PAT }}
-            ALETHEIA_SDK_VERSION=${{ env.ALETHEIA_SDK_VERSION }}
+            NPM_TOKEN=${{ secrets.ALETHEIA_PAT }}
+            SKIP_ANGULAR=true
           tags: |
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:${{ startsWith(github.ref, 'refs/tags/') && 'prod' || 'staging' }}
@@ -100,7 +155,8 @@ jobs:
         run: bash scripts/deploy.sh staging
 
   deploy-prod:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Strict semver tags only — a prerelease (vX.Y.Z-rc) must never reach prod.
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
     needs: build
     runs-on: ubuntu-latest
     environment: prod

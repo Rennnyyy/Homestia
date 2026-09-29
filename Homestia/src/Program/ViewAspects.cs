@@ -1,3 +1,4 @@
+using Aletheia.Sdk.Aspects.Abstractions;
 using Aletheia.Sdk.Aspects.Abstractions.Contracts;
 using Aletheia.Sdk.Aspects.View;
 
@@ -29,17 +30,6 @@ public static class ViewAspects
 
     /// <summary>IRI of the Room shape (nested via <c>sh:node</c>).</summary>
     public const string RoomShapeIri = "urn:aletheia:homestia:shapes:room";
-
-    /// <summary>
-    /// IRI of the lenient Property shape used by AI fill scenarios. Same field
-    /// contract as the strict shape, but nothing is required — the AI may fill
-    /// only part of the form and the flow still succeeds; missing fields are
-    /// surfaced as warnings in the UI for the user to complete.
-    /// </summary>
-    public const string AiPropertyShapeIri = "urn:aletheia:homestia:shapes:property:ai";
-
-    /// <summary>IRI of the lenient Room shape used by AI fill scenarios.</summary>
-    public const string AiRoomShapeIri = "urn:aletheia:homestia:shapes:room:ai";
 
     /// <summary>IRI of the Tenant shape (used by the inline tenant quick-create).</summary>
     public const string TenantShapeIri = "urn:aletheia:homestia:shapes:tenant";
@@ -73,40 +63,41 @@ public static class ViewAspects
     /// must be an IRI reference, <c>rentalModel</c> optional, and <c>rooms</c>
     /// recursively validated against the Room shape — one graph, one pass.
     /// </summary>
-    public const string PropertyTtl = """
+    public const string PropertyTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:property>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.PropertyOperationIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Property> ;
             sh:property [
-                sh:path json:name ; sh:order 1 ;
+                sh:path json:name ; sh:name "Name"@en, "Name"@de ; sh:order 1 ;
                 sh:description "A short human-readable name for the property." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.property.name" ;
             ] ;
             sh:property [
-                sh:path json:address ; sh:order 2 ;
+                sh:path json:address ; sh:name "Address"@en, "Adresse"@de ; sh:order 2 ;
                 sh:description "The full postal address of the property." ;
                 sh:minCount 1 ; sh:minLength 5 ; sh:datatype xsd:string ;
                 sh:message "shape.property.address" ;
             ] ;
             sh:property [
-                sh:path json:propertyType ; sh:order 3 ;
+                sh:path json:propertyType ; sh:name "Property Type"@en, "Objekttyp"@de ; sh:order 3 ;
                 sh:description "Choose the type of property." ;
                 sh:minCount 1 ; sh:nodeKind sh:IRI ;
                 sh:message "shape.property.propertyType" ;
             ] ;
             sh:property [
-                sh:path json:rentalModel ; sh:order 4 ;
+                sh:path json:rentalModel ; sh:name "Rental Model"@en, "Mietmodell"@de ; sh:order 4 ;
                 sh:description "Choose how the property is rented (optional)." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.property.rentalModel" ;
             ] ;
             sh:property [
-                sh:path json:rooms ; sh:order 5 ;
+                sh:path json:rooms ; sh:name "Rooms"@en, "Räume"@de ; sh:order 5 ;
                 sh:description "The rooms of this property; each validated against the room shape." ;
                 sh:node <urn:aletheia:homestia:shapes:room> ;
                 sh:message "shape.property.rooms" ;
@@ -118,131 +109,43 @@ public static class ViewAspects
     /// optional, <c>location</c> optional, and IRI references for
     /// <c>furnishingStatus</c> and <c>roomStatus</c>.
     /// </summary>
-    public const string RoomTtl = """
+    public const string RoomTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:room>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.PropertyOperationIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Room> ;
             sh:property [
-                sh:path json:name ; sh:order 1 ;
+                sh:path json:name ; sh:name "Name"@en, "Name"@de ; sh:order 1 ;
                 sh:description "A short name for the room, e.g. 'Kitchen' or 'Room 1'." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.room.name" ;
             ] ;
             sh:property [
-                sh:path json:location ; sh:order 2 ;
+                sh:path json:location ; sh:name "Location"@en, "Lage"@de ; sh:order 2 ;
                 sh:description "Optional location or floor within the property." ;
                 sh:minLength 2 ; sh:datatype xsd:string ;
                 sh:message "shape.room.location" ;
             ] ;
             sh:property [
-                sh:path json:roomSize ; sh:order 3 ;
+                sh:path json:roomSize ; sh:name "Room Size"@en, "Zimmergröße"@de ; sh:order 3 ;
                 sh:description "The room's area in square metres, between 1 and 1000 (optional)." ;
                 sh:datatype xsd:decimal ;
                 sh:minInclusive 1 ; sh:maxInclusive 1000 ;
                 sh:message "shape.room.roomSize" ;
             ] ;
             sh:property [
-                sh:path json:furnishingStatus ; sh:order 4 ;
+                sh:path json:furnishingStatus ; sh:name "Furnishing Status"@en, "Einrichtungsstatus"@de ; sh:order 4 ;
                 sh:description "Choose how furnished the room is." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.furnishingStatus" ;
             ] ;
             sh:property [
-                sh:path json:roomStatus ; sh:order 5 ;
+                sh:path json:roomStatus ; sh:name "Room Status"@en, "Zimmerstatus"@de ; sh:order 5 ;
                 sh:description "Choose the current room status." ;
-                sh:nodeKind sh:IRI ;
-                sh:message "shape.room.roomStatus" ;
-            ] .
-        """;
-
-    /// <summary>
-    /// Lenient Property shape for AI fills: the same field contract as
-    /// <see cref="PropertyTtl"/> but with no required fields, so a partial
-    /// output passes and the user completes the rest manually.
-    /// </summary>
-    public const string AiPropertyTtl = """
-        @prefix sh:   <http://www.w3.org/ns/shacl#> .
-        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://aletheia.katharsis.digital/json/> .
-
-        <urn:aletheia:homestia:shapes:property:ai>
-            a sh:NodeShape ;
-            sh:targetClass <urn:aletheia:homestia:Property:ai> ;
-            sh:property [
-                sh:path json:name ; sh:order 1 ;
-                sh:description "A short human-readable name for the property." ;
-                sh:datatype xsd:string ;
-                sh:message "shape.property.name" ;
-            ] ;
-            sh:property [
-                sh:path json:address ; sh:order 2 ;
-                sh:description "The full postal address of the property." ;
-                sh:datatype xsd:string ;
-                sh:message "shape.property.address" ;
-            ] ;
-            sh:property [
-                sh:path json:propertyType ; sh:order 3 ;
-                sh:description "IRI reference to the property type; discover valid IRIs via the list tool." ;
-                sh:nodeKind sh:IRI ;
-                sh:message "shape.property.propertyType" ;
-            ] ;
-            sh:property [
-                sh:path json:rentalModel ; sh:order 4 ;
-                sh:description "Optional IRI reference to the rental model." ;
-                sh:nodeKind sh:IRI ;
-                sh:message "shape.property.rentalModel" ;
-            ] ;
-            sh:property [
-                sh:path json:rooms ; sh:order 5 ;
-                sh:description "The rooms of this property; each validated against the room shape." ;
-                sh:node <urn:aletheia:homestia:shapes:room:ai> ;
-                sh:message "shape.property.rooms" ;
-            ] .
-        """;
-
-    /// <summary>
-    /// Lenient Room shape for AI fills — no required fields, same contract.
-    /// </summary>
-    public const string AiRoomTtl = """
-        @prefix sh:   <http://www.w3.org/ns/shacl#> .
-        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-        @prefix json: <https://aletheia.katharsis.digital/json/> .
-
-        <urn:aletheia:homestia:shapes:room:ai>
-            a sh:NodeShape ;
-            sh:targetClass <urn:aletheia:homestia:Room:ai> ;
-            sh:property [
-                sh:path json:name ; sh:order 1 ;
-                sh:description "A short name for the room, e.g. 'Kitchen' or 'Room 1'." ;
-                sh:datatype xsd:string ;
-                sh:message "shape.room.name" ;
-            ] ;
-            sh:property [
-                sh:path json:location ; sh:order 2 ;
-                sh:description "Optional location or floor within the property." ;
-                sh:datatype xsd:string ;
-                sh:message "shape.room.location" ;
-            ] ;
-            sh:property [
-                sh:path json:roomSize ; sh:order 3 ;
-                sh:description "The room's area in square metres, between 1 and 1000." ;
-                sh:datatype xsd:decimal ;
-                sh:minInclusive 1 ; sh:maxInclusive 1000 ;
-                sh:message "shape.room.roomSize" ;
-            ] ;
-            sh:property [
-                sh:path json:furnishingStatus ; sh:order 4 ;
-                sh:description "Optional IRI reference to the furnishing status." ;
-                sh:nodeKind sh:IRI ;
-                sh:message "shape.room.furnishingStatus" ;
-            ] ;
-            sh:property [
-                sh:path json:roomStatus ; sh:order 5 ;
-                sh:description "Optional IRI reference to the room status." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.room.roomStatus" ;
             ] .
@@ -254,28 +157,29 @@ public static class ViewAspects
     /// tenant is validated like every other form — the create button stays
     /// enabled and violations are fed back against this view.
     /// </summary>
-    public const string TenantTtl = """
+    public const string TenantTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:tenant>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.TenantOperationIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Tenant> ;
             sh:property [
-                sh:path json:displayName ; sh:order 1 ;
+                sh:path json:displayName ; sh:name "Name"@en, "Name"@de ; sh:order 1 ;
                 sh:description "The tenant's name." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.tenant.displayName" ;
             ] ;
             sh:property [
-                sh:path json:email ; sh:order 2 ;
+                sh:path json:email ; sh:name "Email"@en, "E-Mail"@de ; sh:order 2 ;
                 sh:description "The tenant's email address (optional)." ;
                 sh:datatype xsd:string ;
                 sh:message "shape.tenant.email" ;
             ] ;
             sh:property [
-                sh:path json:phone ; sh:order 3 ;
+                sh:path json:phone ; sh:name "Phone"@en, "Telefon"@de ; sh:order 3 ;
                 sh:description "The tenant's phone number (optional)." ;
                 sh:datatype xsd:string ;
                 sh:message "shape.tenant.phone" ;
@@ -287,34 +191,36 @@ public static class ViewAspects
     /// the tenant, and the apartment viewing date. Validating this stage
     /// unlocks the Contract stage.
     /// </summary>
-    public const string RentalApplicationTtl = """
+    public const string RentalApplicationTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:application>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:application> ;
             sh:property [
-                sh:path json:property ; sh:order 1 ;
+                sh:path json:property ; sh:name "Property"@en, "Objekt"@de ; sh:order 1 ;
                 sh:description "Choose the property being rented." ;
                 sh:minCount 1 ; sh:nodeKind sh:IRI ;
                 sh:message "shape.rental.property" ;
             ] ;
             sh:property [
-                sh:path json:unit ; sh:order 2 ;
+                sh:path json:unit ; sh:name "Room"@en, "Zimmer"@de ; sh:order 2 ;
                 sh:description "Choose the room, for single-room (shared living) rentals." ;
                 sh:nodeKind sh:IRI ;
                 sh:message "shape.rental.unit" ;
             ] ;
             sh:property [
-                sh:path json:tenant ; sh:order 3 ;
+                sh:path json:tenant ; sh:name "Tenant"@en, "Mieter"@de ; sh:order 3 ;
                 sh:description "Choose the tenant for this rental." ;
                 sh:minCount 1 ; sh:nodeKind sh:IRI ;
                 sh:message "shape.rental.tenant" ;
             ] ;
             sh:property [
-                sh:path json:viewingDate ; sh:order 4 ;
+                sh:path json:viewingDate ; sh:name "Apartment Viewing Date"@en, "Besichtigungstermin"@de ; sh:order 4 ;
                 sh:description "Pick the date of the apartment viewing." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.viewingDate" ;
@@ -326,16 +232,18 @@ public static class ViewAspects
     /// document. Each document is an object-bearing entity referenced by IRI;
     /// the collection must be non-empty for the stage to validate.
     /// </summary>
-    public const string RentalContractTtl = """
+    public const string RentalContractTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:contract>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:contract> ;
             sh:property [
-                sh:path json:rentalDocuments ; sh:order 1 ;
+                sh:path json:rentalDocuments ; sh:name "Contract Documents"@en, "Vertragsunterlagen"@de ; sh:order 1 ;
                 sh:description "Upload the signed contract documents (each file is stored as an object)." ;
                 sh:minCount 1 ; sh:nodeKind sh:IRI ;
                 sh:message "shape.rental.rentalDocuments" ;
@@ -346,29 +254,31 @@ public static class ViewAspects
     /// Rental Stage 3 · Deposit shape: deposit amount, payment status, and the
     /// optional payment date. Validating this stage unlocks the Handover stage.
     /// </summary>
-    public const string RentalDepositTtl = """
+    public const string RentalDepositTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:deposit>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:deposit> ;
             sh:property [
-                sh:path json:depositAmount ; sh:order 1 ;
+                sh:path json:depositAmount ; sh:name "Deposit"@en, "Kaution"@de ; sh:order 1 ;
                 sh:description "Deposit amount in euros." ;
                 sh:minCount 1 ; sh:datatype xsd:decimal ;
                 sh:minInclusive 0 ;
                 sh:message "shape.rental.depositAmount" ;
             ] ;
             sh:property [
-                sh:path json:depositPaid ; sh:order 2 ;
+                sh:path json:depositPaid ; sh:name "Deposit Paid"@en, "Kaution bezahlt"@de ; sh:order 2 ;
                 sh:description "Whether the deposit has been paid." ;
                 sh:datatype xsd:boolean ;
                 sh:message "shape.rental.depositPaid" ;
             ] ;
             sh:property [
-                sh:path json:depositPaymentDate ; sh:order 3 ;
+                sh:path json:depositPaymentDate ; sh:name "Deposit Payment Date"@en, "Datum der Kautionszahlung"@de ; sh:order 3 ;
                 sh:description "When the deposit was paid." ;
                 sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.depositPaymentDate" ;
@@ -379,22 +289,24 @@ public static class ViewAspects
     /// Rental Stage 4 · Handover shape: keys/property handover date and optional
     /// protocol notes. Validating this stage unlocks the Tenancy stage.
     /// </summary>
-    public const string RentalHandoverTtl = """
+    public const string RentalHandoverTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:handover>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:handover> ;
             sh:property [
-                sh:path json:handoverDate ; sh:order 1 ;
+                sh:path json:handoverDate ; sh:name "Handover Date"@en, "Übergabedatum"@de ; sh:order 1 ;
                 sh:description "Keys/property handover date." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.handoverDate" ;
             ] ;
             sh:property [
-                sh:path json:handoverNotes ; sh:order 2 ;
+                sh:path json:handoverNotes ; sh:name "Handover Notes"@en, "Übergabenotizen"@de ; sh:order 2 ;
                 sh:description "Handover protocol notes." ;
                 sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.handoverNotes" ;
@@ -405,16 +317,18 @@ public static class ViewAspects
     /// Rental Stage 5 · Tenancy shape: the resting state of the agreement.
     /// Confirming the tenancy is active unlocks the Termination Noticed stage.
     /// </summary>
-    public const string RentalTenancyTtl = """
+    public const string RentalTenancyTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:tenancy>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:tenancy> ;
             sh:property [
-                sh:path json:tenancyActive ; sh:order 1 ;
+                sh:path json:tenancyActive ; sh:name "Tenancy Active"@en, "Mietverhältnis aktiv"@de ; sh:order 1 ;
                 sh:description "Confirms the tenancy is active." ;
                 sh:datatype xsd:boolean ;
                 sh:message "shape.rental.tenancyActive" ;
@@ -426,22 +340,24 @@ public static class ViewAspects
     /// was given and the optional reason. Validating this stage unlocks the
     /// Handback stage.
     /// </summary>
-    public const string RentalNoticedTtl = """
+    public const string RentalNoticedTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:noticed>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:noticed> ;
             sh:property [
-                sh:path json:noticeDate ; sh:order 1 ;
+                sh:path json:noticeDate ; sh:name "Notice Date"@en, "Kündigungsdatum"@de ; sh:order 1 ;
                 sh:description "When the termination notice was given." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.noticeDate" ;
             ] ;
             sh:property [
-                sh:path json:noticeReason ; sh:order 2 ;
+                sh:path json:noticeReason ; sh:name "Notice Reason"@en, "Kündigungsgrund"@de ; sh:order 2 ;
                 sh:description "Termination reason." ;
                 sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.noticeReason" ;
@@ -453,28 +369,30 @@ public static class ViewAspects
     /// notes, and whether damage was confirmed. Validating this stage unlocks
     /// the Terminated stage.
     /// </summary>
-    public const string RentalHandbackTtl = """
+    public const string RentalHandbackTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:handback>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:handback> ;
             sh:property [
-                sh:path json:handbackDate ; sh:order 1 ;
+                sh:path json:handbackDate ; sh:name "Handback Date"@en, "Rückgabedatum"@de ; sh:order 1 ;
                 sh:description "Keys/property handback date." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.handbackDate" ;
             ] ;
             sh:property [
-                sh:path json:handbackNotes ; sh:order 2 ;
+                sh:path json:handbackNotes ; sh:name "Handback Notes"@en, "Rückgabenotizen"@de ; sh:order 2 ;
                 sh:description "Handback protocol notes." ;
                 sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.handbackNotes" ;
             ] ;
             sh:property [
-                sh:path json:damageConfirmed ; sh:order 3 ;
+                sh:path json:damageConfirmed ; sh:name "Damage Confirmed"@en, "Schäden bestätigt"@de ; sh:order 3 ;
                 sh:description "Whether damage was confirmed at handback." ;
                 sh:datatype xsd:boolean ;
                 sh:message "shape.rental.damageConfirmed" ;
@@ -486,28 +404,30 @@ public static class ViewAspects
     /// whether the deposit was returned, and settlement notes. The last stage
     /// of the agreement lifecycle.
     /// </summary>
-    public const string RentalTerminatedTtl = """
+    public const string RentalTerminatedTtl = $$"""
         @prefix sh:   <http://www.w3.org/ns/shacl#> .
         @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
         @prefix json: <https://aletheia.katharsis.digital/json/> .
 
         <urn:aletheia:homestia:shapes:rental:terminated>
             a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:terminated> ;
             sh:property [
-                sh:path json:settlementDate ; sh:order 1 ;
+                sh:path json:settlementDate ; sh:name "Settlement Date"@en, "Abrechnungsdatum"@de ; sh:order 1 ;
                 sh:description "Final financial settlement date." ;
                 sh:minCount 1 ; sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.settlementDate" ;
             ] ;
             sh:property [
-                sh:path json:depositReturned ; sh:order 2 ;
+                sh:path json:depositReturned ; sh:name "Deposit Returned"@en, "Kaution zurückgezahlt"@de ; sh:order 2 ;
                 sh:description "Whether the deposit was returned." ;
                 sh:datatype xsd:boolean ;
                 sh:message "shape.rental.depositReturned" ;
             ] ;
             sh:property [
-                sh:path json:settlementNotes ; sh:order 3 ;
+                sh:path json:settlementNotes ; sh:name "Settlement Notes"@en, "Abrechnungsnotizen"@de ; sh:order 3 ;
                 sh:description "Final settlement notes." ;
                 sh:minLength 1 ; sh:datatype xsd:string ;
                 sh:message "shape.rental.settlementNotes" ;
@@ -525,8 +445,6 @@ public static class ViewAspects
 
         store.RegisterView(new InlineTtlViewAspect(PropertyShapeIri, PropertyTtl));
         store.RegisterView(new InlineTtlViewAspect(RoomShapeIri, RoomTtl));
-        store.RegisterView(new InlineTtlViewAspect(AiPropertyShapeIri, AiPropertyTtl));
-        store.RegisterView(new InlineTtlViewAspect(AiRoomShapeIri, AiRoomTtl));
         store.RegisterView(new InlineTtlViewAspect(TenantShapeIri, TenantTtl));
         store.RegisterView(new InlineTtlViewAspect(RentalApplicationShapeIri, RentalApplicationTtl));
         store.RegisterView(new InlineTtlViewAspect(RentalContractShapeIri, RentalContractTtl));

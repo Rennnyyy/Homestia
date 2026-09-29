@@ -7,22 +7,32 @@
 # the GitHub Packages NuGet feed configured in ../nuget.config
 # (nuget.pkg.github.com/rennnyyy).
 #
-# The Angular facade build (Homestia.Web.targets) runs during dotnet publish.
+# The Angular facade is built explicitly in this stage (npm ci + ng build) and
+# woven in by the .NET publish; the MSBuild hook is opt-in and stays off.
 # The compiled Sdk.Web admin is delivered from the Aletheia.Sdk.Web package into
 # aletheia-wwwroot/ by that package's own build targets.
 #
 # Deploy:  bash Homestia/scripts/deploy.sh
 # ══════════════════════════════════════════════════════════════════════════════
 
-# ── Stage 0: Build (SDK + Node.js for Angular) ──────────────────────────────
+# ── Stage 0: Build ──────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
-# Install Node.js 22 — required by the MSBuild Angular build target
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl gnupg && \
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# SKIP_ANGULAR=true reuses a prebuilt facade wwwroot from the build context
+# (CI downloads the `homestia-wwwroot` artifact) instead of running npm
+# in-container — the facade is built exactly once per push, by the `test` job.
+# Default false keeps `docker build` self-contained.
+ARG SKIP_ANGULAR=false
+
+# Install Node.js 22 — required by the facade build, skipped when the facade is
+# already built in the context.
+RUN if [ "$SKIP_ANGULAR" != "true" ]; then \
+      apt-get update && \
+      apt-get install -y --no-install-recommends curl gnupg && \
+      curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+      apt-get install -y nodejs && \
+      apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # Optional GitHub Packages NuGet credentials for the Aletheia feed.
 # Only required while the Aletheia packages are PRIVATE (public packages restore
@@ -30,10 +40,12 @@ RUN apt-get update && \
 ARG NUGET_USERNAME=
 ARG NUGET_PASSWORD=
 
-# Aletheia SDK version to consume (resolved to the latest CI build by the
-# workflow). Empty -> the committed AletheiaSdkVersion default in
-# Directory.Build.props is used.
-ARG ALETHEIA_SDK_VERSION=
+# Optional GitHub Packages npm credentials for the @rennnyyy/aletheia-* frontend
+# packages — the Angular facade (src/Web/App) depends on them directly. Same
+# classic PAT as the NuGet feed above; publishing needs write:packages, while
+# installing needs only read:packages. Written to the user-level .npmrc, never
+# into the repo.
+ARG NPM_TOKEN=
 
 WORKDIR /src
 
@@ -52,22 +64,35 @@ RUN if [ -n "$NUGET_USERNAME" ] && [ -n "$NUGET_PASSWORD" ]; then \
       dotnet nuget update source github -u "$NUGET_USERNAME" -p "$NUGET_PASSWORD" --store-password-in-clear-text; \
     fi
 
-# Restore and publish — MSBuild Angular target fires automatically, building the
-# facade into wwwroot/browser/ before the .NET publish. The resolved Aletheia
-# version (when supplied) is applied to BOTH restore and publish so the
-# central-managed Aletheia.Sdk.* versions match the restored assets.
-WORKDIR /src/Homestia/Homestia
-RUN dotnet restore src/Program/Homestia.Program.csproj \
-    ${ALETHEIA_SDK_VERSION:+-p:AletheiaSdkVersion="$ALETHEIA_SDK_VERSION"}
+# npm auth for the @rennnyyy scope. The Angular build runs `npm ci` in
+# src/Web/App (MSBuild target during dotnet publish) and installs those packages
+# from npm.pkg.github.com, so the credentials must exist before the build.
+RUN if [ -n "$NPM_TOKEN" ]; then \
+      npm config set //npm.pkg.github.com/:_authToken "$NPM_TOKEN" --location user; \
+    fi
 
+# Build the Angular facade EXPLICITLY when not already built (the MSBuild hook
+# Homestia.Web.targets is opt-in and does NOT fire during `dotnet publish`).
+WORKDIR /src/Homestia/Homestia/src/Web/App
 # Limit Node.js heap to prevent OOM kills in constrained build environments.
 ENV NODE_OPTIONS="--max-old-space-size=2048"
+RUN if [ "$SKIP_ANGULAR" != "true" ]; then \
+      npm ci && npm run build -- --configuration production; \
+    else \
+      echo "SKIP_ANGULAR=true — reusing prebuilt src/Program/wwwroot from the build context"; \
+    fi
+
+# Restore and publish the host. The Aletheia SDK version comes from the committed
+# AletheiaSdkVersion pin (Directory.Build.props), which Directory.Packages.props
+# applies to every Aletheia.Sdk.* package.
+WORKDIR /src/Homestia/Homestia
+RUN dotnet restore src/Program/Homestia.Program.csproj
 
 RUN dotnet publish src/Program/Homestia.Program.csproj \
     -c Release \
     -o /app \
     --no-restore \
-    ${ALETHEIA_SDK_VERSION:+-p:AletheiaSdkVersion="$ALETHEIA_SDK_VERSION"}
+    -p:SkipAngularBuild=true
 
 # ── Stage 1: Production runtime ─────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

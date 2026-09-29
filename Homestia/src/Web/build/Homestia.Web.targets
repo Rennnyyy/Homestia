@@ -3,9 +3,19 @@
 
   <!-- ══════════════════════════════════════════════════════════════════════════
        Homestia.Web — Angular facade build hook.
-       Imported by src/Program/Homestia.Program.csproj so the facade is
-       rebuilt into the host's wwwroot on every dotnet build / publish.
-       Skip with: dotnet run -p:SkipAngularBuild=true
+
+       Imported by src/Program/Homestia.Program.csproj. The facade is built ONLY
+       when BuildAngularOnBuild=true, so a plain `dotnet build` / `dotnet test` /
+       `dotnet publish` never invokes npm (mirrors the Aletheia Sdk.Web pattern:
+       the frontend is compiled separately and woven in).
+
+       Opt-in build : dotnet build -p:BuildAngularOnBuild=true
+       Explicit skip: dotnet build -p:SkipAngularBuild=true
+
+       The normal local/CI flow builds the facade FIRST, then builds the host
+       against the already-emitted wwwroot:
+         cd src/Web/App && npm ci && npm run build
+         dotnet build -p:SkipAngularBuild=true
 
        Paths relative to THIS file (src/Web/build/):
          - Angular source : ../App                 → src/Web/App
@@ -15,7 +25,7 @@
        the host while MSBuildThisFileDirectory is this file's directory.
        ══════════════════════════════════════════════════════════════════════════ -->
   <Target Name="BuildAngularFrontend" BeforeTargets="BeforeBuild"
-          Condition="'$(SkipAngularBuild)' != 'true'">
+          Condition="'$(BuildAngularOnBuild)' == 'true' and '$(SkipAngularBuild)' != 'true'">
     <PropertyGroup>
       <WebDir>$(MSBuildThisFileDirectory)../App</WebDir>
       <WwwRootDir>$(MSBuildThisFileDirectory)../../Program/wwwroot</WwwRootDir>

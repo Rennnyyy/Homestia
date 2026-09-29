@@ -46,6 +46,7 @@
     <PackageVersion Include="Aletheia.Sdk.Entity.Generators" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Entity.Messaging" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Execution" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Localization" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Messaging" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Messaging.InMemory" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.ObjectStorage" Version="$(AletheiaSdkVersion)" />
@@ -57,6 +58,7 @@
     <PackageVersion Include="Aletheia.Sdk.Repository" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Repository.InMemory" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Repository.GraphDb" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Scheduling" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Structure" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Testing" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Web" Version="$(AletheiaSdkVersion)" />

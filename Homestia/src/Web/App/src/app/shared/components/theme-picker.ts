@@ -1,23 +1,19 @@
 import { Component, inject, computed } from '@angular/core';
-import { HlmButton } from '@spartan-ng/helm/button';
-import {
-  LucideSun,
-  LucideMoon,
-  LucideChevronLeft,
-  LucideChevronRight,
-} from '@lucide/angular';
-import { ThemeService, THEMES } from '../../core/services/theme.service';
+import { HlmButton } from '@rennnyyy/aletheia-ui';
+import { LucideChevronLeft, LucideChevronRight } from '@lucide/angular';
+import { AccentService, THEMES } from '../../core/services/accent.service';
 
+/**
+ * Homestia's accent picker — the ‹ ● › palette cycler.
+ *
+ * Only the accent axis lives here. Skins and the dark/light mode are handled by
+ * the SDK's `aletheia-theme-switcher` (which sits next to this control), so
+ * there is exactly one owner per axis.
+ */
 @Component({
   selector: 'app-theme-picker',
   standalone: true,
-  imports: [
-    HlmButton,
-    LucideSun,
-    LucideMoon,
-    LucideChevronLeft,
-    LucideChevronRight,
-  ],
+  imports: [HlmButton, LucideChevronLeft, LucideChevronRight],
   template: `
     <div class="flex items-center gap-1">
       <div class="flex items-center gap-0.5">
@@ -25,7 +21,7 @@ import { ThemeService, THEMES } from '../../core/services/theme.service';
           hlmBtn
           variant="ghost"
           size="icon-xs"
-          (click)="prevTheme()"
+          (click)="accents.cycleAccent(-1)"
           class="text-muted-foreground hover:text-foreground"
         >
           <svg lucideChevronLeft class="size-3.5"></svg>
@@ -40,50 +36,20 @@ import { ThemeService, THEMES } from '../../core/services/theme.service';
           hlmBtn
           variant="ghost"
           size="icon-xs"
-          (click)="nextTheme()"
+          (click)="accents.cycleAccent(1)"
           class="text-muted-foreground hover:text-foreground"
         >
           <svg lucideChevronRight class="size-3.5"></svg>
         </button>
       </div>
-
-      <button
-        hlmBtn
-        variant="ghost"
-        size="icon-xs"
-        (click)="themeService.toggleDark()"
-        class="text-muted-foreground hover:text-foreground ml-1"
-      >
-        @if (themeService.isDark()) {
-          <svg lucideMoon class="size-4"></svg>
-        } @else {
-          <svg lucideSun class="size-4"></svg>
-        }
-      </button>
     </div>
   `,
 })
 export class ThemePicker {
-  readonly themeService = inject(ThemeService);
-  readonly themes = THEMES;
+  readonly accents = inject(AccentService);
 
   readonly currentColor = computed(() => {
-    const current = this.themes.find((t) => t.id === this.themeService.theme());
+    const current = THEMES.find((t) => t.id === this.accents.accent());
     return current?.color ?? '#52525b';
   });
-
-  private get currentIndex(): number {
-    return this.themes.findIndex((t) => t.id === this.themeService.theme());
-  }
-
-  nextTheme(): void {
-    const next = (this.currentIndex + 1) % this.themes.length;
-    this.themeService.setTheme(this.themes[next].id);
-  }
-
-  prevTheme(): void {
-    const prev =
-      (this.currentIndex - 1 + this.themes.length) % this.themes.length;
-    this.themeService.setTheme(this.themes[prev].id);
-  }
 }

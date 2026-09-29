@@ -11,13 +11,19 @@ namespace Homestia.Entities.RealEstate;
 /// the instance IRI path are inherited from <see cref="Aletheia.Authentication.Agent"/>;
 /// only the predicate scope ("tenant") and REST endpoint path are tenant-specific.
 /// </summary>
+[Label("Tenant")]
+[Label("de", "Mieter")]
 [Entity(PredicatePath = "tenant")]
 [OperationEndpoints("tenants")]
 public partial class Tenant : Aletheia.Authentication.Agent
 {
+    [Label("Email")]
+    [Label("de", "E-Mail")]
     [Predicate("email")]
     public string Email { get; set; } = string.Empty;
 
+    [Label("Phone")]
+    [Label("de", "Telefon")]
     [Predicate("phone")]
     public string Phone { get; set; } = string.Empty;
 }

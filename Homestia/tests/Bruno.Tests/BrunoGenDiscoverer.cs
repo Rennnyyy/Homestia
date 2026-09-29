@@ -277,6 +277,9 @@ public static class BrunoGenDiscoverer
 
     private static string GenerateListBru(EntityMeta entity, string baseUrl)
     {
+        // A collection read is POST /query. A bare GET is a SINGLE read and
+        // demands ?iri=, answering 400 INVALID_IRI otherwise. The SDK moved
+        // collection reads to POST /query; this generator must follow it.
         return $$"""
         meta {
           name: List {{entity.TypeName}}s
@@ -284,10 +287,20 @@ public static class BrunoGenDiscoverer
           seq: 4
         }
 
-        get {
-          url: {{baseUrl}}/api/entities/{{entity.Path}}
-          body: none
+        post {
+          url: {{baseUrl}}/api/entities/{{entity.Path}}/query
+          body: json
           auth: none
+        }
+
+        headers {
+          Content-Type: application/json
+        }
+
+        body:json {
+          {
+            "count": "none"
+          }
         }
 
         assert {
@@ -347,6 +360,8 @@ public static class BrunoGenDiscoverer
 
         var assertions = string.Join("\n  ", keyAssertions);
 
+        // A collection read is POST /query — a bare GET is a single read and
+        // demands ?iri=, answering 400 INVALID_IRI otherwise.
         return $$"""
         meta {
           name: List {{entity.TypeName}} enumeration values
@@ -354,10 +369,20 @@ public static class BrunoGenDiscoverer
           seq: 1
         }
 
-        get {
-          url: {{baseUrl}}/api/entities/{{entity.Path}}
-          body: none
+        post {
+          url: {{baseUrl}}/api/entities/{{entity.Path}}/query
+          body: json
           auth: none
+        }
+
+        headers {
+          Content-Type: application/json
+        }
+
+        body:json {
+          {
+            "count": "none"
+          }
         }
 
         assert {

@@ -3,6 +3,7 @@ using Aletheia.Sdk.Aspects.DependencyInjection;
 using Homestia.Aspects;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using System.Text.RegularExpressions;
 
 namespace Homestia.Tests;
 
@@ -30,8 +31,6 @@ public sealed class ViewAspectsTests
             [
                 ViewAspects.PropertyShapeIri,
                 ViewAspects.RoomShapeIri,
-                ViewAspects.AiPropertyShapeIri,
-                ViewAspects.AiRoomShapeIri,
                 ViewAspects.TenantShapeIri,
                 ViewAspects.RentalApplicationShapeIri,
                 ViewAspects.RentalContractShapeIri,
@@ -62,29 +61,7 @@ public sealed class ViewAspectsTests
         ViewAspects.RentalTerminatedTtl.ShouldContain("sh:targetClass <urn:aletheia:homestia:Rental:terminated>");
     }
 
-    [Fact]
-    public void Ai_shapes_are_lenient_no_required_fields()
-    {
-        // The AI shapes must NOT require name/address/propertyType — a partial
-        // fill must pass so the user completes the rest manually.
-        ViewAspects.AiPropertyTtl.ShouldNotContain("sh:minCount 1");
-        ViewAspects.AiPropertyTtl.ShouldNotContain("sh:minLength");
-        ViewAspects.AiPropertyTtl.ShouldContain("<urn:aletheia:homestia:shapes:room:ai>");
 
-        ViewAspects.AiRoomTtl.ShouldNotContain("sh:minCount 1");
-        ViewAspects.AiRoomTtl.ShouldNotContain("sh:minLength");
-    }
-
-    [Fact]
-    public void Ai_shapes_use_unique_target_classes()
-    {
-        // The view engine types the value with the shape's first target class
-        // and validates against ALL shapes for that class. The AI shapes must
-        // therefore target distinct classes so the strict shapes never apply
-        // to a partial AI fill.
-        ViewAspects.AiPropertyTtl.ShouldContain("<urn:aletheia:homestia:Property:ai>");
-        ViewAspects.AiRoomTtl.ShouldContain("<urn:aletheia:homestia:Room:ai>");
-    }
 
     [Fact]
     public void Registered_views_carry_the_full_ttl()
@@ -122,5 +99,54 @@ public sealed class ViewAspectsTests
     {
         ViewAspects.PropertyTtl.ShouldContain("sh:message \"shape.property.name\"");
         ViewAspects.RoomTtl.ShouldContain("sh:message \"shape.room.roomSize\"");
+    }
+
+    /// <summary>
+    /// Every shape Homestia serves — the 13 views plus the query result shape —
+    /// as input for the bilingual-name guard below.
+    /// </summary>
+    public static TheoryData<string, string> ServedShapes() => new()
+    {
+        { nameof(ViewAspects.PropertyTtl), ViewAspects.PropertyTtl },
+        { nameof(ViewAspects.RoomTtl), ViewAspects.RoomTtl },
+        { nameof(ViewAspects.TenantTtl), ViewAspects.TenantTtl },
+        { nameof(ViewAspects.RentalApplicationTtl), ViewAspects.RentalApplicationTtl },
+        { nameof(ViewAspects.RentalContractTtl), ViewAspects.RentalContractTtl },
+        { nameof(ViewAspects.RentalDepositTtl), ViewAspects.RentalDepositTtl },
+        { nameof(ViewAspects.RentalHandoverTtl), ViewAspects.RentalHandoverTtl },
+        { nameof(ViewAspects.RentalTenancyTtl), ViewAspects.RentalTenancyTtl },
+        { nameof(ViewAspects.RentalNoticedTtl), ViewAspects.RentalNoticedTtl },
+        { nameof(ViewAspects.RentalHandbackTtl), ViewAspects.RentalHandbackTtl },
+        { nameof(ViewAspects.RentalTerminatedTtl), ViewAspects.RentalTerminatedTtl },
+        { nameof(QueryAspects.RentalStateResultShapeTtl), QueryAspects.RentalStateResultShapeTtl },
+    };
+
+    /// <summary>
+    /// Every property shape must name its field in BOTH languages. The SDK's
+    /// naming gate only demands English; the German name is what the platform
+    /// localization layer (AddPlatformLocalization + MapLocalization) turns into
+    /// the labels a German-speaking user sees in the tables and forms. Without
+    /// it the UI can never switch language.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(ServedShapes))]
+    public void Every_property_shape_names_its_field_in_both_languages(string shape, string ttl)
+    {
+        var names = Regex.Matches(ttl, @"sh:name\s+""(?<label>[^""]+)""@en(?<tail>[^;]*)");
+        // A result shape is a projection as well as a binding: the store clears
+        // every predicate the shape does not mention. RentalStateResultShapeTtl
+        // therefore names NO properties on purpose — it has no field to label.
+        // The guard covers the shapes that declare fields: the sh:property ones.
+        if (!ttl.Contains("sh:property"))
+            return;
+        names.Count.ShouldBeGreaterThan(0, $"{shape} declares no English sh:name at all.");
+
+        foreach (Match match in names)
+        {
+            var label = match.Groups["label"].Value;
+            match.Groups["tail"].Value.ShouldContain(
+                "@de",
+                customMessage: $"{shape}: \"{label}\" carries no German sh:name.");
+        }
     }
 }

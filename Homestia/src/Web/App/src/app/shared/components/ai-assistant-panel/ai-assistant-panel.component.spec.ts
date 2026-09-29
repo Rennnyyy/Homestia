@@ -16,10 +16,10 @@ import { Injectable } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideTransloco, TranslocoLoader } from '@jsverse/transloco';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiAssistantPanelComponent } from './ai-assistant-panel.component';
-import { AiFlowService, type AiContentPart } from '../../../core/ai/ai-flow.service';
+import { AletheiaAiClient, type AiContentPart } from '@rennnyyy/aletheia-core';
 
 /** Inline mock loader — returns empty translations so keys render as-is. */
 @Injectable()
@@ -52,7 +52,10 @@ class FakeMediaRecorder {
 }
 
 describe('AiAssistantPanelComponent — voice input', () => {
-  let flowMock: { runScenario: ReturnType<typeof vi.fn> };
+  let aiMock: {
+    flow: ReturnType<typeof vi.fn>;
+    flowStream: ReturnType<typeof vi.fn>;
+  };
   let component: AiAssistantPanelComponent;
   let fixture: ComponentFixture<AiAssistantPanelComponent>;
 
@@ -65,7 +68,14 @@ describe('AiAssistantPanelComponent — voice input', () => {
       configurable: true,
     });
 
-    flowMock = { runScenario: vi.fn().mockResolvedValue({ kind: 'completed', finalOutput: { name: 'Flat' } }) };
+    aiMock = {
+      // One-shot intent classification resolves with the terminal output.
+      flow: vi.fn().mockReturnValue(of({ finalOutput: { name: 'Flat' } })),
+      // The streamed fill completes with a `flow_completed` event.
+      flowStream: vi
+        .fn()
+        .mockReturnValue(of({ kind: 'flow_completed', finalOutput: { name: 'Flat' } })),
+    };
 
     await TestBed.configureTestingModule({
       imports: [AiAssistantPanelComponent],
@@ -75,7 +85,7 @@ describe('AiAssistantPanelComponent — voice input', () => {
           config: { availableLangs: ['en'], defaultLang: 'en', fallbackLang: 'en' },
           loader: MockTranslocoLoader,
         }),
-        { provide: AiFlowService, useValue: flowMock },
+        { provide: AletheiaAiClient, useValue: aiMock },
       ],
     }).compileComponents();
 
@@ -109,9 +119,9 @@ describe('AiAssistantPanelComponent — voice input', () => {
   it('stops recording and immediately sends the voice note (auto-send)', async () => {
     await component.onToggleRecord(); // start
     await component.onToggleRecord(); // stop → auto-send
-    await vi.waitFor(() => expect(flowMock.runScenario).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(aiMock.flowStream).toHaveBeenCalledTimes(1));
 
-    const [scenarioKey, , parts] = flowMock.runScenario.mock.calls[0] as [
+    const [scenarioKey, , parts] = aiMock.flowStream.mock.calls[0] as [
       string,
       Record<string, unknown>,
       AiContentPart[],
@@ -127,7 +137,7 @@ describe('AiAssistantPanelComponent — voice input', () => {
     await component.onToggleRecord();
     await component.onToggleRecord();
     await vi.waitFor(() => expect(component.audio()).not.toBeNull());
-    await vi.waitFor(() => expect(flowMock.runScenario).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(aiMock.flowStream).toHaveBeenCalledTimes(1));
 
     expect(component.audio()!.mime).toBe('audio/webm');
     expect(component.audio()!.duration).toBeGreaterThanOrEqual(0);
@@ -136,10 +146,12 @@ describe('AiAssistantPanelComponent — voice input', () => {
   });
 
   it('shows a friendly summary when the AI flow completes', async () => {
-    flowMock.runScenario.mockResolvedValueOnce({
-      kind: 'completed',
-      finalOutput: { name: 'Flat', address: 'Main St 1', rooms: [] },
-    });
+    aiMock.flowStream.mockReturnValueOnce(
+      of({
+        kind: 'flow_completed',
+        finalOutput: { name: 'Flat', address: 'Main St 1', rooms: [] },
+      }),
+    );
     component.prompt.set('a flat');
     await component.submit();
     expect(component.failed()).toBe(false);
@@ -147,10 +159,9 @@ describe('AiAssistantPanelComponent — voice input', () => {
   });
 
   it('shows only a friendly summary when the AI flow fails', async () => {
-    flowMock.runScenario.mockResolvedValueOnce({
-      kind: 'error',
-      message: 'Step fill_form failed after 4 attempt(s): some raw error',
-    });
+    aiMock.flowStream.mockReturnValueOnce(
+      throwError(() => new Error('Step fill_form failed after 4 attempt(s): some raw error')),
+    );
     component.prompt.set('a flat');
     await component.submit();
     expect(component.failed()).toBe(true);
@@ -166,9 +177,10 @@ describe('AiAssistantPanelComponent — voice input', () => {
     fixture.componentRef.setInput('editTextScenarioKey', 'property.edit.text');
     fixture.componentRef.setInput('intentTextScenarioKey', 'property.intent.text');
 
-    flowMock.runScenario
-      .mockResolvedValueOnce({ kind: 'completed', finalOutput: { intent: 'edit', propertyIri: 'prop-1' } })
-      .mockResolvedValueOnce({ kind: 'completed', finalOutput: { name: 'Edited Flat', address: 'Main St 1' } });
+    aiMock.flow.mockReturnValueOnce(of({ finalOutput: { intent: 'edit', propertyIri: 'prop-1' } }));
+    aiMock.flowStream.mockReturnValueOnce(
+      of({ kind: 'flow_completed', finalOutput: { name: 'Edited Flat', address: 'Main St 1' } }),
+    );
 
     const emitted: (string | null)[] = [];
     component.editIri.subscribe((value) => emitted.push(value));
@@ -176,10 +188,11 @@ describe('AiAssistantPanelComponent — voice input', () => {
     component.prompt.set('change the rent of Flat Berlin');
     await component.submit();
 
-    expect(flowMock.runScenario).toHaveBeenCalledTimes(2);
+    expect(aiMock.flow).toHaveBeenCalledTimes(1);
+    expect(aiMock.flowStream).toHaveBeenCalledTimes(1);
     // First call = intent detection, second = the edit fill with the property as context.
-    const intentCall = flowMock.runScenario.mock.calls[0] as [string, Record<string, unknown>, AiContentPart[]];
-    const editCall = flowMock.runScenario.mock.calls[1] as [string, Record<string, unknown>, AiContentPart[]];
+    const intentCall = aiMock.flow.mock.calls[0] as [string, Record<string, unknown>, AiContentPart[]];
+    const editCall = aiMock.flowStream.mock.calls[0] as [string, Record<string, unknown>, AiContentPart[]];
     expect(intentCall[0]).toBe('property.intent.text');
     expect(intentCall[1]).toEqual(
       expect.objectContaining({ properties: [{ iri: 'prop-1', name: 'Flat Berlin', address: 'Main St 1' }] }),
@@ -196,15 +209,14 @@ describe('AiAssistantPanelComponent — voice input', () => {
     ]);
     fixture.componentRef.setInput('intentTextScenarioKey', 'property.intent.text');
 
-    flowMock.runScenario.mockResolvedValueOnce({
-      kind: 'completed',
-      finalOutput: { intent: 'edit', propertyIri: '' },
-    });
+    aiMock.flow.mockReturnValueOnce(of({ finalOutput: { intent: 'edit', propertyIri: '' } }));
 
     component.prompt.set('change something');
     await component.submit();
 
-    expect(flowMock.runScenario).toHaveBeenCalledTimes(1);
+    expect(aiMock.flow).toHaveBeenCalledTimes(1);
+    // Nothing matched → no fill was ever streamed.
+    expect(aiMock.flowStream).not.toHaveBeenCalled();
     expect(component.pickProperty()).toBe(true);
   });
 
@@ -214,10 +226,12 @@ describe('AiAssistantPanelComponent — voice input', () => {
     fixture.componentRef.setInput('completeTextScenarioKey', 'property.complete.text');
     fixture.componentRef.setInput('intentTextScenarioKey', 'property.intent.text');
 
-    flowMock.runScenario.mockResolvedValueOnce({
-      kind: 'completed',
-      finalOutput: { name: 'Sunny Studio', address: 'Main St 1', rooms: [] },
-    });
+    aiMock.flowStream.mockReturnValueOnce(
+      of({
+        kind: 'flow_completed',
+        finalOutput: { name: 'Sunny Studio', address: 'Main St 1', rooms: [] },
+      }),
+    );
 
     const emitted: (string | null)[] = [];
     component.editIri.subscribe((value) => emitted.push(value));
@@ -226,8 +240,9 @@ describe('AiAssistantPanelComponent — voice input', () => {
     await component.submit();
 
     // No intent detection call — the draft is a continuation, not create-vs-edit.
-    expect(flowMock.runScenario).toHaveBeenCalledTimes(1);
-    const call = flowMock.runScenario.mock.calls[0] as [string, Record<string, unknown>, AiContentPart[]];
+    expect(aiMock.flow).not.toHaveBeenCalled();
+    expect(aiMock.flowStream).toHaveBeenCalledTimes(1);
+    const call = aiMock.flowStream.mock.calls[0] as [string, Record<string, unknown>, AiContentPart[]];
     expect(call[0]).toBe('property.complete.text');
     expect(call[1]).toEqual(
       expect.objectContaining({ current: expect.objectContaining({ name: 'Sunny Studio' }) }),

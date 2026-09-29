@@ -9,7 +9,8 @@ import {
   LucideArrowUp,
   LucideX,
 } from '@lucide/angular';
-import { AiFlowService, type AiContentPart, type AiFlowEvent } from '../../../core/ai/ai-flow.service';
+import { AletheiaAiClient, type AiContentPart, type AiFlowEvent } from '@rennnyyy/aletheia-core';
+import { filter, firstValueFrom, lastValueFrom, map, tap } from 'rxjs';
 
 /** A property the AI can match against when deciding create vs edit. */
 export interface AiExistingProperty {
@@ -631,7 +632,7 @@ export interface AiExistingProperty {
   `],
 })
 export class AiAssistantPanelComponent implements OnDestroy {
-  private readonly flow = inject(AiFlowService);
+  private readonly ai = inject(AletheiaAiClient);
   private readonly translate = inject(TranslocoService);
   private readonly composerInput = viewChild<ElementRef<HTMLTextAreaElement>>('composerInput');
 
@@ -896,17 +897,23 @@ export class AiAssistantPanelComponent implements OnDestroy {
     if (!key) return null;
 
     this.status.set('ai.detecting');
-    const outcome = await this.flow.runScenario(
-      key,
-      {
-        userPrompt: prompt,
-        properties: this.existingProperties().map((p) => ({ iri: p.iri, name: p.name, address: p.address })),
-      },
-      parts,
-      () => {},
-    );
-    if (outcome.kind === 'error') return null;
-    const out = outcome.finalOutput as { intent?: string; propertyIri?: string } | undefined;
+    let out: { intent?: string; propertyIri?: string } | undefined;
+    try {
+      // One-shot: intent classification needs only the terminal output.
+      const { finalOutput } = await firstValueFrom(
+        this.ai.flow(
+          key,
+          {
+            userPrompt: prompt,
+            properties: this.existingProperties().map((p) => ({ iri: p.iri, name: p.name, address: p.address })),
+          },
+          parts,
+        ),
+      );
+      out = finalOutput as { intent?: string; propertyIri?: string } | undefined;
+    } catch {
+      return null;
+    }
     if (out && typeof out === 'object' && (out.intent === 'create' || out.intent === 'edit')) {
       return { intent: out.intent, propertyIri: typeof out.propertyIri === 'string' ? out.propertyIri : '' };
     }
@@ -933,10 +940,12 @@ export class AiAssistantPanelComponent implements OnDestroy {
 
     this.beginRun();
 
-    let outcome;
+    let finalOutput: unknown;
     try {
-      outcome = await this.flow.runScenario(scenarioKey, input, parts, (evt) => this.handleEvent(evt));
+      finalOutput = await this.runStreaming(scenarioKey, input, parts, (evt) => this.handleEvent(evt));
     } catch {
+      // Transport failure, an `error` event, or a stream that ended without a
+      // completed flow — all the same to the user.
       this.finishRun();
       this.failed.set(true);
       this.summary.set(this.translate.translate('ai.summaryError'));
@@ -945,14 +954,6 @@ export class AiAssistantPanelComponent implements OnDestroy {
 
     this.finishRun();
 
-    if (outcome.kind === 'error') {
-      // Show only a friendly summary of the failure — never the raw error text.
-      this.failed.set(true);
-      this.summary.set(this.translate.translate('ai.summaryError'));
-      return;
-    }
-
-    const finalOutput = outcome.finalOutput;
     if (finalOutput && typeof finalOutput === 'object' && !Array.isArray(finalOutput)) {
       this.editIri.emit(editIri);
       this.proposal.emit(finalOutput as Record<string, unknown>);
@@ -1027,10 +1028,32 @@ export class AiAssistantPanelComponent implements OnDestroy {
     return this.translate.translate(key, params);
   }
 
+  /**
+   * Streams a scenario, relaying every event to the UI as it arrives, and
+   * resolves with the terminal `finalOutput`. The SDK owns the wire protocol;
+   * here we only pick the completing event out of the stream. Rejects when the
+   * stream fails or ends without a completed flow — both become the same
+   * friendly summary.
+   */
+  private runStreaming(
+    scenarioKey: string,
+    input: Record<string, unknown>,
+    parts: AiContentPart[],
+    onEvent: (event: AiFlowEvent) => void,
+  ): Promise<unknown> {
+    return lastValueFrom(
+      this.ai.flowStream(scenarioKey, input, parts).pipe(
+        tap((event) => onEvent(event)),
+        filter((event) => event.kind === 'flow_completed'),
+        map((event) => event['finalOutput']),
+      ),
+    );
+  }
+
   private handleEvent(event: AiFlowEvent): void {
     switch (event.kind) {
       case 'step_started':
-        this.status.set(event.name === 'detect_intent' ? 'ai.detecting' : 'ai.filling');
+        this.status.set(event['name'] === 'detect_intent' ? 'ai.detecting' : 'ai.filling');
         break;
       case 'step_retry':
         this.status.set('ai.correcting');

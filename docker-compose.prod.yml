@@ -4,8 +4,12 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       EntityRepository__Backend: GraphDb
       GraphDb__BaseUrl: http://graphdb:7200
-      # Per-app canonical IRI root — mirrors the Traefik host below (APP_SLUG=homestia).
-      Entity__BaseIri: https://homestia.katharsis.digital
+      # Per-app canonical IRI root — mirrors the Traefik host below.
+      Entity__BaseIri: https://${APP_SLUG}.katharsis.digital
+      # Branch options MUST mirror Entity__BaseIri (crash-loop guard, same
+      # rationale as the Aletheia pipeline).
+      Branch__DefaultBranchIri: https://${APP_SLUG}.katharsis.digital/branches/main
+      Branch__ManagementGraphIri: https://${APP_SLUG}.katharsis.digital/management
     env_file: .env.prod
     labels:
       - "traefik.enable=true"

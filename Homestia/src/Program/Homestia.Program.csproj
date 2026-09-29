@@ -48,7 +48,7 @@
     <PackageReference Include="Aletheia.Sdk.Entity" />
     <PackageReference Include="Aletheia.Sdk.Entity.Entity" />
     <PackageReference Include="Aletheia.Sdk.Entity.Messaging" />
-    <PackageReference Include="Aletheia.Sdk.Execution" />
+    <PackageReference Include="Aletheia.Sdk.Localization" />
     <PackageReference Include="Aletheia.Sdk.ObjectStorage" />
     <PackageReference Include="Aletheia.Sdk.ObjectStorage.Http" />
     <PackageReference Include="Aletheia.Sdk.Messaging" />
@@ -59,6 +59,7 @@
     <PackageReference Include="Aletheia.Sdk.Repository" />
     <PackageReference Include="Aletheia.Sdk.Repository.InMemory" />
     <PackageReference Include="Aletheia.Sdk.Repository.GraphDb" />
+    <PackageReference Include="Aletheia.Sdk.Scheduling" />
     <PackageReference Include="Aletheia.Sdk.Structure" />
     <PackageReference Include="Aletheia.Sdk.Web" />
   </ItemGroup>

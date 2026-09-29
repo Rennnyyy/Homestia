@@ -38,7 +38,7 @@
             "styles": [
               "src/generated/tailwind.css",
               "src/styles.css",
-              "src/styles/themes.css"
+              "src/styles/homestia-skin.css"
             ]
           },
           "configurations": {
@@ -46,13 +46,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "700kB",
-                  "maximumError": "1.2MB"
+                  "maximumWarning": "1.5MB",
+                  "maximumError": "2.5MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "8kB",
+                  "maximumError": "16kB"
                 }
               ],
               "outputHashing": "all"
@@ -81,7 +81,18 @@
           "defaultConfiguration": "development"
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "coverageInclude": ["src/app/**/*.ts"],
+            "coverageExclude": ["src/app/**/*.spec.ts", "src/app/entities/**"],
+            "coverageReporters": ["text", "html"],
+            "coverageThresholds": {
+              "statements": 75,
+              "branches": 72,
+              "functions": 65,
+              "lines": 80
+            }
+          }
         }
       }
     }

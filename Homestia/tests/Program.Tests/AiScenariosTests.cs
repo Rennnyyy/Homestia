@@ -41,8 +41,9 @@ public sealed class AiScenariosTests
         var complete = registry.Scenarios[AiScenarios.CompleteText];
         complete.Steps.ShouldHaveSingleItem();
         complete.Steps[0].Name.ShouldBe("complete_form");
-        // The lenient AI shape — a still-partial draft stays acceptable.
-        complete.Steps[0].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
+        // The form's own view: a partial result is judged by the rules the user's
+        // save is judged by.
+        complete.Steps[0].ViewIri.ShouldBe(ViewAspects.PropertyShapeIri);
     }
 
     [Fact]
@@ -57,14 +58,14 @@ public sealed class AiScenariosTests
     }
 
     [Fact]
-    public void Edit_scenarios_validate_against_the_lenient_ai_property_shape()
+    public void Edit_scenarios_validate_against_the_property_view()
     {
         var registry = RegisterAll();
 
         var edit = registry.Scenarios[AiScenarios.EditText];
         edit.Steps.ShouldHaveSingleItem();
         edit.Steps[0].Name.ShouldBe("fill_form");
-        edit.Steps[0].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
+        edit.Steps[0].ViewIri.ShouldBe(ViewAspects.PropertyShapeIri);
     }
 
     [Fact]
@@ -75,6 +76,6 @@ public sealed class AiScenariosTests
         var create = registry.Scenarios[AiScenarios.CreateText];
         create.Steps.ShouldHaveSingleItem();
         create.Steps[0].Name.ShouldBe("fill_form");
-        create.Steps[0].ViewIri.ShouldBe(ViewAspects.AiPropertyShapeIri);
+        create.Steps[0].ViewIri.ShouldBe(ViewAspects.PropertyShapeIri);
     }
 }

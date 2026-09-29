@@ -6,7 +6,9 @@ set -euo pipefail
 # ══════════════════════════════════════════════════════════════════════════════
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WEB_DIR="$SCRIPT_DIR/src/Web"
+# The Angular app — and so package.json/package-lock.json — lives in
+# src/Web/App, not src/Web. Pointing npm at the parent failed npm ci (EUSAGE).
+WEB_DIR="$SCRIPT_DIR/src/Web/App"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Building Homestia"

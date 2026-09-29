@@ -1,60 +1,9 @@
 /**
- * ShapeMirror domain models — the types exchanged between the shape client,
- * schema extraction, and the backend view validation endpoint.
+ * Homestia's shape vocabulary.
+ *
+ * The shape engine and its types now live in @rennnyyy/aletheia-core; this file
+ * holds only the IRIs this program registers.
  */
-
-/** Catalog metadata for one frontend shape (from GET /api/shapes). */
-export interface ShapeInfo {
-  key: string;
-  iri: string;
-  etag: string;
-}
-
-/** A single validation finding, mapped back onto JSON form paths. */
-export interface ShapeViolation {
-  /** Full JSON path of the offending value, e.g. `rooms[0].roomSize`. */
-  jsonPath: string;
-  /** The bare JSON key the violation points at (last path segment). */
-  key: string;
-  /** The sh:message authored in the shape. */
-  message: string;
-  /** SHACL severity local name (Violation / Warning / Info). */
-  severity: string;
-}
-
-/** One sh:property extracted from a NodeShape. */
-export interface KeyConstraint {
-  /** JSON key — the sh:path local name. */
-  key: string;
-  /** sh:order value (display order). */
-  order: number;
-  /** sh:datatype IRI, null when not declared. */
-  datatype: string | null;
-  /** sh:nodeKind local name (`IRI`), null when not declared. */
-  nodeKind: string | null;
-  /** sh:description text, null when not declared (shown as field visual help). */
-  description: string | null;
-}
-
-/** The extracted schema of one shape: ordered keys + target classes. */
-export interface ShapeSchema {
-  /** IRI of the NodeShape. */
-  shapeIri: string;
-  /** sh:targetClass IRIs. */
-  targetClasses: string[];
-  /** Property constraints ordered by sh:order. */
-  keys: KeyConstraint[];
-  /** Key lookup by JSON key. */
-  keyByName: ReadonlyMap<string, KeyConstraint>;
-}
-
-/** The response of POST /api/entities/aspect-definitions/{iri}/validate. */
-export interface ViewValidationResponse {
-  /** False when any finding exists — SHACL semantics, warnings included. */
-  conforms: boolean;
-  /** Findings of every severity, mapped to JSON paths. */
-  findings: ShapeViolation[];
-}
 
 /** Root entity type IRIs used by the Homestia shapes. */
 export const PROPERTY_TYPE = 'urn:aletheia:homestia:Property';
@@ -79,3 +28,31 @@ export const RENTAL_TENANCY_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:ten
 export const RENTAL_NOTICED_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:noticed';
 export const RENTAL_HANDBACK_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:handback';
 export const RENTAL_TERMINATED_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:terminated';
+
+/**
+ * Operation aspects — the write-side counterparts of the views above, registered
+ * by the Program and selected per write through
+ * `X-Aletheia-Operation-AspectIri`.
+ *
+ * A view decides which fields a form *shows*; the operation aspect decides which
+ * fields the write may *set*, and the server ignores every body field its shape
+ * does not name. Every save therefore selects the aspect covering the aggregate it
+ * writes:
+ *
+ * - `PROPERTY_OPERATION_IRI` — the property save and the property delete. It
+ *   covers the rooms too, because one save writes both.
+ * - `TENANT_OPERATION_IRI` — the inline tenant quick-create.
+ * - `RENTAL_OPERATION_IRI` — every rental stage save, all eight stages in one
+ *   aspect: a stage save PUTs the whole record, so a per-stage aspect would erase
+ *   the stages already filled.
+ */
+export const PROPERTY_OPERATION_IRI = 'urn:aletheia:homestia:operations:property';
+export const TENANT_OPERATION_IRI = 'urn:aletheia:homestia:operations:tenant';
+export const RENTAL_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental';
+
+/**
+ * The one query aspect: the rentals list reads under it and the backend merges
+ * the derived `state` field into every row. A query aspect gates and enriches a
+ * read; it does not restrict which fields come back.
+ */
+export const RENTAL_STATE_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:rental-state';

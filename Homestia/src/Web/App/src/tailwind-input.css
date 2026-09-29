@@ -1,30 +1,15 @@
 /* ---- Tailwind CSS v4 ---- */
 @import "tailwindcss";
+
+/* The Aletheia token bridge — maps the Tailwind semantic colors + the radius
+   family onto the runtime skin tokens, so every component re-themes when
+   `data-skin` / `.dark` change. It replaces the hand-written @theme block. */
+@import "@rennnyyy/aletheia-tokens/themes/tailwind.css";
+
 @source "./**/*.{html,ts}";
 @source "../libs/ui/**/*.ts";
 
-/* ---- Spartan-ng theme tokens ---- */
-/* These reference the CSS variables defined in src/styles/themes.css   */
-/* Theme switching happens via data-theme attribute + .dark class        */
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --radius: var(--radius);
-}
+/* The SDK ships no compiled CSS — its components' classes have to be scanned
+   out of node_modules, which Tailwind excludes by default. */
+@source "../node_modules/@rennnyyy/aletheia-ui/dist/fesm2022/*.mjs";
+

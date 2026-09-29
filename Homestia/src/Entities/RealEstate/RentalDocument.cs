@@ -11,12 +11,16 @@ namespace Homestia.Entities.RealEstate;
 /// graph here. A rental holds many documents via its
 /// <see cref="Rental.RentalDocuments"/> collection.
 /// </summary>
+    [Label("Rental Document")]
+    [Label("de", "Mietdokument")]
 [Entity(Path = "rental-documents", PredicatePath = "rentalDocument")]
 [Identity(IdentityGenerator.Random)]
 [ObjectBearing("rental-documents")]
 public partial class RentalDocument
 {
     /// <summary>The original file name, shown in the document list.</summary>
+    [Label("Name")]
+    [Label("de", "Name")]
     [Predicate("name")]
     public string Name { get; set; } = string.Empty;
 }

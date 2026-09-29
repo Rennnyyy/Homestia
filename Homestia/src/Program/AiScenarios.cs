@@ -50,8 +50,9 @@ public static class AiScenarios
     /// <summary>
     /// Continues/corrects an in-progress draft: the user's follow-up request is
     /// applied on top of the existing draft ("add address …"). Everything the
-    /// draft already contains is kept; the lenient AI shape keeps a still-partial
-    /// result acceptable.
+    /// draft already contains is kept, and the result is judged by the SAME view
+    /// the form renders under — a field still missing is reported against it, not
+    /// waved through by a milder rule.
     /// </summary>
     private static ScenarioDefinition CompleteScenario(string key)
     {
@@ -63,7 +64,7 @@ public static class AiScenarios
             Instruction: CompleteInstruction,
             OutputSchema: EmptySchema(),
             MaxRetries: 3,
-            ViewIri: ViewAspects.AiPropertyShapeIri,
+            ViewIri: ViewAspects.PropertyShapeIri,
             TextOutput: false));
 
         return new ScenarioDefinition(
@@ -101,15 +102,17 @@ public static class AiScenarios
     {
         var steps = new List<ScenarioStep>();
 
-        // The lenient AI shape (not the strict form shape) so a partial fill
-        // still succeeds; missing fields surface as warnings for the user.
+        // The SAME view the form renders under — the AI's output is judged by the
+        // rules the user's own save is judged by, so a field the AI omits is a
+        // violation the user sees, not a warning that quietly differs from what
+        // the form would demand.
         steps.Add(new ScenarioStep(
             Name: "fill_form",
             ModelRole: FillRole,
             Instruction: FillInstruction(edit),
             OutputSchema: EmptySchema(),
             MaxRetries: 3,
-            ViewIri: ViewAspects.AiPropertyShapeIri,
+            ViewIri: ViewAspects.PropertyShapeIri,
             TextOutput: false));
 
         return new ScenarioDefinition(key, description, steps);

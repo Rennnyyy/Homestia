@@ -8,11 +8,15 @@ namespace Homestia.Entities.RealEstate;
 /// CommonArea — a shared space within a <see cref="Property"/> (kitchen, hallway, lounge, etc.).
 /// Inherits <see cref="Segmentation"/> and carries a collection of <see cref="InventoryItem"/>s.
 /// </summary>
+    [Label("Common Area")]
+    [Label("de", "Gemeinschaftsfläche")]
 [Entity(PredicatePath = "commonArea")]
 [OperationEndpoints("common-areas")]
 public partial class CommonArea : Segmentation
 {
     /// <summary>Inventory items equipped in this common area.</summary>
+    [Label("Inventory")]
+    [Label("de", "Inventar")]
     [Owning("equippedWith")]
     public partial EntityRefCollection<InventoryItem> Inventory { get; }
 }

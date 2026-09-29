@@ -22,12 +22,14 @@ using Aletheia.Sdk.ObjectStorage.InMemory.DependencyInjection;
 
 // ── Authorization — role-based access control ──────────────────────────────
 using Aletheia.Sdk.Authorization.DependencyInjection;
+using Aletheia.Sdk.Authorization.Entity;
 using Aletheia.Sdk.Authorization.Http.DependencyInjection;
 
 // ── Exploration — runtime introspection ────────────────────────────────────
 using Aletheia.Sdk.Aspects.Entity;
 using Aletheia.Sdk.Capability.Entity;
 using Aletheia.Sdk.Entity.Entity;
+using Aletheia.Sdk.Localization;
 
 // ── Branching — isolation, merging, conflict detection (feature-flagged) ───
 using Aletheia.Sdk.Branch.Http;
@@ -50,8 +52,12 @@ using Homestia.Entities.RealEstate;
 // ── AI — chat + scenario flows ─────────────────────────────────────────────
 using Aletheia.Sdk.AI.DependencyInjection;
 using Aletheia.Sdk.AI.Http;
+using Aletheia.Sdk.AI.Http.DependencyInjection;
 using Aletheia.Sdk.AI.Scenarios;
 using Homestia.AI;
+
+// ── Scheduling — read-only exploration feed ──────────────────────────────
+using Aletheia.Sdk.Scheduling.DependencyInjection;
 
 // ── Web — generic entity admin (Sdk.Web) ───────────────────────────────────
 using Aletheia.Sdk.Web.DependencyInjection;
@@ -81,6 +87,12 @@ builder.Services.AddAspects();
 // Authorization (must be first — middleware runs before endpoint mapping).
 builder.Services.AddRoleBasedAuthorization();
 builder.Services.AddAuthorizationHttp(builder.Configuration);
+
+// The Agent/Role entities and their assignments live in the Authorization.Entity
+// assembly, not in Homestia's — the admin's authorization pages read them through
+// the ordinary operation endpoints, so that assembly must be mapped here too
+// (Sdk.Sample does the same).
+builder.Services.AddOperationEndpointsHttp(typeof(Agent).Assembly);
 
 // ── Feature-flagged slices ──────────────────────────────────────────────────
 var features = builder.Configuration.GetSection("Aletheia:Features");
@@ -126,6 +138,10 @@ builder.Services.AddOperationEndpointsHttpFromAssemblyContaining<Property>();
 builder.Services.AddInMemoryObjectStorage();
 builder.Services.AddObjectStorageHttpFromAssemblyContaining<Property>();
 
+// Projects the [ObjectBearing] scan into the read-only aletheia/object-bearings
+// entity so the admin's bucket matrix is served by the canonical surface.
+builder.Services.AddObjectBearingEntity();
+
 // Messaging — in-memory pub/sub for entity events.
 if (messaging)
 {
@@ -134,15 +150,39 @@ if (messaging)
     builder.Services.AddCapabilityMessaging();
 }
 
+// Projects the registered entity-event topics into the read-only
+// aletheia/messaging-topics entity. Registered even when the Messaging feature
+// is off: the feed is then simply empty, which beats the 405 an unmapped
+// exploration surface returns.
+builder.Services.AddMessagingTopicEntity();
+
 // Exploration — runtime introspection of entities, capabilities, and aspects.
 builder.Services.AddAspectsEntity();
 builder.Services.AddCapabilityEntity(typeof(GreetHandler).Assembly);
 builder.Services.AddEntityEntity(typeof(Property).Assembly);
 
+// The platform translation dictionary: every registered definition surface
+// (entities and aspects) contributes its layer behind MapLocalization(), which
+// is what lets the table and form labels follow the active language.
+builder.Services.AddPlatformLocalization();
+
 // AI — chat + scenario flows. Ontology and tools require the registries above.
 builder.Services.AddAIOntology();
 builder.Services.AddAITools();
 builder.Services.AddAI(builder.Configuration);
+
+// Read-only exploration feeds: the registered scenarios, and the configured
+// model roles (endpoint host and model only — never the API key).
+builder.Services.AddAiScenarioEntity();
+builder.Services.AddAiModelRoleEntity();
+
+// Read-only exploration feed for the registered schedules (create, update and
+// delete are deliberately absent). AddScheduling() provides the store the feed
+// projects — without it the query would fail to resolve it. It scans the
+// capability handlers, so it must follow their registration above. Homestia
+// registers no schedules, so the feed is an empty list.
+builder.Services.AddScheduling();
+builder.Services.AddScheduleEntity();
 
 // Web — generic entity admin at /aletheia/ (like Sdk.Sample). Serves the
 // compiled Sdk.Web Angular app from its aletheia-wwwroot, which the
@@ -176,6 +216,10 @@ ViewAspects.RegisterViews(aspectStore);
 // opts in via the X-Aletheia-Query-AspectIri header.
 QueryAspects.RegisterQueryAspects(aspectStore);
 
+// Operation aspects — write-side counterparts of the views: a write that
+// selects one may set the fields its shape names, and nothing else.
+OperationAspects.RegisterOperationAspects(aspectStore);
+
 // AI scenario flows — code-defined form-filling packs (property create/edit).
 AiScenarios.Register(app.Services.GetRequiredService<ScenarioRegistry>());
 
@@ -190,13 +234,17 @@ if (branching)
     app.MapBranches();       // /api/branches/{...}
 }
 
-// Exploration endpoints.
-app.MapEntityEntity();
-app.MapCapabilityEntity();
-app.MapAspectsEntity();
+// Exploration endpoints. Entity and capability definitions are served by their
+// registered definition entities through MapOperations(); only the non-CRUD
+// aspect view/validate endpoints keep a slice-local mapper (SDK 0.9.5+).
+app.MapAspectDefinitionAux();
 
 // AI — SSE chat and scenario-flow endpoints.
 app.MapAiEndpoints();
+
+// The platform translation dictionary — every registered definition surface
+// contributes its layer here (see AddPlatformLocalization above).
+app.MapLocalization();
 
 // ── Sdk.Web — generic entity admin at /aletheia/ ─────────────────────────────
 // Registered BEFORE the facade so /aletheia/* routes are not swallowed by the

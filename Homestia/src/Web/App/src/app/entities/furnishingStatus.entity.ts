@@ -1,28 +1,11 @@
-// Auto-generated from http://localhost:5000/api/entities/entity-definitions — do not edit manually.
-// Entity: FurnishingStatus  |  predicatePath: "furnishingStatus"  |  enum: true
-
-import type { EntityInfo } from '../shared/services/aletheia-http-client.models';
-
-// ── API response interface ────────────────────────────────────────────────
-
+/** Entity type for FurnishingStatus — generated from backend introspection. Do not edit. */
 export interface FurnishingStatus {
+  /** The record's IRI — the identity every route is called with. */
+  iri: string;
   /** key */
   key: string;
   /** displayName */
   displayName: string;
-  /** The entity's unique IRI. */
-  iri: string;
 }
-
-// ── Dynamic form definition ───────────────────────────────────────────────
-
-/** Pass to &lt;app-dynamic-entity-form [entity]="FurnishingStatusEntity"&gt; */
-export const FurnishingStatusEntity: EntityInfo = {
-  entityPath: 'furnishing-statuses',
-  predicatePath: 'furnishingStatus',
-  displayName: 'FurnishingStatus',
-  properties: [
-    { name: 'key', type: 'String', isCollection: false },
-    { name: 'displayName', type: 'String', isCollection: false },
-  ],
-};
+/** Stable key union for the FurnishingStatus enumeration — generated. Do not edit. */
+export type FurnishingStatusKey = 'unfurnished' | 'partially-furnished' | 'fully-furnished';

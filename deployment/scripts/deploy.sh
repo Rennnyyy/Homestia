@@ -32,10 +32,10 @@ ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 # ---- Copy deploy artifacts to the server ---------------------------------
 ssh -i ~/.ssh/id_deploy "$SSH_USER@$SSH_HOST" "mkdir -p '$APP_DIR'"
 scp -i ~/.ssh/id_deploy \
-  docker-compose.yml \
-  "docker-compose.${STAGE}.yml" \
-  "auth/blueprint.${STAGE}.yaml" \
-  "auth/blueprint.public.${STAGE}.yaml" \
+  deployment/docker-compose.yml \
+  "deployment/docker-compose.${STAGE}.yml" \
+  "deployment/auth/blueprint.${STAGE}.yaml" \
+  "deployment/auth/blueprint.public.${STAGE}.yaml" \
   "$SSH_USER@$SSH_HOST:$APP_DIR/"
 
 # ---- Remote deploy -------------------------------------------------------

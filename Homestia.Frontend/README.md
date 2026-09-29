@@ -18,8 +18,8 @@ The app expects the backend on `http://localhost:5000` (dev proxy in
 .NET program:
 
 ```bash
-npm run build               # outputs into src/Program/wwwroot
-dotnet run --project ../../Program --urls http://localhost:5080
+npm run build               # outputs into ../Homestia/src/Program/wwwroot
+dotnet run --project ../Homestia/src/Program --urls http://localhost:5080
 ```
 
 ## Code generation

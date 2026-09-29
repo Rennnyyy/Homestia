@@ -9,7 +9,7 @@ import { expect, test, type Page } from '@playwright/test';
  * "the migration changed the code, not the look".
  *
  * Prerequisite (the host serves both the facade and the API):
- *   dotnet run --project src/Program --no-launch-profile --urls http://localhost:5080
+ *   dotnet run --project ../Homestia/src/Program --no-launch-profile --urls http://localhost:5080
  *
  * First run has no baselines yet — create them with:
  *   npm run test:e2e:update

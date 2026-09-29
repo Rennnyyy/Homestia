@@ -1,0 +1,18 @@
+.git
+.github
+**/bin
+**/obj
+**/node_modules
+**/wwwroot
+# ...except the prebuilt facade from the `homestia-wwwroot` artifact (the
+# image-build job sets SKIP_ANGULAR=true, so this IS the only source of the
+# Angular bundle — excluding it ships an API-only image where / 404s).
+!Homestia/src/Program/wwwroot
+!Homestia/src/Program/wwwroot/**
+**/dist
+**/.angular
+**/coverage
+**/playwright-report
+**/test-results
+entity
+.DS_Store

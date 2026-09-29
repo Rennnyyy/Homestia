@@ -7,7 +7,7 @@ set -euo pipefail
 # ══════════════════════════════════════════════════════════════════════════════
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WEB_DIR="$SCRIPT_DIR/src/Web"
+WEB_DIR="$SCRIPT_DIR/../Homestia.Frontend"
 DOTNET_PORT="${DOTNET_PORT:-5000}"
 ANGULAR_PORT="${ANGULAR_PORT:-4200}"
 

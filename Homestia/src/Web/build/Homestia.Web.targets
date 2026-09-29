@@ -14,12 +14,12 @@
 
        The normal local/CI flow builds the facade FIRST, then builds the host
        against the already-emitted wwwroot:
-         cd src/Web/App && npm ci && npm run build
+         cd Homestia.Frontend && npm ci && npm run build
          dotnet build -p:SkipAngularBuild=true
 
        Paths relative to THIS file (src/Web/build/):
-         - Angular source : ../App                 → src/Web/App
-         - Host wwwroot   : ../../Program/wwwroot  → src/Program/wwwroot
+         - Angular source : ../../../../Homestia.Frontend → repo root sibling
+         - Host wwwroot   : ../../Program/wwwroot         → src/Program/wwwroot
        Host-relative paths (obj caches, wwwroot/** content) resolve against the
        importing project (src/Program), because MSBuildProjectDirectory stays
        the host while MSBuildThisFileDirectory is this file's directory.
@@ -27,7 +27,7 @@
   <Target Name="BuildAngularFrontend" BeforeTargets="BeforeBuild"
           Condition="'$(BuildAngularOnBuild)' == 'true' and '$(SkipAngularBuild)' != 'true'">
     <PropertyGroup>
-      <WebDir>$(MSBuildThisFileDirectory)../App</WebDir>
+      <WebDir>$(MSBuildThisFileDirectory)../../../../Homestia.Frontend</WebDir>
       <WwwRootDir>$(MSBuildThisFileDirectory)../../Program/wwwroot</WwwRootDir>
     </PropertyGroup>
 

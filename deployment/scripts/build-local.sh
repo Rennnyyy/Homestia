@@ -28,7 +28,7 @@
 # ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 DOTNET_ROOT="$REPO/Homestia"
 ALETHEIA="${ALETHEIA:-$REPO/../Aletheia}"     # sibling repo (Katharsis/Aletheia)
 VERSION="${VERSION:-1.0.0-local}"
@@ -60,7 +60,7 @@ done
 if [ ! -d "$DOTNET_ROOT" ]; then
   echo "ERROR: dotnet root not found at $DOTNET_ROOT"; exit 1
 fi
-if [ ! -f "$ALETHEIA/scripts/pack-sdk.sh" ]; then
+if [ ! -f "$ALETHEIA/deployment/scripts/pack-sdk.sh" ]; then
   echo "ERROR: sibling Aletheia repo not found at $ALETHEIA (set ALETHEIA=...)"
   exit 1
 fi
@@ -84,7 +84,7 @@ fi
 if [ "$NEEDS_PACK" = true ]; then
   echo "--- Packing Aletheia SDK ---"
   (cd "$ALETHEIA" && SKIP_ANGULAR="$SKIP_ANGULAR" \
-      bash scripts/pack-sdk.sh --version "$VERSION" --out "$FEED")
+      bash deployment/scripts/pack-sdk.sh --version "$VERSION" --out "$FEED")
 fi
 
 if [ ! -d "$FEED" ] || ! ls "$FEED"/*.nupkg >/dev/null 2>&1; then

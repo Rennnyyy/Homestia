@@ -14,16 +14,22 @@
  * carry; this file asserts that what they carry is what their views say they may.
  */
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const read = (relative: string): string =>
-  readFileSync(new URL(relative, import.meta.url).pathname, 'utf8');
+// Resolve against the Angular project root (process.cwd()), never import.meta.url:
+// under the coverage run Vitest rewrites import.meta.url to the project root, so
+// the same relative paths resolve differently between plain and coverage runs.
+const PROJECT_ROOT = pathToFileURL(`${process.cwd()}/`);
 
-const VIEW_ASPECTS = read('../../../../Program/ViewAspects.cs');
-const OPERATION_ASPECTS = read('../../../../Program/OperationAspects.cs');
-const QUERY_ASPECTS = read('../../../../Program/QueryAspects.cs');
-const SHAPE_MODEL = read('./core/shapes/shape.model.ts');
-const PAGES = ['./features/properties/properties.ts', './features/rentals/rentals.ts'] as const;
+const read = (relative: string): string =>
+  readFileSync(new URL(relative, PROJECT_ROOT).pathname, 'utf8');
+
+const VIEW_ASPECTS = read('../Homestia/src/Program/ViewAspects.cs');
+const OPERATION_ASPECTS = read('../Homestia/src/Program/OperationAspects.cs');
+const QUERY_ASPECTS = read('../Homestia/src/Program/QueryAspects.cs');
+const SHAPE_MODEL = read('src/app/core/shapes/shape.model.ts');
+const PAGES = ['src/app/features/properties/properties.ts', 'src/app/features/rentals/rentals.ts'] as const;
 
 /** The IRIs declared as `public const string Name = "…";` in the aspect files. */
 function constants(source: string): Map<string, string> {
@@ -84,8 +90,8 @@ const appIri = (name: string): string => SHAPE_MODEL.match(new RegExp(`${name} =
  * them; the assertion is membership in the union, never in a single view.
  */
 const BOUND_SHAPES: Record<string, string[]> = {
-  './features/properties/properties.ts': ['urn:aletheia:homestia:shapes:property', 'urn:aletheia:homestia:shapes:room'],
-  './features/rentals/rentals.ts': [
+  'src/app/features/properties/properties.ts': ['urn:aletheia:homestia:shapes:property', 'urn:aletheia:homestia:shapes:room'],
+  'src/app/features/rentals/rentals.ts': [
     'urn:aletheia:homestia:shapes:rental:application',
     'urn:aletheia:homestia:shapes:rental:contract',
     'urn:aletheia:homestia:shapes:rental:deposit',

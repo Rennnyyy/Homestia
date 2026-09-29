@@ -72,6 +72,6 @@ Never leave work unshipped. Never leave a proven wing unsealed.
 ## Testing duty
 
 Every user-visible behaviour in the app carries an end-to-end path. Before adding or changing
-anything under `Homestia/src/Web/App`, read
+anything under `Homestia.Frontend`, read
 `.github/instructions/homestia-e2e.instructions.md` — it defines the three layers of proof, the
 "assert the record, not the page" rule, and why geometry beats a pixel ratio for a control's place.

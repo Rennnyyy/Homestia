@@ -1,6 +1,6 @@
 # Test coverage — Homestia web app
 
-`npm run test:coverage` in `src/Web/App` runs the Vitest suite through the
+`npm run test:coverage` in `Homestia.Frontend` runs the Vitest suite through the
 Angular unit-test builder with the v8 provider and enforces the floors below.
 
 ## Floors (enforced)
@@ -74,7 +74,7 @@ services are in the graph (jsdom provides neither).
 both the facade and the API):
 
 ```
-dotnet run --project ../../Program --no-launch-profile --urls http://localhost:5081
+dotnet run --project ../Homestia/src/Program --no-launch-profile --urls http://localhost:5081
 E2E_BASE_URL=http://localhost:5081 npm run test:e2e          # compare
 E2E_BASE_URL=http://localhost:5081 npm run test:e2e:update   # regenerate
 ```

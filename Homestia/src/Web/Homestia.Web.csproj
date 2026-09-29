@@ -14,8 +14,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Homestia.Web</RootNamespace>
     <IsPackable>false</IsPackable>
-    <!-- Keep the Angular source (App/) out of the C# build and output. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);App\**</DefaultItemExcludes>
+    <!-- The Angular source lives in the sibling Homestia.Frontend workspace at
+         the repo root, outside this project — nothing to exclude here. -->
   </PropertyGroup>
 
   <ItemGroup>

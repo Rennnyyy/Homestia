@@ -1,6 +1,6 @@
 ---
-description: "Use when: adding, changing, or reviewing any user-visible behaviour in the Homestia app (src/Web/App) — a page, a control, a wizard step, a stage, a route, a theme or language affordance, or a form field. Defines the end-to-end test duty that every feature carries in this repository."
-applyTo: "Homestia/src/Web/App/**"
+description: "Use when: adding, changing, or reviewing any user-visible behaviour in the Homestia app (Homestia.Frontend) — a page, a control, a wizard step, a stage, a route, a theme or language affordance, or a form field. Defines the end-to-end test duty that every feature carries in this repository."
+applyTo: "Homestia.Frontend/**"
 ---
 
 # Every Feature Carries Its End-To-End Path
@@ -10,8 +10,8 @@ until all three that apply to it exist.
 
 | Layer | Question it answers | Where |
 |---|---|---|
-| Unit (`*.spec.ts` beside the code) | Does the page's logic do what it claims? | `src/Web/App/src/**` |
-| End-to-end (`e2e/*.spec.ts`) | Does a reader get the outcome through the real app and the real API? | `src/Web/App/e2e` |
+| Unit (`*.spec.ts` beside the code) | Does the page's logic do what it claims? | `Homestia.Frontend/src/**` |
+| End-to-end (`e2e/*.spec.ts`) | Does a reader get the outcome through the real app and the real API? | `Homestia.Frontend/e2e` |
 | Visual (`e2e/smoke.spec.ts-snapshots/*.png`) | Did the code change, or did the look change? | committed baselines |
 
 ## The duty

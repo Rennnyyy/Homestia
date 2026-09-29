@@ -15,12 +15,18 @@
  * added later, which is the whole point.
  */
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const PAGES = ['features/properties/properties.ts', 'features/rentals/rentals.ts'] as const;
 
+// Resolve against the Angular project root (process.cwd()), never import.meta.url:
+// under the coverage run Vitest rewrites import.meta.url to the project root, so
+// the same relative paths resolve differently between plain and coverage runs.
+const APP_SRC = pathToFileURL(`${process.cwd()}/src/app/`);
+
 const source = (page: string): string =>
-  readFileSync(new URL(page, import.meta.url).pathname, 'utf8');
+  readFileSync(new URL(page, APP_SRC).pathname, 'utf8');
 
 /** Every `<aletheia-entity-form … />` / `<aletheia-entity-table … />` block. */
 function usageBlocks(src: string, tag: 'form' | 'table'): string[] {

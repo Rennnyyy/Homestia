@@ -3,11 +3,11 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Homestia end-to-end / visual-regression config.
  *
- * The app AND its API are served by the .NET host (src/Program) — there is no
- * separate dev server to boot, so this suite expects a host that is already
- * running:
+ * The app AND its API are served by the .NET host (../Homestia/src/Program) —
+ * there is no separate dev server to boot, so this suite expects a host that is
+ * already running:
  *
- *   dotnet run --project src/Program --no-launch-profile --urls http://localhost:5080
+ *   dotnet run --project ../Homestia/src/Program --no-launch-profile --urls http://localhost:5080
  *
  * Point it somewhere else with E2E_BASE_URL.
  *

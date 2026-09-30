@@ -12,8 +12,8 @@
     "watch": "ng build --watch --configuration development",
     "generate-entities": "aletheia-cli generate --input model.json --out src/app/entities",
     "codegen:check": "aletheia-cli check --input model.json --out src/app/entities",
-    "test": "ng test",
-    "test:coverage": "ng test --coverage",
+  "test": "npm run tailwind:build && ng test",
+  "test:coverage": "npm run tailwind:build && ng test --coverage",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots"
   },

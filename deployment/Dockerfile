@@ -69,8 +69,10 @@ RUN if [ -n "$NUGET_USERNAME" ] && [ -n "$NUGET_PASSWORD" ]; then \
 
 # npm auth for the @rennnyyy scope. The Angular build runs `npm ci` in
 # Homestia.Frontend and installs those packages from npm.pkg.github.com, so the
-# credentials must exist before the build.
-RUN if [ -n "$NPM_TOKEN" ]; then \
+# credentials must exist before the build. Gated on SKIP_ANGULAR too: when the
+# facade was prebuilt (CI), Node/npm is never installed in this image and the
+# step must not run (npm: not found would fail the build).
+RUN if [ "$SKIP_ANGULAR" != "true" ] && [ -n "$NPM_TOKEN" ]; then \
       npm config set //npm.pkg.github.com/:_authToken "$NPM_TOKEN" --location user; \
     fi
 

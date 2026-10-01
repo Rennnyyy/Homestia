@@ -102,8 +102,9 @@ public sealed class ViewAspectsTests
     }
 
     /// <summary>
-    /// Every shape Homestia serves — the 13 views plus the query result shape —
-    /// as input for the bilingual-name guard below.
+    /// Every shape Homestia serves — the eleven views — as input for the bilingual-name guard
+    /// below. The query aspects declare no result shape at all, so there is no read shape to
+    /// list: a declared shape is a projection, and projecting a read is what those aspects avoid.
     /// </summary>
     public static TheoryData<string, string> ServedShapes() => new()
     {
@@ -118,7 +119,6 @@ public sealed class ViewAspectsTests
         { nameof(ViewAspects.RentalNoticedTtl), ViewAspects.RentalNoticedTtl },
         { nameof(ViewAspects.RentalHandbackTtl), ViewAspects.RentalHandbackTtl },
         { nameof(ViewAspects.RentalTerminatedTtl), ViewAspects.RentalTerminatedTtl },
-        { nameof(QueryAspects.RentalStateResultShapeTtl), QueryAspects.RentalStateResultShapeTtl },
     };
 
     /// <summary>

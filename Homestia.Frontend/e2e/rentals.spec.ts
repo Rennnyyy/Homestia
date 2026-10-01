@@ -135,3 +135,54 @@ test.describe('creating a rental', () => {
     await expect(row).toContainText('Contract');
   });
 });
+
+test.describe('a stage after the first', () => {
+  test('the values typed into the open stage are the ones the record keeps', async ({
+    page,
+    request,
+  }) => {
+    // Every unlocked stage renders its own form, and the page reads the draft back from ONE of
+    // them before it writes. Reading the wrong one is invisible on screen — the input keeps the
+    // value the reader picked — and surfaces only as a shape complaint about a field the reader
+    // can see filled (`sh:minLength 1` on an empty string, while `sh:minCount 1` passes).
+    const propertyName = unique('Stage Property');
+    const propertyIri = await aProperty(request, propertyName);
+    const tenantName = unique('Stage Tenant');
+    const tenantIri = await aTenant(request, tenantName);
+
+    // The fixture stands AT the deposit stage: the page replays its progress from `currentStage`,
+    // so application and contract are already done and the deposit form is the open one.
+    const created = await request.post('/api/entities/rentals', {
+      data: {
+        property: propertyIri,
+        tenant: tenantIri,
+        viewingDate: '2026-10-01',
+        currentStage: 'https://homestia.katharsis.digital/rental-stages/deposit',
+      },
+    });
+    expect(created.ok(), 'the rental fixture was created').toBeTruthy();
+
+    await page.goto('/rentals');
+    await settle(page, 'app-rentals');
+    await page.locator('tr', { hasText: tenantName }).first().getByRole('button', { name: 'Edit' }).click();
+
+    const deposit = page.locator('hlm-accordion-item', {
+      has: page.locator('[data-field="depositPaymentDate"]'),
+    });
+    const date = deposit.locator('[data-field="depositPaymentDate"] input');
+    await expect(date).toBeVisible();
+    await deposit.locator('[data-field="depositAmount"] input').fill('500');
+    await date.fill('2026-10-02');
+
+    await deposit.getByRole('button', { name: 'Save & Continue' }).click();
+
+    // The page agrees the stage passed...
+    await expect(page.getByRole('button', { name: /Deposit \(Done\)/ })).toBeVisible();
+
+    // ...and the RECORD is the proof: the stage cannot be persisted without its date, so a record
+    // that stands past it must carry the date the reader chose.
+    const rental = await readRental(request, tenantIri);
+    expect(rental!['depositPaymentDate']).toBe('2026-10-02');
+    expect(rental!['depositAmount']).toBe(500);
+  });
+});

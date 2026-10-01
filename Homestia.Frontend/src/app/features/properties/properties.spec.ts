@@ -34,7 +34,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, of } from 'rxjs';
 
 import { Properties } from './properties';
-import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI } from '../../core/shapes/shape.model';
+import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI, ROOM_OPERATION_IRI } from '../../core/shapes/shape.model';
 
 /** Inline loader — the dictionary stays empty, so keys render as their own id. */
 @Injectable()
@@ -305,9 +305,10 @@ describe('Properties page', () => {
       const request = sync.saveWithChildren.mock.calls[0][0];
       expect(request.parentPath).toBe('properties');
       expect(request.childPath).toBe('rooms');
-      // One save write both halves, so it selects the aspect that admits both —
-      // without it the server would keep only the fields its shape names.
-      expect(request.operationAspectIri).toBe(PROPERTY_OPERATION_IRI);
+      // A property and its rooms are different entity types, so the save selects the aspect that
+      // governs EACH side — one aspect per entity.
+      expect(request.parentAspectIri).toBe(PROPERTY_OPERATION_IRI);
+      expect(request.childAspectIri).toBe(ROOM_OPERATION_IRI);
       expect(page.mode()).toBe('list');
     });
 
@@ -354,7 +355,8 @@ describe('Properties page', () => {
       const request = sync.deleteWithChildren.mock.calls[0][0];
       expect(request.parentPath).toBe('properties');
       expect(request.childPath).toBe('rooms');
-      expect(request.operationAspectIri).toBe(PROPERTY_OPERATION_IRI);
+      expect(request.parentAspectIri).toBe(PROPERTY_OPERATION_IRI);
+      expect(request.childAspectIri).toBe(ROOM_OPERATION_IRI);
     });
 
     it('opens the edit mode from a row action', () => {

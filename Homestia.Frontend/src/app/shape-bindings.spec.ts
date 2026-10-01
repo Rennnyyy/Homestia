@@ -3,10 +3,12 @@
  *
  * A view may declare the aspects it is used with: `views:operationAspect` for the writes it
  * feeds, `views:queryAspect` for the reads that serve it. The claim is opt-in and the platform
- * never enforces it — which is exactly why it is worth a test. A page that carries an aspect
- * IRI the shape it binds does NOT declare is a misconfiguration that fails silently on the
- * write path (an aspect whose shape names foreign predicates binds nothing and returns 200),
- * and nothing else in the app can see it.
+ * never enforces it — which is exactly why it is worth a test. A page that carries a REGISTERED
+ * aspect IRI the shape it binds does NOT declare is a misconfiguration that still fails
+ * silently: the aspect's shape names foreign predicates, binds nothing, and returns 200. (An
+ * IRI that resolves to no aspect at all is refused outright — 400 UNKNOWN_OPERATION_ASPECT /
+ * UNKNOWN_QUERY_ASPECT — so a typo no longer hides here.) Nothing else in the app can see the
+ * registered-but-foreign case.
  *
  * The shapes are C# (`ViewAspects.cs`) and their IRIs are C# constants, so this spec reads BOTH
  * sides as text: the backend's declarations, and the constants the pages pass. It is a
@@ -86,8 +88,10 @@ const appIri = (name: string): string => SHAPE_MODEL.match(new RegExp(`${name} =
 
 /**
  * Which shapes each page binds — a page is not one form. The rentals page carries the eight
- * stage forms AND the inline tenant form, so an aspect it passes has to be declared by ONE of
- * them; the assertion is membership in the union, never in a single view.
+ * stage forms AND the inline tenant form, and its stage-1 pickers READ the property and room
+ * lists, so the property and room shapes it reads through are bound there too; an aspect it
+ * passes has to be declared by ONE of them. The assertion is membership in the union, never
+ * in a single view.
  */
 const BOUND_SHAPES: Record<string, string[]> = {
   'src/app/features/properties/properties.ts': ['urn:aletheia:homestia:shapes:property', 'urn:aletheia:homestia:shapes:room'],
@@ -101,6 +105,8 @@ const BOUND_SHAPES: Record<string, string[]> = {
     'urn:aletheia:homestia:shapes:rental:handback',
     'urn:aletheia:homestia:shapes:rental:terminated',
     'urn:aletheia:homestia:shapes:tenant',
+    'urn:aletheia:homestia:shapes:property',
+    'urn:aletheia:homestia:shapes:room',
   ],
 };
 
@@ -137,32 +143,45 @@ describe('view bindings (the shape declares what may use it)', () => {
     }
 
     expect(viewOf('urn:aletheia:homestia:shapes:property')?.operations).toEqual([IRIS.get('PropertyOperationIri')]);
-    expect(viewOf('urn:aletheia:homestia:shapes:room')?.operations).toEqual([IRIS.get('PropertyOperationIri')]);
+    expect(viewOf('urn:aletheia:homestia:shapes:room')?.operations).toEqual([IRIS.get('RoomOperationIri')]);
     expect(viewOf('urn:aletheia:homestia:shapes:tenant')?.operations).toEqual([IRIS.get('TenantOperationIri')]);
   });
 
-  it('binds the eight rental stages to the AGGREGATE rental write, and to the read that serves them', () => {
-    // A rental is written whole by one aspect naming the union of every stage's fields, so each
-    // stage view names that one write; and the rentals list is read through the state query
-    // aspect, which is the read behind every stage view.
-    const stages = VIEWS.filter((view) => view.name.startsWith('Rental') && view.name !== 'RentalStateQueryAspectIri');
-    expect(stages).toHaveLength(8);
-    for (const stage of stages) {
-      expect(stage.operations, stage.name).toEqual([IRIS.get('RentalOperationIri')]);
-      expect(stage.queries, stage.name).toEqual([IRIS.get('RentalStateQueryAspectIri')]);
+  it('binds each rental stage view to its OWN stage write, and to the read that serves them', () => {
+    // A rental is saved one stage at a time, so each stage view names the aspect of THAT stage:
+    // the gate carries the stage's fields and the stage's presence rules, which one aggregate
+    // aspect could not (a union sh:minCount would reject every save short of the union).
+    // The rentals list is still read through the one state query aspect — the read behind
+    // every stage view.
+    const stageAspects: Record<string, string> = {
+      RentalApplicationTtl: 'RentalApplicationOperationIri',
+      RentalContractTtl: 'RentalContractOperationIri',
+      RentalDepositTtl: 'RentalDepositOperationIri',
+      RentalHandoverTtl: 'RentalHandoverOperationIri',
+      RentalTenancyTtl: 'RentalTenancyOperationIri',
+      RentalNoticedTtl: 'RentalNoticedOperationIri',
+      RentalHandbackTtl: 'RentalHandbackOperationIri',
+      RentalTerminatedTtl: 'RentalTerminatedOperationIri',
+    };
+
+    expect(VIEWS.filter((view) => view.name.startsWith('Rental'))).toHaveLength(8);
+
+    for (const [viewName, constant] of Object.entries(stageAspects)) {
+      const view = VIEWS.find((candidate) => candidate.name === viewName);
+      expect(view, viewName).toBeDefined();
+      expect(IRIS.get(constant), `${constant} is not declared`).toBeTruthy();
+      expect(view!.operations, viewName).toEqual([IRIS.get(constant)]);
+      expect(view!.queries, viewName).toEqual([IRIS.get('RentalStateQueryAspectIri')]);
     }
   });
 
-  it('leaves a view that no query aspect serves unbound on the read side', () => {
-    // The property, room and tenant lists are read without a query aspect, so claiming one
-    // would be a lie the admin would then show — declaring is a claim about REUSE.
-    for (const shapeIri of [
-      'urn:aletheia:homestia:shapes:property',
-      'urn:aletheia:homestia:shapes:room',
-      'urn:aletheia:homestia:shapes:tenant',
-    ]) {
-      expect(viewOf(shapeIri)?.queries, shapeIri).toEqual([]);
-    }
+  it('binds every list view to the read aspect that serves it', () => {
+    // The property, room and tenant lists are read through their own query aspect, so each view
+    // declares it — declaring is a claim about REUSE, and the read side of the same rules the
+    // operation aspect enforces on write.
+    expect(viewOf('urn:aletheia:homestia:shapes:property')?.queries).toEqual([IRIS.get('PropertyQueryAspectIri')]);
+    expect(viewOf('urn:aletheia:homestia:shapes:room')?.queries).toEqual([IRIS.get('RoomQueryAspectIri')]);
+    expect(viewOf('urn:aletheia:homestia:shapes:tenant')?.queries).toEqual([IRIS.get('TenantQueryAspectIri')]);
   });
 
   it('carries only aspect IRIs a page may actually send — every constant the pages pass is declared', () => {

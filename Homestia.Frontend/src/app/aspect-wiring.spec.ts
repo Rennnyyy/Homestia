@@ -43,6 +43,9 @@ const countOf = (src: string, pattern: RegExp): number => (src.match(pattern) ??
  */
 const QUERY_ASPECT_BY_ROUTE: Record<string, string> = {
   rentals: 'RENTAL_STATE_QUERY_ASPECT_IRI',
+  tenants: 'TENANT_QUERY_ASPECT_IRI',
+  rooms: 'ROOM_QUERY_ASPECT_IRI',
+  properties: 'PROPERTY_QUERY_ASPECT_IRI',
 };
 
 describe('the aspect contract', () => {
@@ -69,22 +72,24 @@ describe('the aspect contract', () => {
     it(`${page}: every write selects an operation aspect`, () => {
       const src = source(page);
 
-      // Each typed verb, and each aggregate save, is a write that must name the
-      // aspect governing it. Counting is deliberate: a site-by-site sweep would
-      // pass a call site it failed to match.
-      const writeSites =
-        countOf(src, /this\.aletheia\.(create|update|delete)\(/g) +
-        countOf(src, /this\.sync\.(saveWithChildren|deleteWithChildren)\(/g);
+      // A typed write selects ONE aspect; an aggregate save writes TWO entity types and selects
+      // one per side (parentAspectIri / childAspectIri) — counting is deliberate: a site-by-site
+      // sweep would pass a call site it failed to match.
+      const typedWrites = countOf(src, /this\.aletheia\.(create|update|delete)\(/g);
+      const aggregateWrites = countOf(src, /this\.sync\.(saveWithChildren|deleteWithChildren)\(/g);
 
       const aspectSelections =
-        countOf(src, /operationAspectHeaders\(/g) + countOf(src, /operationAspectIri:/g);
+        countOf(src, /operationAspectHeaders\(/g) +
+        countOf(src, /operationAspectIri:/g) +
+        countOf(src, /parentAspectIri:/g) +
+        countOf(src, /childAspectIri:/g);
 
-      expect(writeSites, 'the page performs writes').toBeGreaterThan(0);
+      expect(typedWrites + aggregateWrites, 'the page performs writes').toBeGreaterThan(0);
       expect(
         aspectSelections,
-        `${writeSites} write call(s) but ${aspectSelections} operation aspect selection(s): ` +
-          'a write without one is unrestricted',
-      ).toBe(writeSites);
+        `${typedWrites} typed write(s) and ${aggregateWrites} aggregate save(s) but ` +
+          `${aspectSelections} operation aspect selection(s): a write without one is unrestricted`,
+      ).toBe(typedWrites + aggregateWrites * 2);
     });
 
     it(`${page}: every read of an aspect-bearing entity selects its query aspect`, () => {
@@ -106,13 +111,26 @@ describe('the aspect contract', () => {
   }
 
   it('names every aspect the pages select', () => {
-    // A selection must be one of the IRIs the Program registers — a typo would
-    // otherwise reach the wire as an unknown aspect and behave as the no-op.
+    // A selection must resolve to an IRI the Program registers. A typo no longer degrades to
+    // the no-op — the backend refuses an unresolvable aspect IRI (400 UNKNOWN_OPERATION_ASPECT
+    // / UNKNOWN_QUERY_ASPECT) — but a wrong-yet-registered stage aspect would still be a silent
+    // mistake, which is what this list and `rentalOperationIriFor` are here to catch.
     const registered = [
       'PROPERTY_OPERATION_IRI',
+      'ROOM_OPERATION_IRI',
       'TENANT_OPERATION_IRI',
-      'RENTAL_OPERATION_IRI',
+      'RENTAL_APPLICATION_OPERATION_IRI',
+      'RENTAL_CONTRACT_OPERATION_IRI',
+      'RENTAL_DEPOSIT_OPERATION_IRI',
+      'RENTAL_HANDOVER_OPERATION_IRI',
+      'RENTAL_TENANCY_OPERATION_IRI',
+      'RENTAL_NOTICED_OPERATION_IRI',
+      'RENTAL_HANDBACK_OPERATION_IRI',
+      'RENTAL_TERMINATED_OPERATION_IRI',
       'RENTAL_STATE_QUERY_ASPECT_IRI',
+      'PROPERTY_QUERY_ASPECT_IRI',
+      'ROOM_QUERY_ASPECT_IRI',
+      'TENANT_QUERY_ASPECT_IRI',
     ];
 
     for (const page of PAGES) {

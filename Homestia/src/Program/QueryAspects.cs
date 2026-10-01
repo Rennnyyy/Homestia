@@ -1,20 +1,54 @@
 using Aletheia.Sdk.Aspects.Abstractions.Contracts;
 using Aletheia.Sdk.Aspects.Query;
+using Aletheia.Sdk.Repository;
+using Aletheia.Sdk.Repository.Contracts;
+using Homestia.Entities.RealEstate;
 
 namespace Homestia.Aspects;
 
 /// <summary>
-/// Query aspects — read-time derivation of implicit knowledge for the Homestia
-/// domain. Where view aspects validate input shapes, query aspects enrich
-/// reads: a SPARQL CONSTRUCT bound to each read entity's IRI derives facts
-/// from the stored graph and merges them into the response as ordinary JSON
-/// fields (Aspects ADR-0009). The browser opts in per request via the
-/// <c>X-Aletheia-Query-AspectIri</c> header.
+/// Query aspects — the read side of Homestia's aspects, and the surface a read's role is assigned
+/// to. A query aspect is an <strong>access gate</strong>: the platform authorizes a read against
+/// it, so it admits only an agent holding one of its roles, and its optional <c>FilterWhere</c>
+/// narrows the rows. Where a read needs knowledge the graph does not store, the aspect also
+/// <em>derives</em> it — the rental state aspect is the one that does. The browser opts in per
+/// request via the <c>X-Aletheia-Query-AspectIri</c> header.
+/// <br/><br/>
+/// A query aspect <strong>declares the response it returns</strong>: its result shape names the
+/// entity's complete predicate vocabulary and carries no constraint. Both halves are load-bearing
+/// under the platform's projection rule — a declared result shape <em>is</em> the projection, so
+/// <list type="bullet">
+/// <item>naming <strong>every</strong> predicate is how the aspect says "the whole record": a
+/// field it left out would be cleared from the response, silently;</item>
+/// <item>a shape that declared <strong>no</strong> property would project every stored property
+/// away, so "narrow" cannot mean "declare nothing" either.</item>
+/// </list>
+/// The field list comes from <see cref="EntityQueryPredicates"/> rather than a hand-kept copy, so
+/// an entity field is in the response the day it exists. Rules stay on the write side — the
+/// operation aspect, rendered from <see cref="AspectFields"/> — because a read is not judged the
+/// way a form submission is: a stored record that predates a rule would become unreadable. The one
+/// property the shape labels is the field the aspect <em>derives</em>, since that is the one the
+/// shape introduces rather than inherits from the entity.
 /// </summary>
 public static class QueryAspects
 {
     /// <summary>IRI of the Rental state aspect.</summary>
     public const string RentalStateQueryAspectIri = "urn:aletheia:homestia:query:rental-state";
+
+    /// <summary>IRI of the Property access aspect — the surface a property read runs under.</summary>
+    public const string PropertyQueryAspectIri = "urn:aletheia:homestia:query:property";
+
+    /// <summary>IRI of the Room access aspect.</summary>
+    public const string RoomQueryAspectIri = "urn:aletheia:homestia:query:room";
+
+    /// <summary>IRI of the Tenant read aspect.</summary>
+    public const string TenantQueryAspectIri = "urn:aletheia:homestia:query:tenant";
+
+    /// <summary>
+    /// The predicate the <see cref="RentalStateConstruct"/> derives — a field no write stores and
+    /// no entity property maps, so the result shape has to name it explicitly.
+    /// </summary>
+    public const string RentalStatePredicate = "https://homestia.katharsis.digital/predicates/rental/state";
 
     /// <summary>
     /// Derives the lifecycle state of every rental from indirect knowledge —
@@ -33,9 +67,9 @@ public static class QueryAspects
     /// <item><description><c>closed</c> — finished (terminated).</description></item>
     /// </list>
     /// </summary>
-    public const string RentalStateConstruct = """
+    public const string RentalStateConstruct = $$"""
         CONSTRUCT {
-            ?entityIri <https://homestia.katharsis.digital/predicates/rental/state> ?state
+            ?entityIri <{{RentalStatePredicate}}> ?state
         }
         WHERE {
             ?entityIri <https://homestia.katharsis.digital/predicates/rental/currentStage> ?stage .
@@ -51,35 +85,73 @@ public static class QueryAspects
         """;
 
     /// <summary>
-    /// Binds the Rental state aspect to its base entity — the stored <c>Rental</c> type
-    /// (<c>…/types/rentals</c>) — so the exploration/architecture viewer resolves this target class
-    /// through the entity registry and renders the aspect attached to the Rental entity it governs.
+    /// The result shape of a query aspect: the entity's complete predicate vocabulary, declared
+    /// without a single constraint.
     /// <br/><br/>
-    /// It names NO properties, and that is the point. A result shape is a PROJECTION as well as a
-    /// binding: the store clears every predicate the shape does not mention
-    /// (<c>AspectEnforcingEntityStore.ApplyResultProjection</c>). This shape named only <c>state</c>,
-    /// so an enriched read returned a rental with its other twenty-odd fields blank — the list was a
-    /// row of em dashes and the form opened empty, while the record was stored all along. A shape
-    /// that declares no properties projects nothing, and the enrichment still adds <c>state</c>,
-    /// which is what this aspect exists for.
+    /// A declared result shape <em>is</em> the projection — the store clears every predicate the
+    /// shape does not mention — so this shape is how the aspect says "the whole record". Naming
+    /// every predicate the entity maps is drift-proof by construction: the list comes from
+    /// <see cref="EntityQueryPredicates.ResolvePredicateIris"/>, never from a hand-kept copy that a
+    /// new entity field would silently fall out of. (Declaring no shape at all is the OTHER
+    /// statement — no projection, and nothing describing the response.)
+    /// <br/><br/>
+    /// It carries no rules, on purpose. Presence and datatype belong to the operation aspect a form
+    /// submits through; judging a read by them would make a stored record that predates a rule
+    /// unreadable.
     /// </summary>
-    public const string RentalStateResultShapeTtl = """
-        @prefix sh: <http://www.w3.org/ns/shacl#> .
-        <urn:aletheia:homestia:shapes:rental-state>
-            a sh:NodeShape ;
-            sh:targetClass <https://homestia.katharsis.digital/types/rentals> .
-        """;
+    /// <param name="iri">The aspect IRI; the shape is a child node of it.</param>
+    /// <param name="entity">The entity the read returns.</param>
+    /// <param name="derived">
+    /// A predicate the aspect's enrichment construct derives, named too — a projection clears what
+    /// it does not mention, including the derived field the aspect exists for. It is the one
+    /// property a query shape must label (<c>sh:name</c>), because it is the one property the shape
+    /// introduces rather than inherits from the entity.
+    /// </param>
+    public static string ResultShapeFor(
+        string iri,
+        Type entity,
+        (string Iri, string EnglishName, string GermanName)? derived = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(iri);
+        ArgumentNullException.ThrowIfNull(entity);
+
+        var targetIri = new EntityRepositoryOptions()
+            .ResolveTypeIri(entity.Name, AspectFields.TargetSuffixOf(entity));
+
+        var entries = EntityQueryPredicates.ResolvePredicateIris(entity)
+            .Values
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static predicate => predicate, StringComparer.Ordinal)
+            .Select(static predicate => $"    sh:property [ sh:path <{predicate}> ]")
+            .ToList();
+
+        if (derived is { } reasoned)
+        {
+            entries.Add($"""
+                    sh:property [
+                        sh:path <{reasoned.Iri}> ;
+                        sh:name "{reasoned.EnglishName}"@en, "{reasoned.GermanName}"@de
+                    ]
+                """);
+        }
+
+        return $"""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+
+            <{iri}>
+                a sh:NodeShape ;
+                sh:targetClass <{targetIri}> ;
+            {string.Join(" ;\n", entries)} .
+            """;
+    }
 
     /// <summary>
     /// Registers every query aspect into the SDK's aspect store. Runs alongside
     /// the view registrations before the store seals.
     /// <br/><br/>
-    /// There is one, and the number is the point. A query aspect is a gate and an
-    /// enricher — and, through its result shape, a projection: whatever the shape
-    /// does not name is not returned. Its role check is a
-    /// no-op while no role is assigned to it. So an aspect is registered here only
-    /// when it <em>derives</em> knowledge the domain needs — that is this one. A
-    /// view-shaped query aspect would have been ceremony.
+    /// Four surfaces, one per read a role needs to be assignable to: the property, room and tenant
+    /// lists, and the rentals list — which also derives the lifecycle <c>state</c> the graph does
+    /// not store, so its shape names that derived field as well.
     /// </summary>
     public static void RegisterQueryAspects(IAspectStore store)
     {
@@ -88,7 +160,29 @@ public static class QueryAspects
         store.RegisterQuery(new InlineTtlQueryAspect(
             RentalStateQueryAspectIri,
             filterWhere: null,
-            resultShapeTtl: RentalStateResultShapeTtl,
+            resultShapeTtl: ResultShapeFor(
+                RentalStateQueryAspectIri,
+                typeof(Rental),
+                derived: (RentalStatePredicate, "State", "Status")),
             enrichmentConstruct: RentalStateConstruct));
+
+        // The access surface of every other list read — the entity's whole vocabulary, unconstrained.
+        store.RegisterQuery(new InlineTtlQueryAspect(
+            PropertyQueryAspectIri,
+            filterWhere: null,
+            resultShapeTtl: ResultShapeFor(PropertyQueryAspectIri, typeof(Property)),
+            enrichmentConstruct: null));
+
+        store.RegisterQuery(new InlineTtlQueryAspect(
+            RoomQueryAspectIri,
+            filterWhere: null,
+            resultShapeTtl: ResultShapeFor(RoomQueryAspectIri, typeof(Room)),
+            enrichmentConstruct: null));
+
+        store.RegisterQuery(new InlineTtlQueryAspect(
+            TenantQueryAspectIri,
+            filterWhere: null,
+            resultShapeTtl: ResultShapeFor(TenantQueryAspectIri, typeof(Tenant)),
+            enrichmentConstruct: null));
     }
 }

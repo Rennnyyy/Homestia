@@ -58,6 +58,7 @@ using Homestia.AI;
 
 // ── Scheduling — read-only exploration feed ──────────────────────────────
 using Aletheia.Sdk.Scheduling.DependencyInjection;
+using Aletheia.Sdk.Subscription.DependencyInjection;
 
 // ── Web — generic entity admin (Sdk.Web) ───────────────────────────────────
 using Aletheia.Sdk.Web.DependencyInjection;
@@ -183,6 +184,15 @@ builder.Services.AddAiModelRoleEntity();
 // registers no schedules, so the feed is an empty list.
 builder.Services.AddScheduling();
 builder.Services.AddScheduleEntity();
+
+// Subscriptions slice and its read-only feed. The admin's Subscriptions page
+// reads api/entities/aletheia/subscriptions through MapOperations(); without
+// this the surface is never mapped, so the page fails (405 locally, 401 behind a
+// proxy) instead of showing an empty list. Like AddScheduling() it builds the
+// capability catalog, so it must follow the handler registration above. Homestia
+// declares no subscriptions, so the feed is empty — and no dispatch pump is
+// registered, because a pump exists per subscribed entity type, not per slice.
+builder.Services.AddSubscription();
 
 // Web — generic entity admin at /aletheia/ (like Sdk.Sample). Serves the
 // compiled Sdk.Web Angular app from its aletheia-wwwroot, which the

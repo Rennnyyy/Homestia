@@ -36,23 +36,83 @@ export const RENTAL_TERMINATED_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:
  *
  * A view decides which fields a form *shows*; the operation aspect decides which
  * fields the write may *set*, and the server ignores every body field its shape
- * does not name. Every save therefore selects the aspect covering the aggregate it
- * writes:
+ * does not name. An aspect names ONE entity's writable surface — its shape's
+ * `sh:targetClass` says which — so a save that writes two entity types selects two:
  *
- * - `PROPERTY_OPERATION_IRI` — the property save and the property delete. It
- *   covers the rooms too, because one save writes both.
+ * - `PROPERTY_OPERATION_IRI` / `ROOM_OPERATION_IRI` — the property save and delete.
+ *   The property is the parent and its rooms are the children, so the aggregate save
+ *   passes both (`parentAspectIri` / `childAspectIri`).
  * - `TENANT_OPERATION_IRI` — the inline tenant quick-create.
- * - `RENTAL_OPERATION_IRI` — every rental stage save, all eight stages in one
- *   aspect: a stage save PUTs the whole record, so a per-stage aspect would erase
- *   the stages already filled.
+ * - `RENTAL_<STAGE>_OPERATION_IRI` — one per rental lifecycle stage, selected by
+ *   `rentalOperationIriFor()`. A stage save selects the aspect of the stage being
+ *   saved, so the gate carries that stage's form fields *and* that stage's presence
+ *   rules: a stage can no longer be persisted with its own required fields empty. One
+ *   shared rental aspect could only carry the union of the eight stages, and a union
+ *   presence rule would reject every save that does not mention another stage's fields.
  */
 export const PROPERTY_OPERATION_IRI = 'urn:aletheia:homestia:operations:property';
+export const ROOM_OPERATION_IRI = 'urn:aletheia:homestia:operations:room';
 export const TENANT_OPERATION_IRI = 'urn:aletheia:homestia:operations:tenant';
-export const RENTAL_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental';
+
+export const RENTAL_APPLICATION_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:application';
+export const RENTAL_CONTRACT_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:contract';
+export const RENTAL_DEPOSIT_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:deposit';
+export const RENTAL_HANDOVER_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:handover';
+export const RENTAL_TENANCY_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:tenancy';
+export const RENTAL_NOTICED_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:noticed';
+export const RENTAL_HANDBACK_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:handback';
+export const RENTAL_TERMINATED_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:terminated';
+
+/** The eight rental lifecycle stage keys, in workflow order. */
+export const RENTAL_STAGE_KEYS = [
+  'application', 'contract', 'deposit', 'handover',
+  'tenancy', 'noticed', 'handback', 'terminated',
+] as const;
+export type RentalStageKey = (typeof RENTAL_STAGE_KEYS)[number];
 
 /**
- * The one query aspect: the rentals list reads under it and the backend merges
- * the derived `state` field into every row. A query aspect gates and enriches a
- * read; it does not restrict which fields come back.
+ * The operation aspect governing a rental write at each stage, by stage key — the last
+ * segment of the stage's view shape IRI and of its operation aspect IRI.
  */
+export const RENTAL_OPERATION_IRI_BY_STAGE: Record<RentalStageKey, string> = {
+  application: RENTAL_APPLICATION_OPERATION_IRI,
+  contract: RENTAL_CONTRACT_OPERATION_IRI,
+  deposit: RENTAL_DEPOSIT_OPERATION_IRI,
+  handover: RENTAL_HANDOVER_OPERATION_IRI,
+  tenancy: RENTAL_TENANCY_OPERATION_IRI,
+  noticed: RENTAL_NOTICED_OPERATION_IRI,
+  handback: RENTAL_HANDBACK_OPERATION_IRI,
+  terminated: RENTAL_TERMINATED_OPERATION_IRI,
+};
+
+/**
+ * The operation aspect governing a write that persists a rental stage — accepting either
+ * the stage's stored reference (`…/rental-stages/<key>`, as `currentStage` carries it) or
+ * a bare stage key.
+ *
+ * Falls back to the Application stage, where every rental starts, so a rental whose stage
+ * is unknown still carries an aspect the backend can resolve: an aspect IRI that resolves
+ * to nothing is refused outright (`400 UNKNOWN_OPERATION_ASPECT`) rather than run ungoverned.
+ */
+export function rentalOperationIriFor(stageIri?: string | null): string {
+  const key = typeof stageIri === 'string' ? stageIri.split('/').pop() : undefined;
+  const stage = RENTAL_STAGE_KEYS.find((candidate) => candidate === key);
+  return stage ? RENTAL_OPERATION_IRI_BY_STAGE[stage] : RENTAL_APPLICATION_OPERATION_IRI;
+}
+
+/**
+ * Query aspects — the read side. A read selects one through
+ * `X-Aletheia-Query-AspectIri`; the aspect judges the returned record against the
+ * same rules the operation aspect and the view carry, and merges any derived field
+ * into the row.
+ *
+ * - `PROPERTY_QUERY_ASPECT_IRI` — the properties table.
+ * - `ROOM_QUERY_ASPECT_IRI` — the rooms table and the property editor's room list.
+ * - `TENANT_QUERY_ASPECT_IRI` — the tenants list and the rental tenant picker.
+ * - `RENTAL_STATE_QUERY_ASPECT_IRI` — the rentals list; the backend merges the derived
+ *   `state` field into every row.
+ */
+export const PROPERTY_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:property';
+export const ROOM_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:room';
+export const TENANT_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:tenant';
 export const RENTAL_STATE_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:rental-state';

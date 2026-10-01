@@ -8,7 +8,7 @@ import {
   type ObjectUploadItem,
   type TableAction,
 } from '@rennnyyy/aletheia-ui';
-import { Component, computed, inject, signal, effect, OnInit, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, effect, OnInit, viewChildren } from '@angular/core';
 import { HttpHeaders } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { forkJoin, lastValueFrom } from 'rxjs';
@@ -24,9 +24,10 @@ import { ShaclValidatorService } from '@rennnyyy/aletheia-core';
 import { operationAspectHeaders, queryAspectHeaders } from '@rennnyyy/aletheia-core';
 import {
   RENTAL_APPLICATION_SHAPE_IRI, RENTAL_CONTRACT_SHAPE_IRI, RENTAL_DEPOSIT_SHAPE_IRI,
-  RENTAL_HANDOVER_SHAPE_IRI, RENTAL_TENANCY_SHAPE_IRI, RENTAL_NOTICED_SHAPE_IRI,
-  RENTAL_HANDBACK_SHAPE_IRI, RENTAL_TERMINATED_SHAPE_IRI, TENANT_SHAPE_IRI,
-  RENTAL_OPERATION_IRI, TENANT_OPERATION_IRI, RENTAL_STATE_QUERY_ASPECT_IRI,
+  RENTAL_HANDBACK_SHAPE_IRI, RENTAL_HANDOVER_SHAPE_IRI, RENTAL_NOTICED_SHAPE_IRI,
+  RENTAL_TENANCY_SHAPE_IRI, RENTAL_TERMINATED_SHAPE_IRI, TENANT_SHAPE_IRI,
+  rentalOperationIriFor, TENANT_OPERATION_IRI, RENTAL_STATE_QUERY_ASPECT_IRI,
+  PROPERTY_QUERY_ASPECT_IRI, ROOM_QUERY_ASPECT_IRI, TENANT_QUERY_ASPECT_IRI,
 } from '../../core/shapes/shape.model';
 import type { ShapeViolation } from '@rennnyyy/aletheia-core';
 
@@ -770,9 +771,9 @@ export class Rentals implements OnInit {
     const stateHeaders = queryAspectHeaders(RENTAL_STATE_QUERY_ASPECT_IRI);
     forkJoin({
       rentals: this.aletheia.query<Record<string, unknown>>('rentals', {}, stateHeaders),
-      tenants: this.aletheia.query<{ iri: string; displayName: string }>('tenants'),
-      rooms: this.aletheia.query<{ iri: string; name: string; isPartOf: unknown }>('rooms'),
-      properties: this.aletheia.query<{ iri: string; name: string }>('properties'),
+      tenants: this.aletheia.query<{ iri: string; displayName: string }>('tenants', {}, queryAspectHeaders(TENANT_QUERY_ASPECT_IRI)),
+      rooms: this.aletheia.query<{ iri: string; name: string; isPartOf: unknown }>('rooms', {}, queryAspectHeaders(ROOM_QUERY_ASPECT_IRI)),
+      properties: this.aletheia.query<{ iri: string; name: string }>('properties', {}, queryAspectHeaders(PROPERTY_QUERY_ASPECT_IRI)),
       stages: this.aletheia.query<{ iri: string; key: string; displayName: string }>('rental-stages'),
     }).subscribe({
       next: ({ rentals, tenants, rooms, properties, stages }) => {
@@ -793,7 +794,7 @@ export class Rentals implements OnInit {
   }
 
   private loadTenants(): Promise<void> {
-    return lastValueFrom(this.aletheia.query<{ iri: string; displayName: string }>('tenants')).then((res) => {
+    return lastValueFrom(this.aletheia.query<{ iri: string; displayName: string }>('tenants', {}, queryAspectHeaders(TENANT_QUERY_ASPECT_IRI))).then((res) => {
       this.tenants.set(res.items ?? []);
     });
   }
@@ -893,34 +894,47 @@ export class Rentals implements OnInit {
    * survive a reload — and it is the only save action (no global Save button).
    */
   /**
-   * The form of the stage that is open, when it has one (the contract stage uploads instead).
-   *
-   * The stage forms bind `value` one way and the stage's Save button persists the PAGE's draft, so
-   * the draft has to be read back from the form before the write — without that loop the picks a
-   * reader made in the form were never the ones written: the draft stayed empty, the stage validated
-   * as incomplete, and the save reported what looked like a validation problem on fields the reader
-   * had filled.
+   * EVERY stage form on screen, in template order — the contract stage uploads instead of asking,
+   * so it has none. A query that returns only the FIRST match is what made this page read the wrong
+   * form: the Application stage is never locked, it stands first, and an accordion panel that is
+   * closed is still in the DOM — so the first match was the Application form for every stage.
    */
-  readonly stageForm = viewChild<EntityFormComponent>('stageForm');
+  readonly stageForms = viewChildren<EntityFormComponent>('stageForm');
 
   /**
-   * The draft as the form shows it: the page's own draft, with everything the open stage form
+   * The form of the stage being saved, found by the shape it validates against — the one fact that
+   * names a stage unambiguously (the stage IRIs are these shape IRIs' last segments). Selecting by
+   * position would break the moment a stage stops rendering a form.
+   */
+  private stageFormFor(stageId: number): EntityFormComponent | undefined {
+    const shapeIri = STAGES[stageId].shapeIri;
+    return this.stageForms().find((form) => form.shapeKey() === shapeIri);
+  }
+
+  /**
+   * The draft as the form shows it: the page's own draft, with everything the stage's own form
    * carries merged into IT — the same object, not a copy.
    *
-   * The mounted forms are bound to that object, and the first save records the new rental's IRI on it
-   * so the next stage updates instead of creating a second rental. `payload()` is the same object
-   * `save()` emits: every field at the arity its entity declares, which is what a write has to carry.
+   * The mounted forms hold their own copy of the draft, and the first save records the new rental's
+   * IRI on the draft so the next stage updates instead of creating a second rental. `payload()` is
+   * the same object `save()` emits: every field at the arity its entity declares, which is what a
+   * write has to carry.
+   *
+   * Reading the WRONG stage's form is invisible on screen — the control keeps what the reader
+   * picked — and lands as a shape complaint about a field the reader can see filled: the stale copy
+   * still holds the empty string the form was seeded with, and `sh:minLength 1` reports it while
+   * `sh:minCount 1` (an empty literal is still a value node) passes.
    */
-  private draftToSave(): Record<string, unknown> | null {
+  private draftToSave(stageId: number): Record<string, unknown> | null {
     const draft = this.workingRental();
     if (!draft) return null;
-    const edited = this.stageForm()?.payload();
+    const edited = this.stageFormFor(stageId)?.payload();
     if (edited) Object.assign(draft, edited);
     return draft;
   }
 
   async saveStage(stageId: number): Promise<void> {
-    const working = this.draftToSave();
+    const working = this.draftToSave(stageId);
     if (!working) return;
     this.savingStage.set(true);
     this.error.set(null);
@@ -948,10 +962,17 @@ export class Rentals implements OnInit {
       if (stageIri) data['currentStage'] = stageIri;
 
       const iri = refIri(working['iri']);
+      // The gate is the stage being saved — its fields and its presence rules — not the stage
+      // the rental will be sitting at afterwards. Each write names its own selection: a write
+      // that selects none is unrestricted (see aspect-wiring.spec.ts).
       if (iri) {
-        await lastValueFrom(this.aletheia.update('rentals', iri, data, operationAspectHeaders(RENTAL_OPERATION_IRI)));
+        await lastValueFrom(this.aletheia.update(
+          'rentals', iri, data, operationAspectHeaders(rentalOperationIriFor(STAGES[stageId].key)),
+        ));
       } else {
-        const created = await lastValueFrom(this.aletheia.create('rentals', data, operationAspectHeaders(RENTAL_OPERATION_IRI)));
+        const created = await lastValueFrom(this.aletheia.create(
+          'rentals', data, operationAspectHeaders(rentalOperationIriFor(STAGES[stageId].key)),
+        ));
         // Keep the mounted forms bound to the SAME working object (swapping it
         // would orphan their two-way bound edits) — just record the new IRI so
         // subsequent stage saves update instead of creating again.
@@ -1001,9 +1022,10 @@ export class Rentals implements OnInit {
   private flushDocumentDeletes(): void {
     const queued = this.pendingDocDeletes;
     this.pendingDocDeletes = [];
+    // Documents belong to the Contract stage, so its aspect governs their deletion.
     void Promise.allSettled(
       queued.map((iri) =>
-        lastValueFrom(this.aletheia.delete('rental-documents', iri, operationAspectHeaders(RENTAL_OPERATION_IRI))),
+        lastValueFrom(this.aletheia.delete('rental-documents', iri, operationAspectHeaders(rentalOperationIriFor('contract')))),
       ),
     );
   }
@@ -1088,7 +1110,13 @@ export class Rentals implements OnInit {
     if (typeof iri !== 'string') return;
     this.loading.set(true);
     this.error.set(null);
-    this.aletheia.delete('rentals', iri, operationAspectHeaders(RENTAL_OPERATION_IRI)).subscribe({
+    // A delete carries no field gate — the backend validates an empty graph — so the stage's
+    // aspect is the statement of which rental right is being exercised, taken from the rental
+    // itself rather than assumed.
+    const stageIri = item?.['currentStage'];
+    this.aletheia.delete('rentals', iri, operationAspectHeaders(
+      rentalOperationIriFor(typeof stageIri === 'string' ? stageIri : undefined),
+    )).subscribe({
       next: () => {
         this.confirmingDelete.set(false);
         this.deletingItem.set(null);

@@ -1,5 +1,7 @@
 using Aletheia.Sdk.Aspects.Abstractions.Contracts;
 using Aletheia.Sdk.Aspects.DependencyInjection;
+using Aletheia.Sdk.Entity;
+using Aletheia.Sdk.Entity.Contracts;
 using Aletheia.Sdk.Repository.Contracts;
 using Homestia.Aspects;
 using Homestia.Entities.RealEstate;
@@ -32,23 +34,26 @@ public sealed class OperationAspectsTests
     }
 
     /// <summary>
-    /// Every shape a form can save from, the entity the write reaches, and the
-    /// field set that must admit it. A view missing from this table would be
-    /// unguarded on write — <see cref="Every_view_shape_is_covered"/> closes that.
+    /// Every shape a form can save from, the entity the write reaches, and — for a rental — the
+    /// lifecycle stage the view belongs to (empty for the single-entity views).
+    /// <br/><br/>
+    /// A view missing from this table would be unguarded on write —
+    /// <see cref="Every_view_shape_is_covered"/> closes that. A rental stage is one row, because
+    /// each stage is its own write gate: the stage key selects both the aspect and the field set.
     /// </summary>
-    public static TheoryData<string, Type, string[]> ViewToOperation() => new()
+    public static TheoryData<string, Type, string> ViewToOperation() => new()
     {
-        { ViewAspects.PropertyTtl, typeof(Property), OperationAspects.PropertyWritableFields },
-        { ViewAspects.RoomTtl, typeof(Room), OperationAspects.RoomWritableFields },
-        { ViewAspects.TenantTtl, typeof(Tenant), OperationAspects.TenantWritableFields },
-        { ViewAspects.RentalApplicationTtl, typeof(Rental), OperationAspects.RentalWritableFields },
-        { ViewAspects.RentalContractTtl, typeof(Rental), OperationAspects.RentalWritableFields },
-        { ViewAspects.RentalDepositTtl, typeof(Rental), OperationAspects.RentalWritableFields },
-        { ViewAspects.RentalHandoverTtl, typeof(Rental), OperationAspects.RentalWritableFields },
-        { ViewAspects.RentalTenancyTtl, typeof(Rental), OperationAspects.RentalWritableFields },
-        { ViewAspects.RentalNoticedTtl, typeof(Rental), OperationAspects.RentalWritableFields },
-        { ViewAspects.RentalHandbackTtl, typeof(Rental), OperationAspects.RentalWritableFields },
-        { ViewAspects.RentalTerminatedTtl, typeof(Rental), OperationAspects.RentalWritableFields },
+        { ViewAspects.PropertyTtl, typeof(Property), "" },
+        { ViewAspects.RoomTtl, typeof(Room), "" },
+        { ViewAspects.TenantTtl, typeof(Tenant), "" },
+        { ViewAspects.RentalApplicationTtl, typeof(Rental), "application" },
+        { ViewAspects.RentalContractTtl, typeof(Rental), "contract" },
+        { ViewAspects.RentalDepositTtl, typeof(Rental), "deposit" },
+        { ViewAspects.RentalHandoverTtl, typeof(Rental), "handover" },
+        { ViewAspects.RentalTenancyTtl, typeof(Rental), "tenancy" },
+        { ViewAspects.RentalNoticedTtl, typeof(Rental), "noticed" },
+        { ViewAspects.RentalHandbackTtl, typeof(Rental), "handback" },
+        { ViewAspects.RentalTerminatedTtl, typeof(Rental), "terminated" },
     };
 
     /// <summary>The JSON field names a view shape declares.</summary>
@@ -65,32 +70,62 @@ public sealed class OperationAspectsTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-    /// <summary>The shape a save runs under — the aggregate for the property, one entity otherwise.</summary>
-    private static string ShapeAdmitting(Type entity) => entity switch
+    /// <summary>
+    /// The fields the aspect governing <paramref name="entity"/> admits. A rental's are per
+    /// stage — <paramref name="stage"/> names which (ignored by the single-entity aspects).
+    /// </summary>
+    private static IReadOnlyList<AspectField> WritableFieldsFor(Type entity, string stage) => entity switch
     {
-        var t when t == typeof(Property) || t == typeof(Room) => OperationAspects.ShapeFor(
+        var t when t == typeof(Property) => OperationAspects.PropertyWritableFields,
+        var t when t == typeof(Room) => OperationAspects.RoomWritableFields,
+        var t when t == typeof(Tenant) => OperationAspects.TenantWritableFields,
+        _ => OperationAspects.RentalWritableFieldsFor(stage),
+    };
+
+    /// <summary>
+    /// The shape the write runs under — one entity each; a property save selects two. A rental
+    /// selects the shape of the stage it is saving.
+    /// </summary>
+    private static string ShapeAdmitting(Type entity, string stage = "") => entity switch
+    {
+        var t when t == typeof(Property) => OperationAspects.ShapeFor(
             OperationAspects.PropertyOperationIri,
-            (typeof(Property), OperationAspects.PropertyWritableFields),
-            (typeof(Room), OperationAspects.RoomWritableFields)),
+            (typeof(Property), OperationAspects.PropertyWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Property)))),
+        var t when t == typeof(Room) => OperationAspects.ShapeFor(
+            OperationAspects.RoomOperationIri,
+            (typeof(Room), OperationAspects.RoomWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Room)))),
         var t when t == typeof(Tenant) => OperationAspects.ShapeFor(
             OperationAspects.TenantOperationIri,
-            (typeof(Tenant), OperationAspects.TenantWritableFields)),
+            (typeof(Tenant), OperationAspects.TenantWritableFields, EntityPathResolver.ResolveEntityPath(typeof(Tenant)))),
         _ => OperationAspects.ShapeFor(
-            OperationAspects.RentalOperationIri,
-            (typeof(Rental), OperationAspects.RentalWritableFields)),
+            OperationAspects.RentalOperationIriFor(stage),
+            (typeof(Rental), OperationAspects.RentalWritableFieldsFor(stage), EntityPathResolver.ResolveTypeSegment(typeof(Rental)))),
     };
 
     [Theory]
     [MemberData(nameof(ViewToOperation))]
-    public void Every_view_field_is_writable(string viewTtl, Type entity, string[] writable)
+    public void Every_view_field_is_writable(string viewTtl, Type entity, string stage)
     {
         var predicates = EntityQueryPredicates.ResolvePredicateIris(entity);
-        var shape = ShapeAdmitting(entity);
+        var shape = ShapeAdmitting(entity, stage);
+        var writable = WritableFieldsFor(entity, stage).Select(field => field.Name).ToArray();
 
         foreach (var field in ViewFieldsOf(viewTtl))
         {
             var name = OperationAspects.PropertyNameFor(field);
             name.ShouldNotBeNull($"the view field '{field}' belongs to no writable property");
+
+            // An inverse is shown, never set: the property view displays the rooms it holds,
+            // but a write establishes the link through the room's own IsPartOf — the owning
+            // side, named by the ROOM aspect (the property aspect governs property fields only).
+            if (name == nameof(Property.SegmentedInto))
+            {
+                var owningSide = EntityQueryPredicates.ResolvePredicateIris(typeof(Room));
+                ShapeAdmitting(typeof(Room)).ShouldContain($"<{owningSide["IsPartOf"]}>",
+                    customMessage: "the room aspect must name IsPartOf, the owning side of the inverse");
+                continue;
+            }
+
             writable.ShouldContain(name);
 
             predicates.ContainsKey(name).ShouldBeTrue(
@@ -111,8 +146,6 @@ public sealed class OperationAspectsTests
 
         ViewAspectsTests.ServedShapes()
             .Select(row => (string)row[1]!)
-            // The query result shape is a read shape — not a write origin.
-            .Where(ttl => ttl != QueryAspects.RentalStateResultShapeTtl)
             .Where(ttl => !covered.Contains(ttl))
             .ShouldBeEmpty("every view a form can save from needs an operation aspect that admits its fields");
     }
@@ -128,11 +161,14 @@ public sealed class OperationAspectsTests
 
         shape.ShouldNotContain("json:", Case.Insensitive);
         shape.ShouldContain($"<{predicates["RoomSize"]}>");
-        // The room's writes run through the property aggregate, so the shape
-        // carries both halves — the two `Name` properties resolve to two distinct
-        // predicate IRIs, one per type.
-        PathsOf(shape).Count().ShouldBe(
-            OperationAspects.PropertyWritableFields.Length + OperationAspects.RoomWritableFields.Length);
+        // The room aspect names exactly the room's writable surface — its own path for the fields
+        // it declares, the declaring type's path for the one it inherits (Name, on Segmentation).
+        var every = OperationAspects.RoomWritableFields
+            .Select(field => predicates[field.Name])
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        PathsOf(shape).ShouldBe(every, ignoreOrder: true);
     }
 
     [Fact]
@@ -141,7 +177,9 @@ public sealed class OperationAspectsTests
         // Naming a field an entity does not have must throw here — the moment the
         // aspect is built — rather than silently narrowing what a user can save.
         Should.Throw<InvalidOperationException>(() =>
-            OperationAspects.ShapeFor("urn:test:bad", (typeof(Room), ["NoSuchProperty"])));
+            OperationAspects.ShapeFor(
+                "urn:test:bad",
+                (typeof(Room), [new AspectField("NoSuchProperty")], EntityPathResolver.ResolveTypeSegment(typeof(Room)))));
     }
 
     [Fact]
@@ -150,37 +188,107 @@ public sealed class OperationAspectsTests
         // The forms never render these, but the writes always send them: a room
         // without IsPartOf is parentless, a rental without CurrentStage loses the
         // stage the user stopped at.
-        OperationAspects.RoomWritableFields.ShouldContain("IsPartOf");
-        OperationAspects.RentalWritableFields.ShouldContain("CurrentStage");
+        OperationAspects.RoomWritableFields.Select(field => field.Name).ShouldContain("IsPartOf");
+        // CurrentStage is on EVERY stage's aspect, because the page persists it on every save.
+        foreach (var stage in OperationAspects.RentalStages)
+            OperationAspects.RentalWritableFieldsFor(stage).Select(field => field.Name).ShouldContain("CurrentStage");
     }
 
     [Fact]
-    public void The_property_aspect_admits_both_halves_of_the_save()
+    public void The_property_and_room_aspects_are_split()
     {
-        // One save writes the property and its rooms, so one aspect governs it: a
-        // property-only shape would empty every room the save carries.
-        var shape = ShapeAdmitting(typeof(Property));
-        foreach (var field in OperationAspects.RoomWritableFields)
+        // A property save writes two entity types, and an aspect names ONE entity's writable
+        // surface — so the page selects both (parentAspectIri / childAspectIri). Each shape names
+        // exactly its own fields. Name is declared on Segmentation, so both legitimately carry the
+        // SAME predicate IRI for it; a room-ONLY path must never appear on the property shape.
+        var property = ShapeAdmitting(typeof(Property));
+        var room = ShapeAdmitting(typeof(Room));
+        var propertyPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Property));
+        var roomPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Room));
+
+        PathsOf(property).ShouldBe(
+            OperationAspects.PropertyWritableFields.Select(field => propertyPredicates[field.Name]).Distinct(StringComparer.Ordinal),
+            ignoreOrder: true);
+        PathsOf(room).ShouldBe(
+            OperationAspects.RoomWritableFields.Select(field => roomPredicates[field.Name]).Distinct(StringComparer.Ordinal),
+            ignoreOrder: true);
+
+        // Each shape targets its own entity.
+        property.ShouldContain("types/segmentations/Property");
+        room.ShouldContain("types/segmentations/Room");
+    }
+
+    [Fact]
+    public void Every_rental_stage_is_its_own_write_gate()
+    {
+        // A rental is saved one stage at a time, so each stage has its own aspect: the fields that
+        // stage's form sends (plus the derived CurrentStage) and that stage's own presence rules.
+        // The point of the split is that a stage's gate can require the stage's own fields — a
+        // union aspect could not carry presence at all.
+        var rentalPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Rental));
+        var stageFields = new Dictionary<string, string[]>(StringComparer.Ordinal);
+
+        foreach (var stage in OperationAspects.RentalStages)
         {
-            var iri = EntityQueryPredicates.ResolvePredicateIris(typeof(Room))[field];
-            shape.ShouldContain($"<{iri}>");
-        }
-    }
+            var writable = OperationAspects.RentalWritableFieldsFor(stage);
+            var shape = ShapeAdmitting(typeof(Rental), stage);
 
-    [Fact]
-    public void Rental_writable_fields_cover_every_stage_at_once()
-    {
-        // A rental is PUT whole on every stage save, so the union is the only safe
-        // shape: a per-stage aspect would erase the stages already filled.
-        var union = ViewToOperation()
-            .Where(row => row[1] is Type t && t == typeof(Rental))
-            .SelectMany(row => ViewFieldsOf((string)row[0]!))
-            .Select(OperationAspects.PropertyNameFor)
+            // The shape names exactly this stage's fields — none of another stage's, none missing.
+            PathsOf(shape).ShouldBe(
+                writable.Select(field => rentalPredicates[field.Name]).Distinct(StringComparer.Ordinal),
+                ignoreOrder: true,
+                customMessage: $"the {stage} aspect does not name exactly the {stage} fields");
+
+            // And it covers every field the stage's view declares.
+            var view = ViewToOperation().Single(row => (string)row[2]! == stage);
+            foreach (var viewField in ViewFieldsOf((string)view[0]!))
+            {
+                var name = OperationAspects.PropertyNameFor(viewField);
+                name.ShouldNotBeNull();
+                writable.Select(field => field.Name).ShouldContain(name);
+            }
+
+            stageFields[stage] = [.. writable.Select(field => field.Name).OrderBy(name => name, StringComparer.Ordinal)];
+        }
+
+        // The stages are distinct gates: no two admit the same field set, and none carries the
+        // whole rental the way the removed union aspect did.
+        var signatures = stageFields.Values
+            .Select(fields => string.Join("|", fields))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+        signatures.Length.ShouldBe(stageFields.Count);
 
+        var union = stageFields.Values.SelectMany(fields => fields).Distinct(StringComparer.Ordinal).ToArray();
         union.Length.ShouldBeGreaterThan(10);
-        union.Where(field => !OperationAspects.RentalWritableFields.Contains(field)).ShouldBeEmpty();
+        foreach (var fields in stageFields.Values)
+            fields.Length.ShouldBeLessThan(union.Length);
+    }
+
+    [Fact]
+    public void Every_rental_stage_aspect_is_registered_under_its_own_iri()
+    {
+        OperationAspects.RentalOperationIris.Count.ShouldBe(OperationAspects.RentalStages.Count);
+        OperationAspects.RentalOperationIris.Distinct(StringComparer.Ordinal).Count()
+            .ShouldBe(OperationAspects.RentalStages.Count);
+
+        // The stage key is the last segment of the aspect IRI and of the view shape IRI, and the
+        // view binds the stage's own aspect — the names for one stage cannot drift apart.
+        var servedTtls = ViewAspectsTests.ServedShapes().Select(row => (string)row[1]!).ToArray();
+        foreach (var stage in OperationAspects.RentalStages)
+        {
+            var aspectIri = OperationAspects.RentalOperationIriFor(stage);
+            aspectIri.ShouldEndWith($":rental:{stage}");
+
+            servedTtls.Any(ttl => ttl.Contains($"<urn:aletheia:homestia:shapes:rental:{stage}>", StringComparison.Ordinal))
+                .ShouldBeTrue($"no served view declares the {stage} shape");
+
+            servedTtls.Any(ttl => ttl.Contains(aspectIri, StringComparison.Ordinal))
+                .ShouldBeTrue($"no served view binds the {stage} operation aspect");
+        }
+
+        // An unknown stage is a caller error, not a silent fallback to some other gate.
+        Should.Throw<ArgumentOutOfRangeException>(() => OperationAspects.RentalOperationIriFor("not-a-stage"));
     }
 
     [Fact]
@@ -190,11 +298,13 @@ public sealed class OperationAspectsTests
 
         Should.NotThrow(() => OperationAspects.RegisterOperationAspects(store));
 
+        // One per entity the host writes, plus one per rental lifecycle stage.
         store.OperationIris.ShouldBe(
             [
                 OperationAspects.PropertyOperationIri,
+                OperationAspects.RoomOperationIri,
                 OperationAspects.TenantOperationIri,
-                OperationAspects.RentalOperationIri,
+                .. OperationAspects.RentalOperationIris,
             ],
             ignoreOrder: true);
     }
@@ -212,6 +322,90 @@ public sealed class OperationAspectsTests
     }
 
     [Fact]
+    public void The_shape_carries_the_views_validation_rules()
+    {
+        // The operation shape is not only a field whitelist: it judges each admitted value the
+        // way the view does, so the server enforces what the form promises.
+        var property = ShapeAdmitting(typeof(Property));
+        property.ShouldContain("sh:minCount 1");        // name, address, propertyType
+        property.ShouldContain("sh:minLength 5");       // address
+        property.ShouldContain("sh:datatype xsd:string");
+        property.ShouldContain("sh:nodeKind sh:IRI");   // propertyType, rentalModel
+
+        var room = ShapeAdmitting(typeof(Room));
+        room.ShouldContain("sh:minInclusive 1");        // roomSize
+        room.ShouldContain("sh:maxInclusive 1000");
+        room.ShouldContain("sh:minLength 2");           // location
+    }
+
+    [Fact]
+    public void A_rental_stage_carries_exactly_the_presence_rules_its_view_declares()
+    {
+        // The gate a stage's save selects requires what that stage's form requires — and nothing
+        // from another stage, which a union aspect could not express without rejecting the save.
+        var application = ShapeAdmitting(typeof(Rental), "application");
+        application.ShouldContain("sh:minCount 1");        // property, tenant, viewingDate
+        application.ShouldContain("sh:nodeKind sh:IRI");
+        application.ShouldContain("sh:datatype xsd:string");
+
+        var deposit = ShapeAdmitting(typeof(Rental), "deposit");
+        deposit.ShouldContain("sh:minCount 1");            // depositAmount
+        deposit.ShouldContain("sh:datatype xsd:decimal");
+        deposit.ShouldContain("sh:minInclusive 0");
+        deposit.ShouldContain("sh:datatype xsd:boolean");  // depositPaid
+
+        // Stage 5 declares no required field at all, so its gate carries no presence rule.
+        var tenancy = ShapeAdmitting(typeof(Rental), "tenancy");
+        tenancy.ShouldNotContain("sh:minCount");
+        tenancy.ShouldContain("sh:datatype xsd:boolean");
+
+        // A stage never borrows another stage's fields.
+        var rentalPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Rental));
+        tenancy.ShouldNotContain($"<{rentalPredicates["ViewingDate"]}>");
+        tenancy.ShouldNotContain($"<{rentalPredicates["DepositAmount"]}>");
+    }
+
+    /// <summary>
+    /// An <c>[Owning]</c> collection is stored as an <c>rdf:List</c>: non-empty, its object is the
+    /// list head — a blank node — and empty it is <c>rdf:nil</c>, which is an IRI. A rule written
+    /// for a single reference (<c>sh:nodeKind sh:IRI</c>) therefore accepts the EMPTY collection
+    /// and rejects a non-empty one, and <c>sh:minCount 1</c> is satisfied by the <c>rdf:nil</c>
+    /// triple. Both are exactly backwards, and both are silent: the write is admitted with the
+    /// documents dropped, or refused with them attached, and the graph looks fine either way.
+    /// <br/><br/>
+    /// Declaring the field as a collection is what selects the right term. This guard keeps a
+    /// future collection field from being declared as a reference — the mistake that cost the
+    /// Contract stage its save.
+    /// </summary>
+    [Fact]
+    public void Every_owning_collection_field_is_declared_as_one()
+    {
+        var declared = new List<(Type Entity, AspectField Field)>();
+        foreach (var entity in new[] { typeof(Property), typeof(Room), typeof(Tenant) })
+            declared.AddRange(WritableFieldsFor(entity, string.Empty).Select(field => (entity, field)));
+        foreach (var stage in OperationAspects.RentalStages)
+            declared.AddRange(WritableFieldsFor(typeof(Rental), stage).Select(field => (typeof(Rental), field)));
+
+        declared.ShouldNotBeEmpty();
+
+        foreach (var (entity, field) in declared)
+        {
+            var isCollection = entity.GetProperty(field.Name)?.PropertyType is { IsGenericType: true } type
+                && type.GetGenericTypeDefinition() == typeof(EntityRefCollection<>);
+
+            field.IsOwningCollection.ShouldBe(
+                isCollection,
+                $"{entity.Name}.{field.Name} must be declared IsOwningCollection: an owning collection is an " +
+                "rdf:List, so a rule written for a reference describes the opposite of the stored graph");
+        }
+
+        // The term that goes with it: at least one member is the list being non-empty.
+        var contract = ShapeAdmitting(typeof(Rental), "contract");
+        contract.ShouldContain("sh:nodeKind sh:BlankNode");
+        contract.ShouldNotContain("sh:minCount");
+    }
+
+    [Fact]
     public void A_shape_is_valid_turtle()
     {
         // The store parses a shape at registration, so a stray trailing separator
@@ -221,6 +415,9 @@ public sealed class OperationAspectsTests
 
         shape.TrimEnd().ShouldEndWith(".");
         shape.ShouldNotContain("; .");
-        PathsOf(shape).Count().ShouldBe(OperationAspects.TenantWritableFields.Length);
+        // The SDK rejects a targetless operation shape at registration — every
+        // part must declare the entity it governs.
+        shape.ShouldContain("sh:targetClass <");
+        PathsOf(shape).Count().ShouldBe(OperationAspects.TenantWritableFields.Count);
     }
 }

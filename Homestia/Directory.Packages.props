@@ -60,6 +60,7 @@
     <PackageVersion Include="Aletheia.Sdk.Repository.GraphDb" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Scheduling" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Structure" Version="$(AletheiaSdkVersion)" />
+    <PackageVersion Include="Aletheia.Sdk.Subscription" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Testing" Version="$(AletheiaSdkVersion)" />
     <PackageVersion Include="Aletheia.Sdk.Web" Version="$(AletheiaSdkVersion)" />
   </ItemGroup>

@@ -71,6 +71,7 @@ public static class ViewAspects
         <urn:aletheia:homestia:shapes:property>
             a sh:NodeShape ;
             <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.PropertyOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.PropertyQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Property> ;
             sh:property [
                 sh:path json:name ; sh:name "Name"@en, "Name"@de ; sh:order 1 ;
@@ -116,7 +117,8 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:room>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.PropertyOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RoomOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RoomQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Room> ;
             sh:property [
                 sh:path json:name ; sh:name "Name"@en, "Name"@de ; sh:order 1 ;
@@ -165,6 +167,7 @@ public static class ViewAspects
         <urn:aletheia:homestia:shapes:tenant>
             a sh:NodeShape ;
             <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.TenantOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.TenantQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Tenant> ;
             sh:property [
                 sh:path json:displayName ; sh:name "Name"@en, "Name"@de ; sh:order 1 ;
@@ -198,7 +201,7 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:rental:application>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalApplicationOperationIri}}> ;
             <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:application> ;
             sh:property [
@@ -239,7 +242,7 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:rental:contract>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalContractOperationIri}}> ;
             <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:contract> ;
             sh:property [
@@ -261,7 +264,7 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:rental:deposit>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalDepositOperationIri}}> ;
             <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:deposit> ;
             sh:property [
@@ -296,7 +299,7 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:rental:handover>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalHandoverOperationIri}}> ;
             <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:handover> ;
             sh:property [
@@ -324,7 +327,7 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:rental:tenancy>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalTenancyOperationIri}}> ;
             <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:tenancy> ;
             sh:property [
@@ -347,7 +350,7 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:rental:noticed>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalNoticedOperationIri}}> ;
             <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:noticed> ;
             sh:property [
@@ -376,7 +379,7 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:rental:handback>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalHandbackOperationIri}}> ;
             <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:handback> ;
             sh:property [
@@ -411,7 +414,7 @@ public static class ViewAspects
 
         <urn:aletheia:homestia:shapes:rental:terminated>
             a sh:NodeShape ;
-            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalOperationIri}}> ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.RentalTerminatedOperationIri}}> ;
             <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.RentalStateQueryAspectIri}}> ;
             sh:targetClass <urn:aletheia:homestia:Rental:terminated> ;
             sh:property [

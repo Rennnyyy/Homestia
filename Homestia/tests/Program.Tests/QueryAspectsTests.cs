@@ -1,4 +1,5 @@
 using Aletheia.Sdk.Aspects.Abstractions.Contracts;
+using Aletheia.Sdk.Aspects.Abstractions.Exceptions;
 using Aletheia.Sdk.Aspects.DependencyInjection;
 using Aletheia.Sdk.Aspects.Query;
 using Aletheia.Sdk.Entity;
@@ -11,6 +12,7 @@ using Aletheia.Sdk.Repository.DependencyInjection;
 using Aletheia.Sdk.Repository.InMemory.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using System.Text.RegularExpressions;
 
 namespace Homestia.Tests;
 
@@ -63,6 +65,131 @@ public sealed class QueryAspectsTests
         var store = BuildProvider().GetRequiredService<IAspectStore>();
 
         store.TryResolveQuery(QueryAspects.RentalStateQueryAspectIri).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void RegisterQueryAspects_registers_every_read_aspect()
+    {
+        var store = BuildProvider().GetRequiredService<IAspectStore>();
+
+        store.TryResolveQuery(QueryAspects.PropertyQueryAspectIri).ShouldNotBeNull();
+        store.TryResolveQuery(QueryAspects.RoomQueryAspectIri).ShouldNotBeNull();
+        store.TryResolveQuery(QueryAspects.TenantQueryAspectIri).ShouldNotBeNull();
+    }
+
+    /// <summary>Every read surface and the entity it returns.</summary>
+    public static TheoryData<string, Type> QueryAspectsAndTheirEntities() => new()
+    {
+        { QueryAspects.PropertyQueryAspectIri, typeof(Property) },
+        { QueryAspects.RoomQueryAspectIri, typeof(Room) },
+        { QueryAspects.TenantQueryAspectIri, typeof(Tenant) },
+        { QueryAspects.RentalStateQueryAspectIri, typeof(Rental) },
+    };
+
+    /// <summary>
+    /// Every query aspect declares the response it returns. This matters twice: a declared result
+    /// shape IS the projection, so a predicate it omits is cleared from the response — silently —
+    /// and the exploration endpoint (<c>GET …/aletheia/aspects/{iri}/view</c>) serves that shape,
+    /// so an aspect without one answers 404.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(QueryAspectsAndTheirEntities))]
+    public void Every_query_aspect_declares_the_whole_vocabulary(string aspectIri, Type entity)
+    {
+        var store = BuildProvider().GetRequiredService<IAspectStore>();
+        var aspect = store.TryResolveQuery(aspectIri);
+
+        aspect.ShouldNotBeNull();
+        aspect!.ResultShapeTtl.ShouldNotBeNullOrWhiteSpace(
+            $"'{aspectIri}' declares no result shape: a read would return the record undescribed, " +
+            "and the admin's aspect page would answer 404 for its shape");
+
+        var declared = Regex.Matches(aspect.ResultShapeTtl!, @"sh:path\s+<([^>]+)>")
+            .Select(match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var (property, predicate) in EntityQueryPredicates.ResolvePredicateIris(entity))
+        {
+            declared.ShouldContain(
+                predicate,
+                $"a read under '{aspectIri}' would silently clear {entity.Name}.{property}");
+        }
+
+        // No rule rides along: a read must not be judged the way a write is, or a stored record
+        // that predates a rule would become unreadable.
+        aspect.ResultShapeTtl!.ShouldNotContain("sh:minCount");
+        aspect.ResultShapeTtl!.ShouldNotContain("sh:minLength");
+        aspect.ResultShapeTtl!.ShouldNotContain("sh:datatype");
+    }
+
+    [Fact]
+    public void The_rental_state_shape_names_the_derived_field_it_returns()
+    {
+        // A projection clears what the shape does not mention, so the derived field must be named
+        // — it is the one field the shape introduces rather than inherits, which is also why it is
+        // the one property the shape has to label.
+        var shape = BuildProvider().GetRequiredService<IAspectStore>()
+            .TryResolveQuery(QueryAspects.RentalStateQueryAspectIri)!.ResultShapeTtl;
+
+        shape.ShouldNotBeNull();
+        shape!.ShouldContain(QueryAspects.RentalStatePredicate);
+        shape.ShouldContain("sh:name \"State\"@en");
+    }
+
+    [Fact]
+    public async Task A_read_accepts_a_conforming_record()
+    {
+        await using var sp = BuildProvider();
+        var store = sp.GetRequiredService<IEntityStore>();
+
+        await store.SaveAsync(
+            new Property
+            {
+                Name = "Loft",
+                Address = "Bahnhofstrasse 1",
+                PropertyType = EntityRef<PropertyType>.ForIri("https://example.test/property-types/flat"),
+            },
+            WriteMode.Create);
+
+        using var _ = QueryAspectScope.Use(QueryAspects.PropertyQueryAspectIri);
+
+        var read = new List<Property>();
+        await foreach (var property in store.QueryByTypeAsync<Property>())
+            read.Add(property);
+
+        read.Count.ShouldBe(1);
+        read[0].Name.ShouldBe("Loft");
+        read[0].Address.ShouldBe("Bahnhofstrasse 1");
+    }
+
+    [Fact]
+    public async Task A_read_runs_under_its_access_aspect_without_projecting_the_record()
+    {
+        await using var sp = BuildProvider();
+        var store = sp.GetRequiredService<IEntityStore>();
+
+        // IsCommonArea is persisted but no property form shows it, and the name is empty — a rule
+        // the write gate would reject. The read gate is an ACCESS surface, not a judge and not a
+        // projection: it returns the record whole.
+        await store.SaveAsync(
+            new Property
+            {
+                Name = string.Empty,
+                Address = "Bahnhofstrasse 1",
+                PropertyType = EntityRef<PropertyType>.ForIri("https://example.test/property-types/flat"),
+                IsCommonArea = true,
+            },
+            WriteMode.Create);
+
+        using var _ = QueryAspectScope.Use(QueryAspects.PropertyQueryAspectIri);
+
+        var read = new List<Property>();
+        await foreach (var property in store.QueryByTypeAsync<Property>())
+            read.Add(property);
+
+        read.Count.ShouldBe(1);
+        read[0].IsCommonArea.ShouldBeTrue();
+        read[0].Address.ShouldBe("Bahnhofstrasse 1");
     }
 
     [Fact]

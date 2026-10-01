@@ -31,8 +31,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Rentals } from './rentals';
 import {
+  RENTAL_APPLICATION_OPERATION_IRI,
   RENTAL_APPLICATION_SHAPE_IRI,
-  RENTAL_OPERATION_IRI,
+  RENTAL_CONTRACT_OPERATION_IRI,
+  RENTAL_DEPOSIT_OPERATION_IRI,
+  RENTAL_TENANCY_OPERATION_IRI,
+  RENTAL_TENANCY_SHAPE_IRI,
   TENANT_OPERATION_IRI,
 } from '../../core/shapes/shape.model';
 
@@ -515,15 +519,29 @@ describe('Rentals page', () => {
       expect(validator.validate).toHaveBeenCalledWith(RENTAL_APPLICATION_SHAPE_IRI, expect.anything());
 
       const [route, iri, body] = wire.argsOf('update')!;
-      // Every stage save selects the one rental aspect: the save PUTs the whole
-      // record, so a per-stage aspect would erase the stages already filled.
-      expect(wire.aspectOf('update')).toBe(RENTAL_OPERATION_IRI);
+      // The gate is the stage being saved: Application's fields and Application's presence
+      // rules. A shared rental aspect could only carry the union of the eight stages.
+      expect(wire.aspectOf('update')).toBe(RENTAL_APPLICATION_OPERATION_IRI);
       expect(route).toBe('rentals');
       expect(iri).toBe(RENTAL_IRI);
       // Stage 1 is the next incomplete stage, so a reload re-opens there.
       expect((body as Record<string, unknown>)['currentStage']).toBe(STAGE_IRIS['contract']);
       expect(page.doneStages().has(0)).toBe(true);
       expect(page.savingStage()).toBe(false);
+    });
+
+    it('selects the aspect of the stage being saved, not a shared rental aspect', async () => {
+      mount();
+      page.enterEdit(rental());
+      fixture.detectChanges();
+
+      // Tenancy is stage 5. Its aspect names the tenancy fields — and requires none of the
+      // other stages' fields, which is the whole point of splitting the gate per stage.
+      await page.saveStage(4);
+      fixture.detectChanges();
+
+      expect(validator.validate).toHaveBeenCalledWith(RENTAL_TENANCY_SHAPE_IRI, expect.anything());
+      expect(wire.aspectOf('update')).toBe(RENTAL_TENANCY_OPERATION_IRI);
     });
 
     it('sends reference collections as plain IRIs', async () => {
@@ -635,9 +653,9 @@ describe('Rentals page', () => {
       await fixture.whenStable();
 
       expect(wire.argsOf('delete')).toEqual(['rental-documents', 'doc-3', expect.anything()]);
-      // The document belongs to the rental's contract stage, so its removal runs
-      // under the same aspect as the save that queued it.
-      expect(wire.aspectOf('delete')).toBe(RENTAL_OPERATION_IRI);
+      // Documents belong to the Contract stage, so the deletion is judged by that stage's
+      // aspect — independently of which stage the queued save happened to be on.
+      expect(wire.aspectOf('delete')).toBe(RENTAL_CONTRACT_OPERATION_IRI);
     });
 
     it('keeps the documents when the user leaves without saving', () => {
@@ -748,9 +766,25 @@ describe('Rentals page', () => {
       fixture.detectChanges();
 
       expect(wire.argsOf('delete')).toEqual(['rentals', RENTAL_IRI, expect.anything()]);
-      expect(wire.aspectOf('delete')).toBe(RENTAL_OPERATION_IRI);
+      // The rental's own stage names the aspect, so the delete states which stage the rental
+      // was at. A delete carries no field gate — the backend validates an empty graph.
+      expect(wire.aspectOf('delete')).toBe(RENTAL_APPLICATION_OPERATION_IRI);
       expect(page.mode()).toBe('list');
       expect(page.confirmingDelete()).toBe(false);
+    });
+
+    it('takes the rental stage from the row being deleted', async () => {
+      wire.seed('rentals', [rental({ currentStage: STAGE_IRIS['deposit'] })]);
+      mount();
+      await fixture.whenStable();
+
+      page.rowActions.find((a) => a.label === 'common.delete')!.action(page.items()[0]);
+      fixture.detectChanges();
+
+      page.onDelete();
+      await fixture.whenStable();
+
+      expect(wire.aspectOf('delete')).toBe(RENTAL_DEPOSIT_OPERATION_IRI);
     });
 
     it('says what went wrong when the delete is refused', async () => {

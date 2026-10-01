@@ -61,6 +61,7 @@
     <PackageReference Include="Aletheia.Sdk.Repository.GraphDb" />
     <PackageReference Include="Aletheia.Sdk.Scheduling" />
     <PackageReference Include="Aletheia.Sdk.Structure" />
+    <PackageReference Include="Aletheia.Sdk.Subscription" />
     <PackageReference Include="Aletheia.Sdk.Web" />
   </ItemGroup>
 

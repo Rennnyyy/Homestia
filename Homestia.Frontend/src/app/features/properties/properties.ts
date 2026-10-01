@@ -12,7 +12,8 @@ import { AletheiaHttpClient } from '@rennnyyy/aletheia-core';
 import { AiAssistantWizardComponent } from '../../shared/components/ai-assistant-wizard/ai-assistant-wizard.component';
 import { PropertyEntity, RoomEntity, type Property } from '../../entities';
 import { ShaclValidatorService, type ShapeViolation } from '@rennnyyy/aletheia-core';
-import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI } from '../../core/shapes/shape.model';
+import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI, ROOM_OPERATION_IRI, PROPERTY_QUERY_ASPECT_IRI, ROOM_QUERY_ASPECT_IRI } from '../../core/shapes/shape.model';
+import { queryAspectHeaders } from '@rennnyyy/aletheia-core';
 import type { AletheiaCollection } from '@rennnyyy/aletheia-core';
 
 type PageMode = 'list' | 'create' | 'edit';
@@ -613,6 +614,15 @@ export class Properties implements OnInit {
   }
 
   /**
+   * The operation aspect the CHILD writes run under — the ROOM view declares it, and the
+   * aggregate save has to name it: a room is a different entity type than its property, so the
+   * property aspect would not admit a single room field.
+   */
+  private roomAspect(): string {
+    return ROOM_OPERATION_IRI;
+  }
+
+  /**
    * The room forms, by their own template ref — see {@link saveWithRooms}.
    * A ref per room keeps the property's form out of the query, rather than
    * relying on it happening to come first in the DOM.
@@ -850,17 +860,19 @@ export class Properties implements OnInit {
   refresh(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.aletheia.query<Property>(PropertyEntity.operationRoute).subscribe({
-      next: (res: AletheiaCollection<Property>) => {
-        this.items.set(res.items ?? []);
-        this.loading.set(false);
-        this.processDeepLink();
-      },
-      error: (err) => {
-        this.error.set(err?.message ?? 'Failed to load properties');
-        this.loading.set(false);
-      },
-    });
+    this.aletheia
+      .query<Property>(PropertyEntity.operationRoute, {}, queryAspectHeaders(PROPERTY_QUERY_ASPECT_IRI))
+      .subscribe({
+        next: (res: AletheiaCollection<Property>) => {
+          this.items.set(res.items ?? []);
+          this.loading.set(false);
+          this.processDeepLink();
+        },
+        error: (err) => {
+          this.error.set(err?.message ?? 'Failed to load properties');
+          this.loading.set(false);
+        },
+      });
   }
 
   enterCreate(): void {
@@ -907,10 +919,12 @@ export class Properties implements OnInit {
     if (!iri) return;
 
     this.aletheia
-      .query<Record<string, unknown>>(RoomEntity.operationRoute, {
-        where: { pred: 'isPartOf', op: 'eq', value: iri },
-        count: 'none',
-      })
+      .query<Record<string, unknown>>(RoomEntity.operationRoute,
+        {
+          where: { pred: 'isPartOf', op: 'eq', value: iri },
+          count: 'none',
+        },
+        queryAspectHeaders(ROOM_QUERY_ASPECT_IRI))
       .subscribe((res) => {
         const loadedRooms = res.items ?? [];
         this.rooms.set(loadedRooms as Record<string, unknown>[]);
@@ -941,7 +955,8 @@ export class Properties implements OnInit {
       parentIRI: item['iri'] as string,
       childPath: RoomEntity.operationRoute,
       children: this.rooms(),
-      operationAspectIri: this.writeAspect(),
+      parentAspectIri: this.writeAspect(),
+      childAspectIri: this.roomAspect(),
     }).subscribe({
       next: () => {
         this.confirmingDelete.set(false);
@@ -1016,7 +1031,8 @@ export class Properties implements OnInit {
       childPath: RoomEntity.operationRoute,
       childParentField: 'isPartOf',
       children: this.rooms(),
-      operationAspectIri: this.writeAspect(),
+      parentAspectIri: this.writeAspect(),
+      childAspectIri: this.roomAspect(),
     }).subscribe({
       next: () => {
         this.mode.set('list');
@@ -1045,7 +1061,8 @@ export class Properties implements OnInit {
       childParentField: 'isPartOf',
       children: this.rooms(),
       originalChildren: this.originalRooms(),
-      operationAspectIri: this.writeAspect(),
+      parentAspectIri: this.writeAspect(),
+      childAspectIri: this.roomAspect(),
     }).subscribe({
       next: () => {
         this.mode.set('list');

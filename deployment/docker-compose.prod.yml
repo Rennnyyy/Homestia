@@ -10,7 +10,13 @@ services:
       # rationale as the Aletheia pipeline).
       Branch__DefaultBranchIri: https://${APP_SLUG}.katharsis.digital/branches/main
       Branch__ManagementGraphIri: https://${APP_SLUG}.katharsis.digital/management
-    env_file: .env.prod
+    # `format: raw` DISABLES Compose's env-file interpolation. Without it a `$` inside any
+    # secret value is silently expanded when the container starts (e.g. a GraphDB password
+    # containing `$w9p` arrives empty), so the credential just fails auth while the file on
+    # disk still looks correct. Requires Compose >= 2.24.
+    env_file:
+      - path: .env.prod
+        format: raw
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.${APP_SLUG}-prod.rule=Host(`${APP_SLUG}.katharsis.digital`)"

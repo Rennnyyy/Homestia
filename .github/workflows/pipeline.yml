@@ -203,4 +203,9 @@ jobs:
           # AI API keys — DEPLOY_ prefix is stripped on the server.
           DEPLOY_AI__Default__ApiKey: ${{ secrets.DEPLOY_AI__Default__ApiKey }}
           DEPLOY_AI__ModelRoles__formfill__ApiKey: ${{ secrets.DEPLOY_AI__ModelRoles__formfill__ApiKey }}
+          # Identity — the proxy's verified JWT is checked against these, and the HOST only
+          # registers the forward-auth middleware when the issuer is present. Per environment,
+          # because each stage has its own provider (and its own client id as the audience).
+          DEPLOY_Authentik__ExpectedIssuer: ${{ secrets.DEPLOY_Authentik__ExpectedIssuer }}
+          DEPLOY_Authentik__ExpectedAudience: ${{ secrets.DEPLOY_Authentik__ExpectedAudience }}
         run: bash deployment/scripts/deploy.sh "${{ needs.image-build.outputs.stage }}"

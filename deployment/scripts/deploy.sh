@@ -24,6 +24,20 @@ done
 APP_DIR="/opt/apps/${APP_SLUG}"
 PROVIDER_NAME="${APP_SLUG}-${STAGE}"
 
+# A guarded deployment MUST carry the provider config. The host registers the forward-auth
+# middleware only when `Authentik__ExpectedIssuer` is set, and falls back to the bearer middleware
+# when it is not — so an empty secret here does not fail anything, it silently makes every caller
+# anonymous: no agent is projected, and the ownership gates have no `?agentIri` to judge by. Fail
+# the deploy instead, before the server is touched.
+if [ "$APP_PUBLIC" != "true" ]; then
+  for _required in Authentik__ExpectedIssuer Authentik__ExpectedAudience; do
+    if [ -z "$(printenv "DEPLOY_${_required}" || true)" ]; then
+      echo "DEPLOY_${_required} is empty — set it as an Environment secret (${STAGE}) or set APP_PUBLIC=true." >&2
+      exit 1
+    fi
+  done
+fi
+
 # ---- SSH setup -----------------------------------------------------------
 mkdir -p ~/.ssh && chmod 700 ~/.ssh
 printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
@@ -81,9 +95,26 @@ sed "s/__APP_SLUG__/${APP_SLUG}/g" "$BP" > "/tmp/app-${STAGE}.yaml"
 docker cp "/tmp/app-${STAGE}.yaml" "$AK:/blueprints/app-${STAGE}.yaml"
 docker exec "$AK" ak apply_blueprint "app-${STAGE}.yaml"
 
-# Attach the provider to the embedded outpost (additive, never replaces) — authenticated apps only.
+# Attach the provider to the STANDALONE outpost — the one whose labels define Traefik's
+# `authentik` middleware. (The embedded outpost is the abandoned one; the provider set is
+# added to, never replaced, so every other app stays attached.)
 if [ "$APP_PUBLIC" != "true" ]; then
-  docker exec "$AK" ak shell -c "from authentik.outposts.models import Outpost; from authentik.providers.proxy.models import ProxyProvider; o=Outpost.objects.filter(name='authentik Embedded Outpost').first(); p=ProxyProvider.objects.filter(name='${PROVIDER_NAME}').first(); o.providers.add(p) if o and p else None"
+  docker exec "$AK" ak shell -c "from authentik.outposts.models import Outpost; from authentik.providers.proxy.models import ProxyProvider; o=Outpost.objects.filter(name='proxy-outpost').first() or Outpost.objects.filter(name='authentik Embedded Outpost').first(); p=ProxyProvider.objects.filter(name='${PROVIDER_NAME}').first(); o.providers.add(p) if o and p else None"
+
+  # Authentik clears a provider's signing key on every authentik-server restart and on
+  # blueprint apply, and a provider without one serves an EMPTY JWKS — so X-authentik-jwt can
+  # never verify and the SDK fails closed on every call. Bulk update, because saving instances
+  # one by one fires the signals that clear the field again; proxy providers are updated as a
+  # whole set, which heals any other app that lost its key the same way.
+  docker exec "$AK" ak shell -c "from authentik.crypto.models import CertificateKeyPair; from authentik.providers.proxy.models import ProxyProvider; c=CertificateKeyPair.objects.filter(name='authentik Internal JWT Certificate').first(); ProxyProvider.objects.update(signing_key=c) if c else None"
+
+  # The outpost caches each provider's config (including the id_token signing algorithms), so it
+  # must re-read it after the key is asserted.
+  OUTPOST="$(docker ps -q -f name=authentik-outpost | head -1)"
+  if [ -n "$OUTPOST" ]; then
+    docker restart "$OUTPOST" >/dev/null
+    echo "restarted the authentik outpost so it re-reads the provider config"
+  fi
 fi
 REMOTE
 

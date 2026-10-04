@@ -8,10 +8,14 @@ export interface Property {
   name: string;
   /** address */
   address: string;
+  /** landlord (EntityRef → Landlord) */
+  landlord: unknown;
   /** isPartOf (EntityRef → Property) */
   isPartOf: unknown;
   /** propertyType (EntityRef → PropertyType) */
   propertyType: unknown;
   /** rentalModel (EntityRef → RentalModel) */
   rentalModel: unknown;
+  /** segmentedInto (EntityRef → Segmentation) */
+  segmentedInto: unknown[];
 }

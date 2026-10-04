@@ -46,12 +46,13 @@ with a stated reason is honest; a missing test nobody notices is not.
 
 ## Two traps that cost real time
 
-1. **A fixture's route is the OPERATION route, not the entity's type path.** A `Tenant` is created by
-   `POST /api/entities/tenants`, and its IRI then lives under `/agents/…`. Posting to `/agents`
-   answers `200` and creates an *Agent* — which no tenant-shaped read ever lists, so the page shows an
-   empty dropdown and the test fails somewhere else entirely. Read the routes from
-   `POST /api/entities/aletheia/entity-operations/query`, and have a fixture assert that the page's
-   own read can see it before the test proceeds.
+1. **A fixture's route is the OPERATION route, not the entity's type path.** A `Property` is created by
+   `POST /api/entities/properties`, and its IRI then lives under `/segmentations/…` — a property is one
+   partitioning of the segmentation space, so it shares the base entity's instance namespace. Posting
+   the same values to `/segmentations` answers `200` and creates a *Segmentation* — which no
+   property-shaped read ever lists, so the page shows an empty table and the test fails somewhere else
+   entirely. Read the routes from `POST /api/entities/aletheia/entity-operations/query`, and have a
+   fixture assert that the page's own read can see it before the test proceeds.
 2. **A snapshot read after a click races the render.** `await html.getAttribute(...)` immediately
    after `click()` sees the old DOM and fails intermittently; `await expect(locator).toHaveAttribute(...)`
    retries and is what these specs should use. The same goes for reading a value out of the DOM

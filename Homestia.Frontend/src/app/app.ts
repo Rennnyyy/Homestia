@@ -1,4 +1,5 @@
 import {
+  AgentSimulationSwitcherComponent,
   HlmButton,
   LanguageSwitcherComponent,
   SidebarComponent,
@@ -26,13 +27,16 @@ import { ThemePicker } from './shared/components/theme-picker';
  * Chrome is one control per axis, and all of it sits in the header — accent,
  * mode, language — so a control is never hidden by a panel's own state: the rail
  * collapses to a 64px icon strip, which cannot hold three controls, and a bar on
- * a phone is exactly the place a user looks for chrome anyway.
+ * bar on a phone is exactly the place a user looks for chrome anyway. The agent
+ * switch joins them in a development build only: it names the identity the
+ * request declares, which a deployed page can never do.
  */
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
     RouterOutlet, TranslocoPipe, HlmButton, SidebarComponent, LanguageSwitcherComponent,
+    AgentSimulationSwitcherComponent,
     LucideHouse, LucideMenu, LucideMoon, LucideSun, ThemePicker,
   ],
   templateUrl: './app.html',

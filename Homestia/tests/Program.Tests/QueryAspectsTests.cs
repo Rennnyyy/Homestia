@@ -75,6 +75,57 @@ public sealed class QueryAspectsTests
         store.TryResolveQuery(QueryAspects.PropertyQueryAspectIri).ShouldNotBeNull();
         store.TryResolveQuery(QueryAspects.RoomQueryAspectIri).ShouldNotBeNull();
         store.TryResolveQuery(QueryAspects.TenantQueryAspectIri).ShouldNotBeNull();
+        store.TryResolveQuery(QueryAspects.LandlordQueryAspectIri).ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// The read gates state ownership as an ALLOW clause, because that is the polarity the access
+    /// gate reads: it runs <c>SELECT ?granted … BIND(true AS ?granted)</c> and every returned row is
+    /// a GRANT. A filter written as a denial would therefore admit exactly the callers it means to
+    /// refuse — and would still look like a gate.
+    /// <br/><br/>
+    /// <c>!bound(?agentIri)</c> rides along: an anonymous caller is the platform's permissive
+    /// default, and a store with no identities in it would otherwise become unreadable.
+    /// </summary>
+    [Fact]
+    public void The_read_gates_admit_only_the_connected_landlord()
+    {
+        var store = BuildProvider().GetRequiredService<IAspectStore>();
+
+        var propertyPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Property));
+        var roomPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Room));
+        var landlordPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Landlord));
+
+        string FilterOf(string iri) => store.TryResolveQuery(iri)?.FilterWhere
+            ?? throw new InvalidOperationException($"'{iri}' carries no ownership filter.");
+
+        // A property: the landlord it carries names the acting agent.
+        var property = FilterOf(QueryAspects.PropertyQueryAspectIri);
+        property.ShouldContain($"EXISTS {{ ?entityIri <{propertyPredicates["Landlord"]}> ?landlord");
+        property.ShouldContain($"<{landlordPredicates["Agent"]}> ?agentIri");
+
+        // A room: same rule, reached through the property it is part of.
+        var room = FilterOf(QueryAspects.RoomQueryAspectIri);
+        room.ShouldContain($"?entityIri <{roomPredicates["IsPartOf"]}> ?property");
+        room.ShouldContain($"?property <{propertyPredicates["Landlord"]}> ?landlord");
+
+        // A landlord: the record that names the acting agent — and only for a caller that IS an agent.
+        // The page reads this answer as "this is mine", so an anonymous caller must be answered with
+        // nothing rather than with the first landlord in the store.
+        var landlordFilter = FilterOf(QueryAspects.LandlordQueryAspectIri);
+        landlordFilter.ShouldContain($"?entityIri <{landlordPredicates["Agent"]}> ?agentIri");
+        landlordFilter.ShouldContain("bound(?agentIri) &&");
+
+        foreach (var filter in new[] { property, room })
+        {
+            filter.ShouldContain("!bound(?agentIri)");
+            filter.ShouldNotContain("FILTER NOT EXISTS");
+        }
+
+        // The tenant and rental reads stay ungated — ownership never scoped them, and a filter
+        // bolted on here would quietly change what those pages can see.
+        store.TryResolveQuery(QueryAspects.TenantQueryAspectIri)!.FilterWhere.ShouldBeNull();
+        store.TryResolveQuery(QueryAspects.RentalStateQueryAspectIri)!.FilterWhere.ShouldBeNull();
     }
 
     /// <summary>Every read surface and the entity it returns.</summary>
@@ -83,6 +134,7 @@ public sealed class QueryAspectsTests
         { QueryAspects.PropertyQueryAspectIri, typeof(Property) },
         { QueryAspects.RoomQueryAspectIri, typeof(Room) },
         { QueryAspects.TenantQueryAspectIri, typeof(Tenant) },
+        { QueryAspects.LandlordQueryAspectIri, typeof(Landlord) },
         { QueryAspects.RentalStateQueryAspectIri, typeof(Rental) },
     };
 

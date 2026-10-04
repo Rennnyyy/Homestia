@@ -27,6 +27,7 @@ import {
   AletheiaHttpClientMock,
   AletheiaModelService,
   EntitySyncService,
+  QUERY_ASPECT_HEADER,
   ShaclValidatorService,
   type EntityInfo,
 } from '@rennnyyy/aletheia-core';
@@ -34,7 +35,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, of } from 'rxjs';
 
 import { Properties } from './properties';
-import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI, ROOM_OPERATION_IRI } from '../../core/shapes/shape.model';
+import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI, ROOM_OPERATION_IRI, LANDLORD_QUERY_ASPECT_IRI } from '../../core/shapes/shape.model';
 
 /** Inline loader — the dictionary stays empty, so keys render as their own id. */
 @Injectable()
@@ -333,6 +334,48 @@ describe('Properties page', () => {
       await page.saveWithRooms();
 
       expect(order).toEqual(['room', 'property']);
+    });
+  });
+
+  describe('the landlord a new property is bound to', () => {
+    const LANDLORD = 'https://example.test/landlords/1';
+
+    it('binds the property to the landlord the read gate answers with', async () => {
+      http.queryResult.next({ items: [{ iri: LANDLORD }] });
+      mount();
+      page.enterCreate();
+
+      await page.onPropertySaved({ name: 'Haus A' });
+
+      // The landlord is part of the property's OWN record: the read and the write gates resolve it
+      // from there, so a property saved without one is unreachable for everyone.
+      expect(sync.saveWithChildren).toHaveBeenCalledTimes(1);
+      expect(sync.saveWithChildren.mock.calls[0][0].parentData.landlord).toBe(LANDLORD);
+
+      // The lookup is itself a gated read — the collection answers with the caller's own landlord
+      // and no other, which is why the page needs no way to name the agent it owns through.
+      const landlordRead = http.calls.find(
+        (call) => call.method === 'query' && call.args[0] === 'landlords',
+      );
+      expect(landlordRead, 'the page asks the landlord collection for its own landlord').toBeDefined();
+      const headers = landlordRead!.args[2] as { get(name: string): string | null };
+      expect(headers.get(QUERY_ASPECT_HEADER)).toBe(LANDLORD_QUERY_ASPECT_IRI);
+
+      // The page never provisions one: the host does that for the acting agent, and a client that
+      // tried would have to name an agent IRI it cannot know.
+      expect(http.calls.some((call) => call.method === 'create')).toBe(false);
+    });
+
+    it('binds nothing when the caller has no landlord — there is no agent to own the property', async () => {
+      http.queryResult.next({ items: [] });
+      mount();
+      page.enterCreate();
+
+      await page.onPropertySaved({ name: 'Haus A' });
+
+      const parentData = sync.saveWithChildren.mock.calls[0][0].parentData;
+      expect(parentData.landlord).toBeUndefined();
+      expect(parentData.name).toBe('Haus A');
     });
   });
 

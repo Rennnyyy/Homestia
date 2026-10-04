@@ -74,6 +74,11 @@ public static class OperationAspects
     public const string TenantOperationIri = "urn:aletheia:homestia:operations:tenant";
 
     /// <summary>
+    /// Operation aspect governing writes to a Landlord — the record the ownership link starts at.
+    /// </summary>
+    public const string LandlordOperationIri = "urn:aletheia:homestia:operations:landlord";
+
+    /// <summary>
     /// The rental lifecycle stages, in order. The stage key is the last segment of the stage's
     /// aspect IRI and of its view shape IRI, and the name the page uses for the stage.
     /// </summary>
@@ -166,6 +171,14 @@ public static class OperationAspects
         AspectFields.FieldsFor(typeof(Tenant));
 
     /// <summary>
+    /// A Landlord write's fields, by CLR property name — the agent it represents and the property
+    /// type it deals in. <c>Properties</c> is deliberately absent: it is the read-only inverse of a
+    /// property's own landlord, and a write naming an inverse predicate is refused at registration.
+    /// </summary>
+    public static IReadOnlyList<AspectField> LandlordWritableFields { get; } =
+        AspectFields.FieldsFor(typeof(Landlord));
+
+    /// <summary>
     /// A Rental write's fields for <paramref name="stage">: that stage's view fields, plus the</paramref>
     /// derived <c>CurrentStage</c> the page persists to remember where the user stopped.
     /// </summary>
@@ -188,6 +201,7 @@ public static class OperationAspects
         PropertyWritableFields
             .Concat(RoomWritableFields)
             .Concat(TenantWritableFields)
+            .Concat(LandlordWritableFields)
             .Concat(AspectFields.RentalStages.SelectMany(RentalWritableFieldsFor))
             .Select(static writableField => writableField.Name);
 
@@ -289,10 +303,14 @@ public static class OperationAspects
     /// alongside the view and query registrations, before the store seals — and
     /// therefore before any write can arrive.
     /// <br/><br/>
-    /// Eleven aspects: one per entity the host writes (property, room, tenant) and one
+    /// Twelve aspects: one per entity the host writes (property, room, tenant, landlord) and one
     /// per rental lifecycle stage. Each is registered under its own IRI, so a caller
     /// selects the gate it means rather than a gate that has to admit everything either
     /// of them might send.
+    /// <br/><br/>
+    /// The property, room and landlord aspects also carry a <c>ContextWhere</c>: the ownership
+    /// rule evaluated against the store, which is what makes "only the connected landlord may
+    /// store this" enforceable rather than a convention the page happens to follow.
     /// </summary>
     public static void RegisterOperationAspects(IAspectStore store)
     {
@@ -301,20 +319,33 @@ public static class OperationAspects
         store.RegisterOperation(new InlineTtlOperationAspect(
             PropertyOperationIri,
             ShapeFor(PropertyOperationIri, (typeof(Property), PropertyWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Property)))),
-            contextWhere: null));
+            contextWhere: OwnershipRules.DenyViolation(
+                OwnershipRules.PropertyOwnedByAgent,
+                "Only this property's landlord may change it.")));
 
         store.RegisterOperation(new InlineTtlOperationAspect(
             RoomOperationIri,
             ShapeFor(RoomOperationIri, (typeof(Room), RoomWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Room)))),
-            contextWhere: null));
+            contextWhere: OwnershipRules.DenyViolation(
+                OwnershipRules.RoomOwnedByAgent,
+                "Only the landlord of the property this room is part of may change it.")));
 
-        // A tenant inherits DisplayName from the agent, whose predicate path is
-        // authorizationAgent — the concrete segment would reject the shape's own
-        // displayName path, so the tenant shape targets the entity path.
+        // A tenant is an ordinary entity: its shape targets the concrete type segment, like every
+        // other shape here.
         store.RegisterOperation(new InlineTtlOperationAspect(
             TenantOperationIri,
-            ShapeFor(TenantOperationIri, (typeof(Tenant), TenantWritableFields, EntityPathResolver.ResolveEntityPath(typeof(Tenant)))),
+            ShapeFor(TenantOperationIri, (typeof(Tenant), TenantWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Tenant)))),
             contextWhere: null));
+
+        // A landlord is where ownership starts, so its write is gated too: a caller may only change
+        // the landlord record that names it. Creating one is what provisioning an agent does, and a
+        // create has no stored state to judge — see OwnershipRules.
+        store.RegisterOperation(new InlineTtlOperationAspect(
+            LandlordOperationIri,
+            ShapeFor(LandlordOperationIri, (typeof(Landlord), LandlordWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Landlord)))),
+            contextWhere: OwnershipRules.DenyViolation(
+                OwnershipRules.LandlordOwnedByAgent,
+                "Only the agent this landlord represents may change it.")));
 
         // One aspect per lifecycle stage: the gate a stage's save selects carries that
         // stage's fields and that stage's presence rules, so a stage cannot be persisted

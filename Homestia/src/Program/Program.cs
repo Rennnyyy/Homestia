@@ -66,6 +66,9 @@ using Aletheia.Sdk.Web.DependencyInjection;
 // ── Web slice — Homestia facade hosting ────────────────────────────────────
 using Homestia.Web;
 
+// ── Identity projection — the verified caller becomes a stored Agent ───────
+using Homestia.Hosting;
+
 // ══════════════════════════════════════════════════════════════════════════════
 // SERVICE CONFIGURATION
 // ══════════════════════════════════════════════════════════════════════════════
@@ -94,6 +97,23 @@ builder.Services.AddAuthorizationHttp(builder.Configuration);
 // the ordinary operation endpoints, so that assembly must be mapped here too
 // (Sdk.Sample does the same).
 builder.Services.AddOperationEndpointsHttp(typeof(Agent).Assembly);
+
+// Authentik forward-auth activates only when the deployment supplies the provider — the
+// Authentik__ExpectedIssuer / Authentik__ExpectedAudience environment variables the proxy's
+// verified JWT is checked against. Local development has no Authentik in front, so the gate
+// stays closed and the bearer token middleware is the identity source instead.
+var authentikForwardAuthEnabled =
+    !string.IsNullOrWhiteSpace(builder.Configuration["Authentik:ExpectedIssuer"]);
+
+// The development simulation is registered exactly where it is meant to be used. A non-development
+// host without an identity provider therefore runs on bearer tokens alone, and the SDK's startup
+// guard never has to refuse a deployment — which is the whole point of that guard.
+var agentSimulationEnabled = !authentikForwardAuthEnabled && builder.Environment.IsDevelopment();
+
+if (authentikForwardAuthEnabled)
+    builder.Services.AddAuthentikForwardAuth(builder.Configuration);
+else if (agentSimulationEnabled)
+    builder.Services.AddAgentSimulation(builder.Configuration);
 
 // ── Feature-flagged slices ──────────────────────────────────────────────────
 var features = builder.Configuration.GetSection("Aletheia:Features");
@@ -206,8 +226,34 @@ builder.Services.AddWebInterface("/aletheia", ResolveSdkWebRoot());
 
 var app = builder.Build();
 
-// Authorization token middleware (must come before endpoint mapping).
-app.UseAgentTokenMiddleware();
+// Identity — ONE source per request. Deployed, the proxy forwards a verified X-authentik-jwt and
+// the forward-auth middleware establishes the acting identity from it; locally there is no proxy,
+// so a bearer token names the caller and, failing that, the SDK's simulation header DECLARES who
+// the request acts as. The credential wins: a simulation only fills a request that has no
+// identity of its own (Authorization.Http decisions 002 and 004).
+if (authentikForwardAuthEnabled)
+    app.UseAuthentikForwardAuth();
+else
+{
+    app.UseAgentTokenMiddleware();
+
+    // …plus the identity a development request can DECLARE. The credential wins: the simulation only
+    // fills a request that has no identity of its own.
+    if (agentSimulationEnabled)
+        app.UseAgentSimulation();
+}
+
+// Project that identity into the Agent store. The access gates resolve ?agentIri by matching the
+// ambient token against a STORED Agent record, so this is what turns a credential into an
+// ownership identity: without it there is no IRI to bind and the gates stay open. Everything
+// downstream — capability dispatch and entity writes alike — runs as the agent this recorded.
+app.UseAgentSync();
+
+// …and give that agent the landlord it owns through. Ownership is agent → landlord → property →
+// room, and the last three hops are stored data, so the first one has to be data too. Provisioning
+// it here is what lets a page own anything without ever learning its own agent IRI: it asks the
+// landlord collection (the read gate answers with the caller's own) and binds what it gets.
+app.UseLandlordSync();
 
 // Branch scope — isolates requests to a branch context.
 if (branching)

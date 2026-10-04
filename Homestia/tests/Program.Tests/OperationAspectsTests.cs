@@ -46,6 +46,7 @@ public sealed class OperationAspectsTests
         { ViewAspects.PropertyTtl, typeof(Property), "" },
         { ViewAspects.RoomTtl, typeof(Room), "" },
         { ViewAspects.TenantTtl, typeof(Tenant), "" },
+        { ViewAspects.LandlordTtl, typeof(Landlord), "" },
         { ViewAspects.RentalApplicationTtl, typeof(Rental), "application" },
         { ViewAspects.RentalContractTtl, typeof(Rental), "contract" },
         { ViewAspects.RentalDepositTtl, typeof(Rental), "deposit" },
@@ -79,6 +80,7 @@ public sealed class OperationAspectsTests
         var t when t == typeof(Property) => OperationAspects.PropertyWritableFields,
         var t when t == typeof(Room) => OperationAspects.RoomWritableFields,
         var t when t == typeof(Tenant) => OperationAspects.TenantWritableFields,
+        var t when t == typeof(Landlord) => OperationAspects.LandlordWritableFields,
         _ => OperationAspects.RentalWritableFieldsFor(stage),
     };
 
@@ -96,7 +98,10 @@ public sealed class OperationAspectsTests
             (typeof(Room), OperationAspects.RoomWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Room)))),
         var t when t == typeof(Tenant) => OperationAspects.ShapeFor(
             OperationAspects.TenantOperationIri,
-            (typeof(Tenant), OperationAspects.TenantWritableFields, EntityPathResolver.ResolveEntityPath(typeof(Tenant)))),
+            (typeof(Tenant), OperationAspects.TenantWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Tenant)))),
+        var t when t == typeof(Landlord) => OperationAspects.ShapeFor(
+            OperationAspects.LandlordOperationIri,
+            (typeof(Landlord), OperationAspects.LandlordWritableFields, EntityPathResolver.ResolveTypeSegment(typeof(Landlord)))),
         _ => OperationAspects.ShapeFor(
             OperationAspects.RentalOperationIriFor(stage),
             (typeof(Rental), OperationAspects.RentalWritableFieldsFor(stage), EntityPathResolver.ResolveTypeSegment(typeof(Rental)))),
@@ -304,9 +309,78 @@ public sealed class OperationAspectsTests
                 OperationAspects.PropertyOperationIri,
                 OperationAspects.RoomOperationIri,
                 OperationAspects.TenantOperationIri,
+                OperationAspects.LandlordOperationIri,
                 .. OperationAspects.RentalOperationIris,
             ],
             ignoreOrder: true);
+    }
+
+    /// <summary>
+    /// The write gates state the ownership rule, and they state it as a DENIAL: the context pass
+    /// turns every returned row into a violation, so the clause must fire when the caller is NOT
+    /// the owner. Written the other way round it would refuse the owner and admit everyone else —
+    /// a gate that is worse than none, because it looks like protection.
+    /// <br/><br/>
+    /// Two conditions ride along and are asserted here because removing either is silent:
+    /// <list type="bullet">
+    /// <item><description><c>FILTER(bound(?agentIri))</c> — an anonymous caller (local development,
+    /// or a deployment with no identity provider) leaves the gate open, which is the platform's
+    /// permissive default.</description></item>
+    /// <item><description><c>FILTER EXISTS { ?entityIri ?anyPredicate ?anyObject }</c> — the context
+    /// pass runs BEFORE the operation's own triples land, so a record that does not exist yet is a
+    /// create; judging it by what it will hold would refuse every create.</description></item>
+    /// </list>
+    /// </summary>
+    [Fact]
+    public void Every_ownership_gate_states_the_rule_it_enforces()
+    {
+        var store = CreateStore();
+        OperationAspects.RegisterOperationAspects(store);
+
+        var propertyPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Property));
+        var roomPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Room));
+        var landlordPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Landlord));
+
+        string GateOf(string iri) => store.ResolveOperation(iri).ContextWhere
+            ?? throw new InvalidOperationException($"'{iri}' carries no ownership gate.");
+
+        // A property belongs to the landlord it carries, and that landlord names the agent.
+        var property = GateOf(OperationAspects.PropertyOperationIri);
+        property.ShouldContain($"?entityIri <{propertyPredicates["Landlord"]}> ?landlord");
+        property.ShouldContain($"<{landlordPredicates["Agent"]}> ?agentIri");
+
+        // A room reaches a landlord only through the property it is part of.
+        var room = GateOf(OperationAspects.RoomOperationIri);
+        room.ShouldContain($"?entityIri <{roomPredicates["IsPartOf"]}> ?property");
+        room.ShouldContain($"?property <{propertyPredicates["Landlord"]}> ?landlord");
+        room.ShouldContain($"<{landlordPredicates["Agent"]}> ?agentIri");
+
+        // A landlord is owned by the agent it names.
+        var landlord = GateOf(OperationAspects.LandlordOperationIri);
+        landlord.ShouldContain($"?entityIri <{landlordPredicates["Agent"]}> ?agentIri");
+
+        foreach (var gate in new[] { property, room, landlord })
+        {
+            gate.ShouldContain("FILTER NOT EXISTS");
+            gate.ShouldContain("FILTER(bound(?agentIri))");
+            gate.ShouldContain("FILTER EXISTS { ?entityIri ?anyPredicate ?anyObject }");
+        }
+    }
+
+    /// <summary>
+    /// The rental stages keep the aspects they had: a rental is judged by its stage's fields, not
+    /// by ownership, so the stage gates must stay free of a context clause.
+    /// </summary>
+    [Fact]
+    public void The_rental_stage_gates_carry_no_ownership_rule()
+    {
+        var store = CreateStore();
+        OperationAspects.RegisterOperationAspects(store);
+
+        foreach (var stage in OperationAspects.RentalStages)
+            store.ResolveOperation(OperationAspects.RentalOperationIriFor(stage)).ContextWhere.ShouldBeNull();
+
+        store.ResolveOperation(OperationAspects.TenantOperationIri).ContextWhere.ShouldBeNull();
     }
 
     [Fact]

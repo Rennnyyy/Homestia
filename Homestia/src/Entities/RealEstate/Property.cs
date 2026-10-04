@@ -31,6 +31,20 @@ public partial class Property : Segmentation
     public partial EntityRef<RentalModel>? RentalModel { get; set; }
 
     /// <summary>
+    /// The <see cref="Landlord"/> that owns this property — the owning side of the link, so a
+    /// property carries its owner in its own record.
+    /// <br/><br/>
+    /// Ownership is the property's access rule: the read and write gates compare the caller's
+    /// agent against this landlord's agent, and a room reaches a landlord only through its
+    /// property. Carrying the link here (rather than on the landlord) is what lets a room be
+    /// judged inside the same aggregate save that creates its property.
+    /// </summary>
+    [Label("Landlord")]
+    [Label("de", "Vermieter")]
+    [Owning("landlord")]
+    public partial EntityRef<Landlord>? Landlord { get; set; }
+
+    /// <summary>
     /// Inverse: auto-computed from Segmentation.IsPartOf — all segmentations in
     /// this property. The predicate local is <c>segmentedInto</c>, not the
     /// owning <c>isPartOf</c>: Property inherits the owning predicate from

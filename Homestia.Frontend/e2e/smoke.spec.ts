@@ -30,11 +30,21 @@ async function settle(page: Page, ready: string): Promise<void> {
  * passed only in one order. Clipping to the band that does NOT depend on the data removes the
  * coupling; the table's own look is asserted where the table is built.
  */
-const CHROME_BAND = 300;
-
-function topBand(page: Page): { x: number; y: number; width: number; height: number } {
+/**
+ * The band a list page's baseline compares: the CHROME, measured from the header itself.
+ *
+ * A fixed height is a promise about a layout this suite does not own. 300px covers chrome, page
+ * heading and table header on a desktop — but a 390px phone has a taller bar, so the same band
+ * reached into the first table ROW, and that row's name carries a random suffix. The baseline then
+ * passed or failed by which run had created the record. Measuring the header keeps the comparison on
+ * what these screenshots are about: the bar and the controls in it. The page heading, the table header
+ * and the table's own look are asserted where they are built (the i18n suite names the columns, the
+ * table spec renders them).
+ */
+async function chromeBand(page: Page): Promise<{ x: number; y: number; width: number; height: number }> {
+  const header = await page.locator('header').boundingBox();
   const size = page.viewportSize() ?? { width: 1280, height: 720 };
-  return { x: 0, y: 0, width: size.width, height: Math.min(CHROME_BAND, size.height) };
+  return { x: 0, y: 0, width: size.width, height: Math.ceil(header?.height ?? 64) };
 }
 
 test.describe('Homestia routes', () => {
@@ -47,13 +57,13 @@ test.describe('Homestia routes', () => {
   test('properties render', async ({ page }) => {
     await page.goto('/properties');
     await settle(page, 'app-properties');
-    await expect(page).toHaveScreenshot('properties.png', { clip: topBand(page) });
+    await expect(page).toHaveScreenshot('properties.png', { clip: await chromeBand(page) });
   });
 
   test('rentals render', async ({ page }) => {
     await page.goto('/rentals');
     await settle(page, 'app-rentals');
-    await expect(page).toHaveScreenshot('rentals.png', { clip: topBand(page) });
+    await expect(page).toHaveScreenshot('rentals.png', { clip: await chromeBand(page) });
   });
 
   /**
@@ -101,7 +111,7 @@ test.describe('Homestia mobile chrome', () => {
     expect(rail).toBeTruthy();
     expect(rail!.x + rail!.width).toBeLessThanOrEqual(0);
 
-    await expect(page).toHaveScreenshot('mobile-properties.png', { clip: topBand(page) });
+    await expect(page).toHaveScreenshot('mobile-properties.png', { clip: await chromeBand(page) });
   });
 
   test('the opened drawer keeps its chrome inside its own box', async ({ page }) => {
@@ -117,6 +127,6 @@ test.describe('Homestia mobile chrome', () => {
     });
     expect(fit.scrollWidth).toBeLessThanOrEqual(fit.clientWidth + 1);
 
-    await expect(page).toHaveScreenshot('mobile-drawer-open.png', { clip: topBand(page) });
+    await expect(page).toHaveScreenshot('mobile-drawer-open.png', { clip: await chromeBand(page) });
   });
 });

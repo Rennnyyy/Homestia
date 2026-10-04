@@ -27,9 +27,9 @@ const PROJECT_ROOT = pathToFileURL(`${process.cwd()}/`);
 const read = (relative: string): string =>
   readFileSync(new URL(relative, PROJECT_ROOT).pathname, 'utf8');
 
-const VIEW_ASPECTS = read('../Homestia/src/Program/ViewAspects.cs');
-const OPERATION_ASPECTS = read('../Homestia/src/Program/OperationAspects.cs');
-const QUERY_ASPECTS = read('../Homestia/src/Program/QueryAspects.cs');
+const VIEW_ASPECTS = read('../Homestia/src/Aspects/ViewAspects.cs');
+const OPERATION_ASPECTS = read('../Homestia/src/Aspects/OperationAspects.cs');
+const QUERY_ASPECTS = read('../Homestia/src/Aspects/QueryAspects.cs');
 const SHAPE_MODEL = read('src/app/core/shapes/shape.model.ts');
 const PAGES = ['src/app/features/properties/properties.ts', 'src/app/features/rentals/rentals.ts'] as const;
 
@@ -92,9 +92,19 @@ const appIri = (name: string): string => SHAPE_MODEL.match(new RegExp(`${name} =
  * lists, so the property and room shapes it reads through are bound there too; an aspect it
  * passes has to be declared by ONE of them. The assertion is membership in the union, never
  * in a single view.
+ *
+ * The properties page binds the landlord shape for the same reason it binds the property and
+ * room ones: it READS the caller's landlord (to bind a new property to it) and WRITES one when
+ * the caller has none. No form renders that shape — nobody is asked who their landlord is — but
+ * the aspects the page passes still have to be declared by a view, and this is the view that
+ * declares them.
  */
 const BOUND_SHAPES: Record<string, string[]> = {
-  'src/app/features/properties/properties.ts': ['urn:aletheia:homestia:shapes:property', 'urn:aletheia:homestia:shapes:room'],
+  'src/app/features/properties/properties.ts': [
+    'urn:aletheia:homestia:shapes:property',
+    'urn:aletheia:homestia:shapes:room',
+    'urn:aletheia:homestia:shapes:landlord',
+  ],
   'src/app/features/rentals/rentals.ts': [
     'urn:aletheia:homestia:shapes:rental:application',
     'urn:aletheia:homestia:shapes:rental:contract',
@@ -112,13 +122,15 @@ const BOUND_SHAPES: Record<string, string[]> = {
 
 describe('view bindings (the shape declares what may use it)', () => {
   it('reads every view out of the backend source, each with its own shape IRI', () => {
-    // 11 views: the property root, the room nested in it, the tenant form, and the eight
-    // rental stages. A view that failed to parse would silently drop out of every check below.
+    // 12 views: the property root, the room nested in it, the tenant form, the landlord shape,
+    // and the eight rental stages. A view that failed to parse would silently drop out of every
+    // check below.
     expect(VIEWS.map((view) => view.name).sort()).toEqual(
       [
         'PropertyTtl',
         'RoomTtl',
         'TenantTtl',
+        'LandlordTtl',
         'RentalApplicationTtl',
         'RentalContractTtl',
         'RentalDepositTtl',
@@ -145,6 +157,7 @@ describe('view bindings (the shape declares what may use it)', () => {
     expect(viewOf('urn:aletheia:homestia:shapes:property')?.operations).toEqual([IRIS.get('PropertyOperationIri')]);
     expect(viewOf('urn:aletheia:homestia:shapes:room')?.operations).toEqual([IRIS.get('RoomOperationIri')]);
     expect(viewOf('urn:aletheia:homestia:shapes:tenant')?.operations).toEqual([IRIS.get('TenantOperationIri')]);
+    expect(viewOf('urn:aletheia:homestia:shapes:landlord')?.operations).toEqual([IRIS.get('LandlordOperationIri')]);
   });
 
   it('binds each rental stage view to its OWN stage write, and to the read that serves them', () => {
@@ -182,6 +195,7 @@ describe('view bindings (the shape declares what may use it)', () => {
     expect(viewOf('urn:aletheia:homestia:shapes:property')?.queries).toEqual([IRIS.get('PropertyQueryAspectIri')]);
     expect(viewOf('urn:aletheia:homestia:shapes:room')?.queries).toEqual([IRIS.get('RoomQueryAspectIri')]);
     expect(viewOf('urn:aletheia:homestia:shapes:tenant')?.queries).toEqual([IRIS.get('TenantQueryAspectIri')]);
+    expect(viewOf('urn:aletheia:homestia:shapes:landlord')?.queries).toEqual([IRIS.get('LandlordQueryAspectIri')]);
   });
 
   it('carries only aspect IRIs a page may actually send — every constant the pages pass is declared', () => {

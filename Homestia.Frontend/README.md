@@ -17,6 +17,33 @@ The app expects the backend on `http://localhost:5000` (dev proxy in
 `proxy.conf.json`). Alternatively build the facade into the host and run the
 .NET program:
 
+### Acting as an agent locally
+
+Deployed, the identity is a proxy-forwarded, verified JWT that the browser never sees — the page
+cannot name itself, and the host mirrors whichever agent the JWT names into that caller's landlord.
+
+Locally there is no identity provider, so the header carries an **agent switch** (the SDK's
+development simulation, `@rennnyyy/aletheia-core` + `AddAgentSimulation()` in the host). Type a name
+in the field beside the language switcher and every request from then on declares that agent through
+`X-Aletheia-Agent-Simulation`:
+
+```
+[ alice        ]        # the header switch: this tab acts as agent "alice"
+[ bob          ]        # a second tab is "bob" — a second landlord
+```
+
+Each identity owns its own landlord, its own properties and their rooms, and can neither read nor
+change the other's. The choice is remembered per browser profile, so a reload keeps it; clearing the
+field returns the tab to whoever the host sees.
+
+Three locks keep it out of production: the switch follows the application's **development mode** (which
+defaults to the build mode — `provideDevMode()` turns it on in any bundle, and Homestia deliberately does
+not), the interceptor attaches nothing outside that mode, and the host refuses to register the simulation
+beside Authentik forward-auth or outside Development. Against the **built** host the identity is therefore
+set per request — `curl -H 'X-Aletheia-Agent-Simulation: {"token":"alice"}' …` or a credential
+(`curl -H 'Authorization: Bearer alice' …`), which always outranks a declaration, as the e2e suite
+does.
+
 ```bash
 npm run build               # outputs into ../Homestia/src/Program/wwwroot
 dotnet run --project ../Homestia/src/Program --urls http://localhost:5080
@@ -31,6 +58,18 @@ committed `model.json` snapshot — never edit it by hand.
 npm run generate-entities   # regenerate from model.json
 npm run codegen:check       # drift gate (run in CI)
 ```
+
+`model.json` also names every entity, property and enumeration value in both languages, and the
+SDK's components ask this app's own bundle for those words before falling back to the model. The
+same snapshot therefore seeds the i18n vocabulary:
+
+```bash
+npm run i18n:entities       # add the entity labels the bundles are missing (add-only)
+```
+
+`codegen:check` runs this in check mode too, so a new entity or a renamed property fails the gate
+instead of quietly logging a missing translation. See
+`../Homestia/entity/Web/decisions/012-the-app-owns-its-entity-vocabulary.md`.
 
 ## Testing
 

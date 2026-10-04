@@ -3,16 +3,16 @@ import { ConfirmDialogComponent, EntityFormComponent, EntityTableComponent, type
 
 import { Component, computed, inject, signal, OnInit, viewChild, viewChildren, effect } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map, type Observable } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@rennnyyy/aletheia-ui';
 import { LucideBuilding, LucidePlus, LucideChevronRight, LucideTrash, LucideDoorOpen, LucideCheck, LucideSparkles, LucideAlertTriangle } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
 import { AletheiaHttpClient } from '@rennnyyy/aletheia-core';
 import { AiAssistantWizardComponent } from '../../shared/components/ai-assistant-wizard/ai-assistant-wizard.component';
-import { PropertyEntity, RoomEntity, type Property } from '../../entities';
+import { PropertyEntity, RoomEntity, type Property, type Landlords } from '../../entities';
 import { ShaclValidatorService, type ShapeViolation } from '@rennnyyy/aletheia-core';
-import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI, ROOM_OPERATION_IRI, PROPERTY_QUERY_ASPECT_IRI, ROOM_QUERY_ASPECT_IRI } from '../../core/shapes/shape.model';
+import { PROPERTY_SHAPE_IRI, ROOM_SHAPE_IRI, PROPERTY_OPERATION_IRI, ROOM_OPERATION_IRI, PROPERTY_QUERY_ASPECT_IRI, ROOM_QUERY_ASPECT_IRI, LANDLORD_QUERY_ASPECT_IRI } from '../../core/shapes/shape.model';
 import { queryAspectHeaders } from '@rennnyyy/aletheia-core';
 import type { AletheiaCollection } from '@rennnyyy/aletheia-core';
 
@@ -119,6 +119,7 @@ interface CreateStepDef {
           [shapeKey]="PROPERTY_SHAPE_KEY"
           [columns]="tableColumns"
           [emptyMessage]="'nav.properties.empty' | transloco"
+          [loadingMessage]="'table.loading'"
           [actions]="rowActions"
           (rowClick)="onRowClick($event)"
           (refresh)="refresh()"
@@ -1021,13 +1022,45 @@ export class Properties implements OnInit {
     else this.onUpdate(data);
   }
 
+  /**
+   * The landlord that represents the caller — the record the host keeps for the acting agent.
+   *
+   * Ownership is the property's access rule: the read and write gates admit a caller only when the
+   * property's landlord names the caller's agent. The page cannot name that agent itself — its IRI is
+   * the encoding of a token the browser never sees — and does not have to: the landlord READ gate is
+   * the same rule, so the collection answers with the caller's own landlord and no other. The landlord
+   * is provisioned by the host on the caller's first identified request, which is what makes this a
+   * lookup rather than a find-or-create.
+   *
+   * An anonymous caller reads nothing and binds nothing: there is no agent to own a property, and the
+   * backend's gates stay open — exactly how a store with no identities in it behaves.
+   */
+  private callerLandlord(): Observable<string | null> {
+    return this.aletheia
+      .query<Landlords>('landlords', { count: 'none' }, queryAspectHeaders(LANDLORD_QUERY_ASPECT_IRI))
+      .pipe(map((mine) => (mine.items ?? [])[0]?.iri ?? null));
+  }
+
   onCreate(data: Record<string, unknown>): void {
     this.loading.set(true);
     this.error.set(null);
 
+    // The landlord is resolved BEFORE the save: it is part of the property's own record the moment
+    // the property exists, and the page has no second chance to add it afterwards — the write that
+    // would carry it is the one that has to pass the gate it establishes.
+    this.callerLandlord().subscribe({
+      next: (landlordIri) => this.createProperty(landlordIri ? { ...data, landlord: landlordIri } : data),
+      error: (err) => {
+        this.error.set(err?.message ?? 'Failed to resolve the landlord for this property');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  private createProperty(parentData: Record<string, unknown>): void {
     this.sync.saveWithChildren({
       parentPath: PropertyEntity.operationRoute,
-      parentData: data,
+      parentData,
       childPath: RoomEntity.operationRoute,
       childParentField: 'isPartOf',
       children: this.rooms(),

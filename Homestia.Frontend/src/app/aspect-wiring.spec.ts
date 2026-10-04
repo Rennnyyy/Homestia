@@ -46,6 +46,7 @@ const QUERY_ASPECT_BY_ROUTE: Record<string, string> = {
   tenants: 'TENANT_QUERY_ASPECT_IRI',
   rooms: 'ROOM_QUERY_ASPECT_IRI',
   properties: 'PROPERTY_QUERY_ASPECT_IRI',
+  landlords: 'LANDLORD_QUERY_ASPECT_IRI',
 };
 
 describe('the aspect contract', () => {
@@ -74,8 +75,10 @@ describe('the aspect contract', () => {
 
       // A typed write selects ONE aspect; an aggregate save writes TWO entity types and selects
       // one per side (parentAspectIri / childAspectIri) — counting is deliberate: a site-by-site
-      // sweep would pass a call site it failed to match.
-      const typedWrites = countOf(src, /this\.aletheia\.(create|update|delete)\(/g);
+      // sweep would pass a call site it failed to match. A call the page spells across lines is
+      // still a call: `this.aletheia` and the method name are separated by whitespace, not by
+      // anything that changes what it does.
+      const typedWrites = countOf(src, /this\.aletheia\s*\.\s*(create|update|delete)\(/g);
       const aggregateWrites = countOf(src, /this\.sync\.(saveWithChildren|deleteWithChildren)\(/g);
 
       const aspectSelections =
@@ -99,7 +102,10 @@ describe('the aspect contract', () => {
         // Only a page that actually reads the entity has this obligation.
         if (!src.includes(`'${route}'`)) continue;
 
-        const reads = countOf(src, new RegExp(`this\\.aletheia\\.query<[^>]*>\\('${route}'`, 'g'));
+        // Only a page that actually reads the entity has this obligation. The route is read as the
+        // literal the page calls — the shape the rentals page uses — so a call spelled across
+        // lines still counts as the read it is.
+        const reads = countOf(src, new RegExp(`this\\.aletheia\\s*\\.\\s*query<[^>]*>\\(\\s*'${route}'`, 'g'));
         if (reads === 0) continue;
 
         expect(
@@ -127,10 +133,12 @@ describe('the aspect contract', () => {
       'RENTAL_NOTICED_OPERATION_IRI',
       'RENTAL_HANDBACK_OPERATION_IRI',
       'RENTAL_TERMINATED_OPERATION_IRI',
+      'LANDLORD_OPERATION_IRI',
       'RENTAL_STATE_QUERY_ASPECT_IRI',
       'PROPERTY_QUERY_ASPECT_IRI',
       'ROOM_QUERY_ASPECT_IRI',
       'TENANT_QUERY_ASPECT_IRI',
+      'LANDLORD_QUERY_ASPECT_IRI',
     ];
 
     for (const page of PAGES) {

@@ -1,6 +1,5 @@
 /** REST routes per predicate path — generated. Do not edit. */
 export const ENTITY_PATHS: Record<string, string> = {
-  'agents': 'agents',
   'commonArea': 'common-areas',
   'furnishingStatus': 'furnishing-statuses',
   'inventoryItem': 'inventory-items',

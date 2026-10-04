@@ -25,12 +25,17 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
+  // Generous on purpose: the budget is for a cold model/dictionary load on a busy machine, not for the
+  // assertions themselves. A timing failure here says "the machine was busy", which is not a defect the
+  // suite should report — geometry and pixels are what it is for.
+  timeout: 60_000,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5080',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   expect: {
+    timeout: 10_000,
     toHaveScreenshot: {
       // Theme changes and font loading settle asynchronously; a small ratio
       // keeps the baseline honest without turning antialiasing into a failure.

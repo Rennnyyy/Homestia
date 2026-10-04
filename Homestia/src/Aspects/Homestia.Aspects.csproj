@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Homestia.Aspects</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    The aspects slice — the shape vocabulary Homestia serves: the field rules the write, read and
+    view families share (AspectFields), the three family registrations, and the ownership rules the
+    gates enforce. It owns no HTTP surface and no host wiring: the Program registers what this
+    slice builds, and nothing here depends on the host.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../Entities/Homestia.Entities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aletheia.Sdk.Aspects" />
+    <PackageReference Include="Aletheia.Sdk.Aspects.Abstractions" />
+    <PackageReference Include="Aletheia.Sdk.Entity" />
+    <PackageReference Include="Aletheia.Sdk.Repository" />
+  </ItemGroup>
+
+</Project>

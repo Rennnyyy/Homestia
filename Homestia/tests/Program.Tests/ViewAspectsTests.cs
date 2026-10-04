@@ -32,6 +32,7 @@ public sealed class ViewAspectsTests
                 ViewAspects.PropertyShapeIri,
                 ViewAspects.RoomShapeIri,
                 ViewAspects.TenantShapeIri,
+                ViewAspects.LandlordShapeIri,
                 ViewAspects.RentalApplicationShapeIri,
                 ViewAspects.RentalContractShapeIri,
                 ViewAspects.RentalDepositShapeIri,
@@ -102,7 +103,7 @@ public sealed class ViewAspectsTests
     }
 
     /// <summary>
-    /// Every shape Homestia serves — the eleven views — as input for the bilingual-name guard
+    /// Every shape Homestia serves — the twelve views — as input for the bilingual-name guard
     /// below. The query aspects declare no result shape at all, so there is no read shape to
     /// list: a declared shape is a projection, and projecting a read is what those aspects avoid.
     /// </summary>
@@ -111,6 +112,7 @@ public sealed class ViewAspectsTests
         { nameof(ViewAspects.PropertyTtl), ViewAspects.PropertyTtl },
         { nameof(ViewAspects.RoomTtl), ViewAspects.RoomTtl },
         { nameof(ViewAspects.TenantTtl), ViewAspects.TenantTtl },
+        { nameof(ViewAspects.LandlordTtl), ViewAspects.LandlordTtl },
         { nameof(ViewAspects.RentalApplicationTtl), ViewAspects.RentalApplicationTtl },
         { nameof(ViewAspects.RentalContractTtl), ViewAspects.RentalContractTtl },
         { nameof(ViewAspects.RentalDepositTtl), ViewAspects.RentalDepositTtl },

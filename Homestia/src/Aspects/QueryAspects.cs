@@ -45,6 +45,12 @@ public static class QueryAspects
     public const string TenantQueryAspectIri = "urn:aletheia:homestia:query:tenant";
 
     /// <summary>
+    /// IRI of the Landlord read aspect — a caller sees the landlord record that names it, which is
+    /// how a page finds the landlord to bind a new property to.
+    /// </summary>
+    public const string LandlordQueryAspectIri = "urn:aletheia:homestia:query:landlord";
+
+    /// <summary>
     /// The predicate the <see cref="RentalStateConstruct"/> derives — a field no write stores and
     /// no entity property maps, so the result shape has to name it explicitly.
     /// </summary>
@@ -149,9 +155,16 @@ public static class QueryAspects
     /// Registers every query aspect into the SDK's aspect store. Runs alongside
     /// the view registrations before the store seals.
     /// <br/><br/>
-    /// Four surfaces, one per read a role needs to be assignable to: the property, room and tenant
-    /// lists, and the rentals list — which also derives the lifecycle <c>state</c> the graph does
-    /// not store, so its shape names that derived field as well.
+    /// Five surfaces, one per read a role needs to be assignable to: the property, room, tenant and
+    /// landlord lists, and the rentals list — which also derives the lifecycle <c>state</c> the
+    /// graph does not store, so its shape names that derived field as well.
+    /// <br/><br/>
+    /// The property, room and landlord surfaces also carry a <c>FilterWhere</c>: the ownership rule,
+    /// stated as the ALLOW clause the access gate expects. Those filters apply to the point read and
+    /// to the list scan alike, so a caller cannot reach another landlord's record by asking for it
+    /// by IRI any more than by listing. The landlord surface is the STRICT form of the same clause
+    /// (<c>RequireOwnFilter</c>): its answer is the caller's own identity, so a caller without one is
+    /// answered with nothing rather than with somebody else's record.
     /// </summary>
     public static void RegisterQueryAspects(IAspectStore store)
     {
@@ -169,13 +182,13 @@ public static class QueryAspects
         // The access surface of every other list read — the entity's whole vocabulary, unconstrained.
         store.RegisterQuery(new InlineTtlQueryAspect(
             PropertyQueryAspectIri,
-            filterWhere: null,
+            filterWhere: OwnershipRules.AllowFilter(OwnershipRules.PropertyOwnedByAgent),
             resultShapeTtl: ResultShapeFor(PropertyQueryAspectIri, typeof(Property)),
             enrichmentConstruct: null));
 
         store.RegisterQuery(new InlineTtlQueryAspect(
             RoomQueryAspectIri,
-            filterWhere: null,
+            filterWhere: OwnershipRules.AllowFilter(OwnershipRules.RoomOwnedByAgent),
             resultShapeTtl: ResultShapeFor(RoomQueryAspectIri, typeof(Room)),
             enrichmentConstruct: null));
 
@@ -183,6 +196,12 @@ public static class QueryAspects
             TenantQueryAspectIri,
             filterWhere: null,
             resultShapeTtl: ResultShapeFor(TenantQueryAspectIri, typeof(Tenant)),
+            enrichmentConstruct: null));
+
+        store.RegisterQuery(new InlineTtlQueryAspect(
+            LandlordQueryAspectIri,
+            filterWhere: OwnershipRules.RequireOwnFilter(OwnershipRules.LandlordOwnedByAgent),
+            resultShapeTtl: ResultShapeFor(LandlordQueryAspectIri, typeof(Landlord)),
             enrichmentConstruct: null));
     }
 }

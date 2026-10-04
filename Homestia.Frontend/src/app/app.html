@@ -47,6 +47,11 @@
 
     <aletheia-language-switcher />
 
+    <!-- Who this browser acts as, in a development build only: the request declares it through the
+         SDK's simulation header, which is what makes two agents (and their two landlords)
+         comparable in one browser. A production bundle renders nothing here. -->
+    <aletheia-agent-simulation-switcher />
+
     <button
       hlmBtn
       variant="ghost"

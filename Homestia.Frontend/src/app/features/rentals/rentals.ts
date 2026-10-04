@@ -138,6 +138,7 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
           [error]="error()"
           [columns]="tableColumns"
           [emptyMessage]="'nav.rentals.empty' | transloco"
+          [loadingMessage]="'table.loading'"
           [actions]="rowActions"
           [expandable]="true"
           [rowDetail]="stageTimeline"

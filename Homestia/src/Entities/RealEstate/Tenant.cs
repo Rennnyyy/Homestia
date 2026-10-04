@@ -5,18 +5,26 @@ namespace Homestia.Entities.RealEstate;
 
 /// <summary>
 /// Tenant — a person renting under a <see cref="Rental"/> agreement.
-/// Inherits the canonical <see cref="Aletheia.Authentication.Agent"/> identity,
-/// so a tenant is also an authentication principal (displayName, agent IRI
-/// space) and can be referenced wherever an agent is expected. Identity and
-/// the instance IRI path are inherited from <see cref="Aletheia.Authentication.Agent"/>;
-/// only the predicate scope ("tenant") and REST endpoint path are tenant-specific.
+/// <br/><br/>
+/// A tenant is its own entity: it owns its instance-IRI namespace, its type and its predicate space. It
+/// used to inherit a stub <c>Aletheia.Authentication.Agent</c> — a placeholder for an authentication
+/// layer that the platform now provides as <c>Aletheia.Sdk.Authorization.Entity.Agent</c>, a sign-in
+/// principal carrying a token identity that a tenant neither has nor needs. The only member it inherited
+/// was its display name, which is declared here, where it belongs.
 /// </summary>
 [Label("Tenant")]
 [Label("de", "Mieter")]
-[Entity(PredicatePath = "tenant")]
+[Entity(Path = "tenants", PredicatePath = "tenant")]
+[Identity(IdentityGenerator.Random)]
 [OperationEndpoints("tenants")]
-public partial class Tenant : Aletheia.Authentication.Agent
+public partial class Tenant
 {
+    /// <summary>The tenant's name — the one field every list and picker shows.</summary>
+    [Label("Name")]
+    [Label("de", "Name")]
+    [Predicate("displayName")]
+    public string DisplayName { get; set; } = string.Empty;
+
     [Label("Email")]
     [Label("de", "E-Mail")]
     [Predicate("email")]

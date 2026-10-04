@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aletheia.Sdk.Authorization.Entity" />
     <PackageReference Include="Aletheia.Sdk.Entity" />
     <PackageReference Include="Aletheia.Sdk.Entity.Generators" />
     <PackageReference Include="Aletheia.Sdk.Operations" />

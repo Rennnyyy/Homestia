@@ -16,12 +16,21 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- The host's middleware is internal to it, but its behaviour is the ownership chain's first hop:
+       the tests act as an identity, fire the pipeline, and read what the projection stored. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Homestia.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <!--
     Program slices — Capabilities and Entities are separate projects.
     The Program host wires them together, hosts the view registrations,
     and serves HTTP.
   -->
   <ItemGroup>
+    <ProjectReference Include="../Aspects/Homestia.Aspects.csproj" />
     <ProjectReference Include="../Capabilities/Homestia.Capabilities.csproj" />
     <ProjectReference Include="../Entities/Homestia.Entities.csproj" />
     <ProjectReference Include="../Web/Homestia.Web.csproj" />

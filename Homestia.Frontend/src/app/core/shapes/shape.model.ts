@@ -15,6 +15,13 @@ export const ROOM_SHAPE_IRI = 'urn:aletheia:homestia:shapes:room';
 export const TENANT_SHAPE_IRI = 'urn:aletheia:homestia:shapes:tenant';
 
 /**
+ * The Landlord shape. No form renders it — a page never asks a user who their landlord is, it
+ * resolves the caller's own landlord and binds it. It is declared here as the CLAIM that licenses
+ * the landlord's aspects: a page may only carry an aspect IRI one of its own views names.
+ */
+export const LANDLORD_SHAPE_IRI = 'urn:aletheia:homestia:shapes:landlord';
+
+/**
  * Catalog IRIs of the rental stage shapes. Each stage carries its own target
  * class (<c>urn:aletheia:homestia:Rental:&lt;stage&gt;</c>) so the backend view
  * engine validates a stage in isolation — the whole stage sequence gates the
@@ -53,6 +60,13 @@ export const RENTAL_TERMINATED_SHAPE_IRI = 'urn:aletheia:homestia:shapes:rental:
 export const PROPERTY_OPERATION_IRI = 'urn:aletheia:homestia:operations:property';
 export const ROOM_OPERATION_IRI = 'urn:aletheia:homestia:operations:room';
 export const TENANT_OPERATION_IRI = 'urn:aletheia:homestia:operations:tenant';
+
+/**
+ * `LANDLORD_OPERATION_IRI` — the write that provisions a landlord for the caller. It is the one
+ * write on the properties page that does not go through a form, so the page names the aspect
+ * directly rather than reading it off a shape.
+ */
+export const LANDLORD_OPERATION_IRI = 'urn:aletheia:homestia:operations:landlord';
 
 export const RENTAL_APPLICATION_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:application';
 export const RENTAL_CONTRACT_OPERATION_IRI = 'urn:aletheia:homestia:operations:rental:contract';
@@ -116,3 +130,9 @@ export const PROPERTY_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:property';
 export const ROOM_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:room';
 export const TENANT_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:tenant';
 export const RENTAL_STATE_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:rental-state';
+
+/**
+ * `LANDLORD_QUERY_ASPECT_IRI` — the read that answers "which landlord represents me". It is an
+ * access gate as much as a read: a caller sees the landlord naming its own agent, and no other.
+ */
+export const LANDLORD_QUERY_ASPECT_IRI = 'urn:aletheia:homestia:query:landlord';

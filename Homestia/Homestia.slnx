@@ -8,6 +8,9 @@
   <Folder Name="/src/Capabilities/">
     <Project Path="src/Capabilities/Homestia.Capabilities.csproj" />
   </Folder>
+  <Folder Name="/src/Aspects/">
+    <Project Path="src/Aspects/Homestia.Aspects.csproj" />
+  </Folder>
   <Folder Name="/src/Entities/">
     <Project Path="src/Entities/Homestia.Entities.csproj" />
   </Folder>

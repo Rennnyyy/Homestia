@@ -1,51 +1,6 @@
 {
   "entityDefinitions": [
     {
-      "clrTypeIdentifier": "Aletheia.Authentication.Agent",
-      "name": "Agent",
-      "clrNamespace": "Aletheia.Authentication",
-      "assemblyName": "Homestia.Entities",
-      "entityPath": "agents",
-      "predicatePath": "agents",
-      "iriPrefix": "https://aletheia.katharsis.digital/agents/",
-      "typeIri": "https://aletheia.katharsis.digital/types/agents",
-      "definitionOrigin": "platform",
-      "isObjectBearing": false,
-      "identityStrategy": "Random",
-      "isEnumeration": false,
-      "baseEntityName": null,
-      "properties": [
-        {
-          "propertyName": "DisplayName",
-          "predicate": "displayName",
-          "clrType": "String",
-          "isIdentityPart": false,
-          "identityPartOrder": -1,
-          "isRequired": false,
-          "description": "",
-          "labels": {},
-          "descriptions": {}
-        }
-      ],
-      "owningRelations": [],
-      "incomingRelations": [
-        {
-          "propertyName": "Agent",
-          "predicate": "representedBy",
-          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
-          "relatedEntityName": "Landlord",
-          "relationKind": "owning-single",
-          "isCollection": false,
-          "isInferred": false
-        }
-      ],
-      "description": "",
-      "labels": {},
-      "descriptions": {},
-      "enumerationValues": [],
-      "iri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd"
-    },
-    {
       "clrTypeIdentifier": "Homestia.Entities.RealEstate.CommonArea",
       "name": "CommonArea",
       "clrNamespace": "Homestia.Entities.RealEstate",
@@ -68,7 +23,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Gemeinschaftsfläche",
+            "en": "Common Area"
+          },
           "descriptions": {}
         },
         {
@@ -79,7 +37,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Name",
+            "en": "Name"
+          },
           "descriptions": {}
         }
       ],
@@ -91,7 +52,12 @@
           "relatedEntityName": "InventoryItem",
           "relationKind": "owning-collection",
           "isCollection": true,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Inventar",
+            "en": "Inventory"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "IsPartOf",
@@ -100,12 +66,20 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         }
       ],
       "incomingRelations": [],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Gemeinschaftsfläche",
+        "en": "Common Area"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966"
@@ -133,7 +107,10 @@
           "identityPartOrder": 0,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Schlüssel",
+            "en": "Key"
+          },
           "descriptions": {}
         },
         {
@@ -144,7 +121,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Anzeigename",
+            "en": "Display name"
+          },
           "descriptions": {}
         }
       ],
@@ -157,11 +137,19 @@
           "relatedEntityName": "Room",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Einrichtungsstatus",
+            "en": "Furnishing Status"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Einrichtungsstatus",
+        "en": "Furnishing Status"
+      },
       "descriptions": {},
       "enumerationValues": [
         {
@@ -169,7 +157,10 @@
           "iri": "https://homestia.katharsis.digital/furnishing-statuses/unfurnished",
           "displayName": "Unfurnished",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Unmöbliert",
+            "en": "Unfurnished"
+          },
           "descriptions": {}
         },
         {
@@ -177,7 +168,10 @@
           "iri": "https://homestia.katharsis.digital/furnishing-statuses/partially-furnished",
           "displayName": "Partially Furnished",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Teilmöbliert",
+            "en": "Partially Furnished"
+          },
           "descriptions": {}
         },
         {
@@ -185,7 +179,10 @@
           "iri": "https://homestia.katharsis.digital/furnishing-statuses/fully-furnished",
           "displayName": "Fully Furnished",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Vollmöbliert",
+            "en": "Fully Furnished"
+          },
           "descriptions": {}
         }
       ],
@@ -214,7 +211,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Name",
+            "en": "Name"
+          },
           "descriptions": {}
         }
       ],
@@ -227,7 +227,12 @@
           "relatedEntityName": "CommonArea",
           "relationKind": "owning-collection",
           "isCollection": true,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Inventar",
+            "en": "Inventory"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "Inventory",
@@ -236,11 +241,19 @@
           "relatedEntityName": "Room",
           "relationKind": "owning-collection",
           "isCollection": true,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Inventar",
+            "en": "Inventory"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Inventargegenstand",
+        "en": "Inventory Item"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/e12c95e5-c922-5844-9dae-366afe5d8b4e"
@@ -262,22 +275,18 @@
       "properties": [],
       "owningRelations": [
         {
-          "propertyName": "Agent",
-          "predicate": "representedBy",
-          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
-          "relatedEntityName": "Agent",
-          "relationKind": "owning-single",
-          "isCollection": false,
-          "isInferred": false
-        },
-        {
           "propertyName": "Properties",
           "predicate": "owns",
           "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
           "relatedEntityName": "Property",
-          "relationKind": "owning-collection",
+          "relationKind": "inverse-collection",
           "isCollection": true,
-          "isInferred": false
+          "isInferred": true,
+          "labels": {
+            "de": "Besitzt",
+            "en": "Owns"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "LandlordType",
@@ -286,12 +295,35 @@
           "relatedEntityName": "PropertyType",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Vermietertyp",
+            "en": "Landlord Type"
+          },
+          "descriptions": {}
         }
       ],
-      "incomingRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "Landlord",
+          "predicate": "landlord",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false,
+          "labels": {
+            "de": "Vermieter",
+            "en": "Landlord"
+          },
+          "descriptions": {}
+        }
+      ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Vermieter",
+        "en": "Landlord"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf"
@@ -319,7 +351,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Gemeinschaftsfläche",
+            "en": "Common Area"
+          },
           "descriptions": {}
         },
         {
@@ -330,7 +365,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Name",
+            "en": "Name"
+          },
           "descriptions": {}
         },
         {
@@ -341,11 +379,28 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Adresse",
+            "en": "Address"
+          },
           "descriptions": {}
         }
       ],
       "owningRelations": [
+        {
+          "propertyName": "Landlord",
+          "predicate": "landlord",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
+          "relatedEntityName": "Landlord",
+          "relationKind": "owning-single",
+          "isCollection": false,
+          "isInferred": false,
+          "labels": {
+            "de": "Vermieter",
+            "en": "Landlord"
+          },
+          "descriptions": {}
+        },
         {
           "propertyName": "IsPartOf",
           "predicate": "isPartOf",
@@ -353,7 +408,12 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "PropertyType",
@@ -362,7 +422,12 @@
           "relatedEntityName": "PropertyType",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Objekttyp",
+            "en": "Property Type"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "RentalModel",
@@ -371,7 +436,26 @@
           "relatedEntityName": "RentalModel",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Mietmodell",
+            "en": "Rental Model"
+          },
+          "descriptions": {}
+        },
+        {
+          "propertyName": "SegmentedInto",
+          "predicate": "segmentedInto",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74",
+          "relatedEntityName": "Segmentation",
+          "relationKind": "inverse-collection",
+          "isCollection": true,
+          "isInferred": true,
+          "labels": {
+            "de": "Räume",
+            "en": "Rooms"
+          },
+          "descriptions": {}
         }
       ],
       "incomingRelations": [
@@ -382,16 +466,26 @@
           "relatedEntityName": "CommonArea",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "Properties",
           "predicate": "owns",
           "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/65f30310-2953-5b98-b7e9-34423b89edaf",
           "relatedEntityName": "Landlord",
-          "relationKind": "owning-collection",
+          "relationKind": "inverse-collection",
           "isCollection": true,
-          "isInferred": false
+          "isInferred": true,
+          "labels": {
+            "de": "Besitzt",
+            "en": "Owns"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "IsPartOf",
@@ -400,7 +494,12 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "Property",
@@ -409,7 +508,12 @@
           "relatedEntityName": "Rental",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Objekt",
+            "en": "Property"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "IsPartOf",
@@ -418,7 +522,12 @@
           "relatedEntityName": "Room",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "IsPartOf",
@@ -427,7 +536,12 @@
           "relatedEntityName": "Segmentation",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "IsPartOf",
@@ -436,11 +550,19 @@
           "relatedEntityName": "Studio",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Objekt",
+        "en": "Property"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a"
@@ -468,7 +590,10 @@
           "identityPartOrder": 0,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Schlüssel",
+            "en": "Key"
+          },
           "descriptions": {}
         },
         {
@@ -479,7 +604,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Anzeigename",
+            "en": "Display name"
+          },
           "descriptions": {}
         }
       ],
@@ -492,7 +620,12 @@
           "relatedEntityName": "Landlord",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Vermietertyp",
+            "en": "Landlord Type"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "PropertyType",
@@ -501,11 +634,19 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Objekttyp",
+            "en": "Property Type"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Objekttyp",
+        "en": "Property Type"
+      },
       "descriptions": {},
       "enumerationValues": [
         {
@@ -513,7 +654,10 @@
           "iri": "https://homestia.katharsis.digital/property-types/apartment",
           "displayName": "Apartment",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Wohnung",
+            "en": "Apartment"
+          },
           "descriptions": {}
         },
         {
@@ -521,7 +665,10 @@
           "iri": "https://homestia.katharsis.digital/property-types/studio",
           "displayName": "Studio",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Studio — Einzimmerapartment",
+            "en": "Studio"
+          },
           "descriptions": {}
         }
       ],
@@ -550,7 +697,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Schaden bestätigt",
+            "en": "Damage Confirmed"
+          },
           "descriptions": {}
         },
         {
@@ -561,7 +711,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Kautionshöhe",
+            "en": "Deposit Amount"
+          },
           "descriptions": {}
         },
         {
@@ -572,7 +725,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Kaution bezahlt",
+            "en": "Deposit Paid"
+          },
           "descriptions": {}
         },
         {
@@ -583,7 +739,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Datum der Kautionszahlung",
+            "en": "Deposit Payment Date"
+          },
           "descriptions": {}
         },
         {
@@ -594,7 +753,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Kaution zurückgezahlt",
+            "en": "Deposit Returned"
+          },
           "descriptions": {}
         },
         {
@@ -605,7 +767,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Rückgabedatum",
+            "en": "Handback Date"
+          },
           "descriptions": {}
         },
         {
@@ -616,7 +781,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Rückgabenotizen",
+            "en": "Handback Notes"
+          },
           "descriptions": {}
         },
         {
@@ -627,7 +795,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Übergabedatum",
+            "en": "Handover Date"
+          },
           "descriptions": {}
         },
         {
@@ -638,7 +809,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Übergabenotizen",
+            "en": "Handover Notes"
+          },
           "descriptions": {}
         },
         {
@@ -649,7 +823,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Kündigungsdatum",
+            "en": "Notice Date"
+          },
           "descriptions": {}
         },
         {
@@ -660,7 +837,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Kündigungsgrund",
+            "en": "Notice Reason"
+          },
           "descriptions": {}
         },
         {
@@ -671,7 +851,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Abrechnungsdatum",
+            "en": "Settlement Date"
+          },
           "descriptions": {}
         },
         {
@@ -682,7 +865,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Abrechnungsnotizen",
+            "en": "Settlement Notes"
+          },
           "descriptions": {}
         },
         {
@@ -693,7 +879,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Mietverhältnis aktiv",
+            "en": "Tenancy Active"
+          },
           "descriptions": {}
         },
         {
@@ -704,7 +893,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Besichtigungsdatum",
+            "en": "Viewing Date"
+          },
           "descriptions": {}
         }
       ],
@@ -716,7 +908,12 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Objekt",
+            "en": "Property"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "RentalDocuments",
@@ -725,7 +922,12 @@
           "relatedEntityName": "RentalDocument",
           "relationKind": "owning-collection",
           "isCollection": true,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Mietdokumente",
+            "en": "Rental Documents"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "CurrentStage",
@@ -734,7 +936,12 @@
           "relatedEntityName": "RentalStage",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Aktuelle Phase",
+            "en": "Current Stage"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "Unit",
@@ -743,7 +950,12 @@
           "relatedEntityName": "Room",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Zimmer",
+            "en": "Room"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "Tenant",
@@ -752,12 +964,20 @@
           "relatedEntityName": "Tenant",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Mieter",
+            "en": "Tenant"
+          },
+          "descriptions": {}
         }
       ],
       "incomingRelations": [],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Mietverhältnis",
+        "en": "Rental"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/fad439c8-a2d7-52d3-ae9e-a28a70086a5b"
@@ -785,7 +1005,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Name",
+            "en": "Name"
+          },
           "descriptions": {}
         }
       ],
@@ -798,11 +1021,19 @@
           "relatedEntityName": "Rental",
           "relationKind": "owning-collection",
           "isCollection": true,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Mietdokumente",
+            "en": "Rental Documents"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Mietdokument",
+        "en": "Rental Document"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/92dc2c37-e5c9-55ce-93bd-4a41d68730bb"
@@ -830,7 +1061,10 @@
           "identityPartOrder": 0,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Schlüssel",
+            "en": "Key"
+          },
           "descriptions": {}
         },
         {
@@ -841,7 +1075,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Anzeigename",
+            "en": "Display name"
+          },
           "descriptions": {}
         }
       ],
@@ -854,11 +1091,19 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Mietmodell",
+            "en": "Rental Model"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Mietmodell",
+        "en": "Rental Model"
+      },
       "descriptions": {},
       "enumerationValues": [
         {
@@ -866,7 +1111,10 @@
           "iri": "https://homestia.katharsis.digital/rental-models/entire-property",
           "displayName": "Entire Property",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Gesamte Immobilie",
+            "en": "Entire Property"
+          },
           "descriptions": {}
         },
         {
@@ -874,7 +1122,10 @@
           "iri": "https://homestia.katharsis.digital/rental-models/single-room-rental-shared-living",
           "displayName": "Single Room Rental — Shared Living",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Einzelzimmer — geteilte Wohnung",
+            "en": "Single Room Rental — Shared Living"
+          },
           "descriptions": {}
         }
       ],
@@ -903,7 +1154,10 @@
           "identityPartOrder": 0,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Schlüssel",
+            "en": "Key"
+          },
           "descriptions": {}
         },
         {
@@ -914,7 +1168,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Anzeigename",
+            "en": "Display name"
+          },
           "descriptions": {}
         }
       ],
@@ -927,11 +1184,19 @@
           "relatedEntityName": "Rental",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Aktuelle Phase",
+            "en": "Current Stage"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Mietphase",
+        "en": "Rental Stage"
+      },
       "descriptions": {},
       "enumerationValues": [
         {
@@ -939,7 +1204,10 @@
           "iri": "https://homestia.katharsis.digital/rental-stages/application",
           "displayName": "Application",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Bewerbung",
+            "en": "Application"
+          },
           "descriptions": {}
         },
         {
@@ -947,7 +1215,10 @@
           "iri": "https://homestia.katharsis.digital/rental-stages/contract",
           "displayName": "Contract",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Vertrag",
+            "en": "Contract"
+          },
           "descriptions": {}
         },
         {
@@ -955,7 +1226,10 @@
           "iri": "https://homestia.katharsis.digital/rental-stages/deposit",
           "displayName": "Deposit",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Kaution",
+            "en": "Deposit"
+          },
           "descriptions": {}
         },
         {
@@ -963,7 +1237,10 @@
           "iri": "https://homestia.katharsis.digital/rental-stages/handover",
           "displayName": "Handover",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Übergabe",
+            "en": "Handover"
+          },
           "descriptions": {}
         },
         {
@@ -971,7 +1248,10 @@
           "iri": "https://homestia.katharsis.digital/rental-stages/tenancy",
           "displayName": "Tenancy",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Mietzeit",
+            "en": "Tenancy"
+          },
           "descriptions": {}
         },
         {
@@ -979,7 +1259,10 @@
           "iri": "https://homestia.katharsis.digital/rental-stages/noticed",
           "displayName": "Termination Noticed",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Kündigung angekündigt",
+            "en": "Termination Noticed"
+          },
           "descriptions": {}
         },
         {
@@ -987,7 +1270,10 @@
           "iri": "https://homestia.katharsis.digital/rental-stages/handback",
           "displayName": "Handback",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Rückgabe",
+            "en": "Handback"
+          },
           "descriptions": {}
         },
         {
@@ -995,7 +1281,10 @@
           "iri": "https://homestia.katharsis.digital/rental-stages/terminated",
           "displayName": "Terminated",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Beendet",
+            "en": "Terminated"
+          },
           "descriptions": {}
         }
       ],
@@ -1024,7 +1313,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Gemeinschaftsfläche",
+            "en": "Common Area"
+          },
           "descriptions": {}
         },
         {
@@ -1035,7 +1327,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Name",
+            "en": "Name"
+          },
           "descriptions": {}
         },
         {
@@ -1046,7 +1341,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Lage",
+            "en": "Location"
+          },
           "descriptions": {}
         },
         {
@@ -1057,7 +1355,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Zimmergröße",
+            "en": "Room Size"
+          },
           "descriptions": {}
         }
       ],
@@ -1069,7 +1370,12 @@
           "relatedEntityName": "FurnishingStatus",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Einrichtungsstatus",
+            "en": "Furnishing Status"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "Inventory",
@@ -1078,7 +1384,12 @@
           "relatedEntityName": "InventoryItem",
           "relationKind": "owning-collection",
           "isCollection": true,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Inventar",
+            "en": "Inventory"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "IsPartOf",
@@ -1087,7 +1398,12 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         },
         {
           "propertyName": "RoomStatus",
@@ -1096,7 +1412,12 @@
           "relatedEntityName": "RoomStatus",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Zimmerstatus",
+            "en": "Room Status"
+          },
+          "descriptions": {}
         }
       ],
       "incomingRelations": [
@@ -1107,11 +1428,19 @@
           "relatedEntityName": "Rental",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Zimmer",
+            "en": "Room"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Zimmer",
+        "en": "Room"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/5fbd2d03-c79c-5f2a-88b4-6d3af6e9672c"
@@ -1139,7 +1468,10 @@
           "identityPartOrder": 0,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Schlüssel",
+            "en": "Key"
+          },
           "descriptions": {}
         },
         {
@@ -1150,7 +1482,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Anzeigename",
+            "en": "Display name"
+          },
           "descriptions": {}
         }
       ],
@@ -1163,11 +1498,19 @@
           "relatedEntityName": "Room",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Zimmerstatus",
+            "en": "Room Status"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Zimmerstatus",
+        "en": "Room Status"
+      },
       "descriptions": {},
       "enumerationValues": [
         {
@@ -1175,7 +1518,10 @@
           "iri": "https://homestia.katharsis.digital/room-statuses/available",
           "displayName": "Available",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Verfügbar",
+            "en": "Available"
+          },
           "descriptions": {}
         },
         {
@@ -1183,7 +1529,10 @@
           "iri": "https://homestia.katharsis.digital/room-statuses/reserved",
           "displayName": "Reserved",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Reserviert",
+            "en": "Reserved"
+          },
           "descriptions": {}
         },
         {
@@ -1191,7 +1540,10 @@
           "iri": "https://homestia.katharsis.digital/room-statuses/actively-rented",
           "displayName": "Actively Rented",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Aktiv vermietet",
+            "en": "Actively Rented"
+          },
           "descriptions": {}
         },
         {
@@ -1199,7 +1551,10 @@
           "iri": "https://homestia.katharsis.digital/room-statuses/blocked",
           "displayName": "Blocked",
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Gesperrt",
+            "en": "Blocked"
+          },
           "descriptions": {}
         }
       ],
@@ -1228,7 +1583,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Gemeinschaftsfläche",
+            "en": "Common Area"
+          },
           "descriptions": {}
         },
         {
@@ -1239,7 +1597,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Name",
+            "en": "Name"
+          },
           "descriptions": {}
         }
       ],
@@ -1251,12 +1612,35 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         }
       ],
-      "incomingRelations": [],
+      "incomingRelations": [
+        {
+          "propertyName": "SegmentedInto",
+          "predicate": "segmentedInto",
+          "relatedEntityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/82483083-335f-54c9-a46c-8b9f3a74505a",
+          "relatedEntityName": "Property",
+          "relationKind": "inverse-collection",
+          "isCollection": true,
+          "isInferred": true,
+          "labels": {
+            "de": "Räume",
+            "en": "Rooms"
+          },
+          "descriptions": {}
+        }
+      ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Segmentierung",
+        "en": "Segmentation"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/86b19f5d-b136-5238-8652-3cab16fc6b74"
@@ -1284,7 +1668,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Gemeinschaftsfläche",
+            "en": "Common Area"
+          },
           "descriptions": {}
         },
         {
@@ -1295,7 +1682,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Name",
+            "en": "Name"
+          },
           "descriptions": {}
         }
       ],
@@ -1307,12 +1697,20 @@
           "relatedEntityName": "Property",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Gehört zu",
+            "en": "Part of"
+          },
+          "descriptions": {}
         }
       ],
       "incomingRelations": [],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Studio",
+        "en": "Studio"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/86911364-c276-5265-939e-e6239faa7729"
@@ -1322,15 +1720,15 @@
       "name": "Tenant",
       "clrNamespace": "Homestia.Entities.RealEstate",
       "assemblyName": "Homestia.Entities",
-      "entityPath": "agents",
+      "entityPath": "tenants",
       "predicatePath": "tenant",
-      "iriPrefix": "https://aletheia.katharsis.digital/agents/",
-      "typeIri": "https://aletheia.katharsis.digital/types/agents/Tenant",
+      "iriPrefix": "https://aletheia.katharsis.digital/tenants/",
+      "typeIri": "https://aletheia.katharsis.digital/types/tenants",
       "definitionOrigin": "platform",
       "isObjectBearing": false,
       "identityStrategy": "Random",
       "isEnumeration": false,
-      "baseEntityName": "Agent",
+      "baseEntityName": null,
       "properties": [
         {
           "propertyName": "DisplayName",
@@ -1340,7 +1738,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Name",
+            "en": "Name"
+          },
           "descriptions": {}
         },
         {
@@ -1351,7 +1752,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "E-Mail",
+            "en": "Email"
+          },
           "descriptions": {}
         },
         {
@@ -1362,7 +1766,10 @@
           "identityPartOrder": -1,
           "isRequired": false,
           "description": "",
-          "labels": {},
+          "labels": {
+            "de": "Telefon",
+            "en": "Phone"
+          },
           "descriptions": {}
         }
       ],
@@ -1375,62 +1782,25 @@
           "relatedEntityName": "Rental",
           "relationKind": "owning-single",
           "isCollection": false,
-          "isInferred": false
+          "isInferred": false,
+          "labels": {
+            "de": "Mieter",
+            "en": "Tenant"
+          },
+          "descriptions": {}
         }
       ],
       "description": "",
-      "labels": {},
+      "labels": {
+        "de": "Mieter",
+        "en": "Tenant"
+      },
       "descriptions": {},
       "enumerationValues": [],
       "iri": "https://homestia.katharsis.digital/aletheia/entities/c5c198af-e9c0-57fa-9020-3327b6c640b0"
     }
   ],
   "operationDefinitions": [
-    {
-      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
-      "kind": "create",
-      "httpMethod": "POST",
-      "routePath": "api/entities/agents",
-      "isExposed": true,
-      "isReadOnly": false,
-      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/bbbec863-f562-5710-a6d7-81a83a72d9e1"
-    },
-    {
-      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
-      "kind": "list",
-      "httpMethod": "GET",
-      "routePath": "api/entities/agents",
-      "isExposed": true,
-      "isReadOnly": true,
-      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/ecb06bdd-4af1-5d38-bcef-dd09207f0731"
-    },
-    {
-      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
-      "kind": "read",
-      "httpMethod": "GET",
-      "routePath": "api/entities/agents",
-      "isExposed": true,
-      "isReadOnly": true,
-      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/66f465e0-346d-59b6-b784-a70f5a9ec9bc"
-    },
-    {
-      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
-      "kind": "update",
-      "httpMethod": "PUT",
-      "routePath": "api/entities/agents",
-      "isExposed": true,
-      "isReadOnly": false,
-      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/4d241f46-b3b4-5ab1-b788-02a165937af2"
-    },
-    {
-      "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/37691571-3c46-526a-8c97-79bee9c579cd",
-      "kind": "delete",
-      "httpMethod": "DELETE",
-      "routePath": "api/entities/agents",
-      "isExposed": true,
-      "isReadOnly": false,
-      "iri": "https://homestia.katharsis.digital/aletheia/entity-operations/2b3562ef-1138-53ff-b98f-59293bc01f8f"
-    },
     {
       "entityDefinitionIri": "https://homestia.katharsis.digital/aletheia/entities/01ac88f0-7d51-56a9-bd31-5c2f18a2f966",
       "kind": "create",

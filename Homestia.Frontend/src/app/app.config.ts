@@ -1,4 +1,4 @@
-import { AletheiaModelService, TranslocoHttpLoader } from '@rennnyyy/aletheia-core';
+import { AletheiaModelService, TranslocoHttpLoader, agentSimulationInterceptor, provideAgentSimulation } from '@rennnyyy/aletheia-core';
 import { provideSkins } from '@rennnyyy/aletheia-ui';
 
 import {
@@ -9,7 +9,7 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideTransloco } from '@jsverse/transloco';
 import { provideSpartanHlm } from '@spartan-ng/helm/utils';
@@ -25,7 +25,13 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
-    provideHttpClient(withInterceptorsFromDi()),
+    provideHttpClient(withInterceptors([agentSimulationInterceptor]), withInterceptorsFromDi()),
+
+    // Development identity: the header switch declares the agent this browser acts as, and the
+    // interceptor puts that declaration on every request. A production build attaches nothing — a
+    // shipped bundle cannot name itself — and the host holds the matching lock (it refuses to read
+    // the header without AddAgentSimulation()).
+    provideAgentSimulation(),
     provideAnimations(),
     provideSpartanHlm(),
     provideIcons({ lucideChevronDown, lucideChevronUp }),

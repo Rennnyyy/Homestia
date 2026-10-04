@@ -34,6 +34,14 @@ public static class ViewAspects
     /// <summary>IRI of the Tenant shape (used by the inline tenant quick-create).</summary>
     public const string TenantShapeIri = "urn:aletheia:homestia:shapes:tenant";
 
+    /// <summary>
+    /// IRI of the Landlord shape. No form renders it: a page never asks a user who their landlord
+    /// is, it resolves the caller's own landlord and binds it. The shape exists as the CLAIM that
+    /// licenses the landlord's aspects — a page may only carry an aspect IRI one of its own views
+    /// declares — and as the field surface the exploration endpoint describes.
+    /// </summary>
+    public const string LandlordShapeIri = "urn:aletheia:homestia:shapes:landlord";
+
     /// <summary>IRI of the Rental shape for Stage 1 · Application.</summary>
     public const string RentalApplicationShapeIri = "urn:aletheia:homestia:shapes:rental:application";
 
@@ -186,6 +194,36 @@ public static class ViewAspects
                 sh:description "The tenant's phone number (optional)." ;
                 sh:datatype xsd:string ;
                 sh:message "shape.tenant.phone" ;
+            ] .
+        """;
+
+    /// <summary>
+    /// Landlord shape: the agent the landlord is represented by (required — the link the ownership
+    /// gates resolve), and the property type it deals in. The <c>properties</c> collection is the
+    /// read-only inverse of a property's own landlord and is deliberately absent: a form may show
+    /// it, but a write never sets it.
+    /// </summary>
+    public const string LandlordTtl = $$"""
+        @prefix sh:   <http://www.w3.org/ns/shacl#> .
+        @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+        @prefix json: <https://aletheia.katharsis.digital/json/> .
+
+        <urn:aletheia:homestia:shapes:landlord>
+            a sh:NodeShape ;
+            <{{Aspect.OperationAspectPredicate}}> <{{OperationAspects.LandlordOperationIri}}> ;
+            <{{Aspect.QueryAspectPredicate}}> <{{QueryAspects.LandlordQueryAspectIri}}> ;
+            sh:targetClass <urn:aletheia:homestia:Landlord> ;
+            sh:property [
+                sh:path json:agent ; sh:name "Represented By"@en, "Vertreten durch"@de ; sh:order 1 ;
+                sh:description "The agent this landlord is represented by." ;
+                sh:minCount 1 ; sh:nodeKind sh:IRI ;
+                sh:message "shape.landlord.agent" ;
+            ] ;
+            sh:property [
+                sh:path json:landlordType ; sh:name "Landlord Type"@en, "Vermietertyp"@de ; sh:order 2 ;
+                sh:description "The type of properties this landlord primarily manages (optional)." ;
+                sh:nodeKind sh:IRI ;
+                sh:message "shape.landlord.landlordType" ;
             ] .
         """;
 
@@ -449,6 +487,7 @@ public static class ViewAspects
         store.RegisterView(new InlineTtlViewAspect(PropertyShapeIri, PropertyTtl));
         store.RegisterView(new InlineTtlViewAspect(RoomShapeIri, RoomTtl));
         store.RegisterView(new InlineTtlViewAspect(TenantShapeIri, TenantTtl));
+        store.RegisterView(new InlineTtlViewAspect(LandlordShapeIri, LandlordTtl));
         store.RegisterView(new InlineTtlViewAspect(RentalApplicationShapeIri, RentalApplicationTtl));
         store.RegisterView(new InlineTtlViewAspect(RentalContractShapeIri, RentalContractTtl));
         store.RegisterView(new InlineTtlViewAspect(RentalDepositShapeIri, RentalDepositTtl));

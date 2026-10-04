@@ -63,6 +63,11 @@ internal static class AspectFields
         new("Address", MinCount: 1, MinLength: 5, Datatype: XsdString),
         new("PropertyType", MinCount: 1, IsIri: true),
         new("RentalModel", IsIri: true),
+        // The owning side of the ownership link: the landlord a property is judged against.
+        // No form shows it — the page binds the caller's own landlord when it creates the
+        // property — but a write that omits it would leave the property unreachable, so the
+        // field is part of the writable surface even though it is not part of the view.
+        new("Landlord", IsIri: true),
     ];
 
     private static readonly IReadOnlyList<AspectField> RoomFields =
@@ -79,6 +84,19 @@ internal static class AspectFields
         new("DisplayName", MinCount: 1, MinLength: 1, Datatype: XsdString),
         new("Email", Datatype: XsdString),
         new("Phone", Datatype: XsdString),
+    ];
+
+    /// <summary>
+    /// A landlord's writable surface: the agent it represents — the link the ownership gates
+    /// resolve — and the property type it deals in.
+    /// <br/><br/>
+    /// <c>Properties</c> is deliberately absent: it is the read-only inverse of a property's own
+    /// landlord, and a write shape may not name an inverse predicate.
+    /// </summary>
+    private static readonly IReadOnlyList<AspectField> LandlordFields =
+    [
+        new("Agent", MinCount: 1, IsIri: true),
+        new("LandlordType", IsIri: true),
     ];
 
     /// <summary>
@@ -172,6 +190,7 @@ internal static class AspectFields
         entity == typeof(Property) ? PropertyFields
         : entity == typeof(Room) ? RoomFields
         : entity == typeof(Tenant) ? TenantFields
+        : entity == typeof(Landlord) ? LandlordFields
         : throw new ArgumentOutOfRangeException(
             nameof(entity),
             entity,
@@ -179,15 +198,15 @@ internal static class AspectFields
             $"use {nameof(RentalFieldsFor)}.");
 
     /// <summary>
-    /// The type-IRI suffix a shape targeting <paramref name="entity"/> declares. The concrete
-    /// type segment (ADR-0016) is the strict choice; a tenant uses its entity path instead,
-    /// because its inherited <c>DisplayName</c> resolves under the agent's predicate path and the
-    /// concrete segment would reject the shape's own field.
+    /// The type-IRI suffix a shape targeting <paramref name="entity"/> declares: the concrete type
+    /// segment (ADR-0016) — the value the stored records carry as <c>rdf:type</c>, and therefore the
+    /// only target that matches the entities the shape judges.
+    /// <br/><br/>
+    /// A tenant is no exception: it owns its own type and its own predicate space, so the concrete
+    /// segment describes it exactly.
     /// </summary>
     public static string TargetSuffixOf(Type entity) =>
-        entity == typeof(Tenant)
-            ? EntityPathResolver.ResolveEntityPath(entity)
-            : EntityPathResolver.ResolveTypeSegment(entity);
+        EntityPathResolver.ResolveTypeSegment(entity);
 
     /// <summary>
     /// One <c>sh:property</c> entry for a predicate IRI, carrying the field's rule. A field whose

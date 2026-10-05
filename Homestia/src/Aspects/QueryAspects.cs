@@ -159,12 +159,13 @@ public static class QueryAspects
     /// landlord lists, and the rentals list — which also derives the lifecycle <c>state</c> the
     /// graph does not store, so its shape names that derived field as well.
     /// <br/><br/>
-    /// The property, room and landlord surfaces also carry a <c>FilterWhere</c>: the ownership rule,
+    /// The property, room, landlord and rental surfaces also carry a <c>FilterWhere</c>: the ownership rule,
     /// stated as the ALLOW clause the access gate expects. Those filters apply to the point read and
     /// to the list scan alike, so a caller cannot reach another landlord's record by asking for it
     /// by IRI any more than by listing. The landlord surface is the STRICT form of the same clause
     /// (<c>RequireOwnFilter</c>): its answer is the caller's own identity, so a caller without one is
-    /// answered with nothing rather than with somebody else's record.
+    /// answered with nothing rather than with somebody else's record. A rental is owned through the
+    /// property it is for, so an agent reads exactly the rentals of its own properties.
     /// </summary>
     public static void RegisterQueryAspects(IAspectStore store)
     {
@@ -172,7 +173,7 @@ public static class QueryAspects
 
         store.RegisterQuery(new InlineTtlQueryAspect(
             RentalStateQueryAspectIri,
-            filterWhere: null,
+            filterWhere: OwnershipRules.AllowFilter(OwnershipRules.RentalOwnedByAgent),
             resultShapeTtl: ResultShapeFor(
                 RentalStateQueryAspectIri,
                 typeof(Rental),

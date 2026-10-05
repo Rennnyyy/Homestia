@@ -340,6 +340,7 @@ public sealed class OperationAspectsTests
         var propertyPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Property));
         var roomPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Room));
         var landlordPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Landlord));
+        var rentalPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Rental));
 
         string GateOf(string iri) => store.ResolveOperation(iri).ContextWhere
             ?? throw new InvalidOperationException($"'{iri}' carries no ownership gate.");
@@ -359,7 +360,20 @@ public sealed class OperationAspectsTests
         var landlord = GateOf(OperationAspects.LandlordOperationIri);
         landlord.ShouldContain($"?entityIri <{landlordPredicates["Agent"]}> ?agentIri");
 
-        foreach (var gate in new[] { property, room, landlord })
+        var gates = new List<string> { property, room, landlord };
+
+        // A rental reaches a landlord the same way a room does, through the property it is for.
+        // Every stage selects its own aspect, so every stage gate has to carry the rule.
+        foreach (var stage in OperationAspects.RentalStages)
+        {
+            var rental = GateOf(OperationAspects.RentalOperationIriFor(stage));
+            rental.ShouldContain($"?entityIri <{rentalPredicates["Property"]}> ?property");
+            rental.ShouldContain($"?property <{propertyPredicates["Landlord"]}> ?landlord");
+            rental.ShouldContain($"<{landlordPredicates["Agent"]}> ?agentIri");
+            gates.Add(rental);
+        }
+
+        foreach (var gate in gates)
         {
             gate.ShouldContain("FILTER NOT EXISTS");
             gate.ShouldContain("FILTER(bound(?agentIri))");
@@ -368,17 +382,19 @@ public sealed class OperationAspectsTests
     }
 
     /// <summary>
-    /// The rental stages keep the aspects they had: a rental is judged by its stage's fields, not
-    /// by ownership, so the stage gates must stay free of a context clause.
+    /// A rental is judged by its stage's fields AND by ownership: every stage gate carries the
+    /// denial clause, so a landlord cannot advance a rental for a property it does not own. The
+    /// tenant stays ungated — a tenant is not owned through a landlord.
     /// </summary>
     [Fact]
-    public void The_rental_stage_gates_carry_no_ownership_rule()
+    public void The_rental_stage_gates_carry_the_ownership_rule()
     {
         var store = CreateStore();
         OperationAspects.RegisterOperationAspects(store);
 
         foreach (var stage in OperationAspects.RentalStages)
-            store.ResolveOperation(OperationAspects.RentalOperationIriFor(stage)).ContextWhere.ShouldBeNull();
+            store.ResolveOperation(OperationAspects.RentalOperationIriFor(stage)).ContextWhere
+                .ShouldNotBeNull();
 
         store.ResolveOperation(OperationAspects.TenantOperationIri).ContextWhere.ShouldBeNull();
     }

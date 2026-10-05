@@ -7,9 +7,10 @@ namespace Homestia.Aspects;
 /// The ownership rules the read gate and the write gate share.
 /// <br/><br/>
 /// A property belongs to the landlord it carries; a room belongs to the landlord of the property
-/// it is part of; a landlord belongs to the agent the platform infuses as <c>?agentIri</c>. Both
-/// gates are written from that one sentence, because a property a caller may read but not change —
-/// or the reverse — is not a rule anyone could state.
+/// it is part of; a rental belongs to the landlord of the property it is for; a landlord belongs
+/// to the agent the platform infuses as <c>?agentIri</c>. Both gates are written from that one
+/// sentence, because a property a caller may read but not change — or the reverse — is not a rule
+/// anyone could state.
 /// <list type="bullet">
 /// <item><description><strong>The read gate</strong> is an ALLOW clause: a query aspect's
 /// <c>FilterWhere</c> admits a row when the acting agent owns the record. The engine wraps it in
@@ -44,6 +45,9 @@ internal static class OwnershipRules
     /// <summary>The predicate a room names its property with — the first hop of the room's rule.</summary>
     public static string RoomParent { get; } = PredicateOf(typeof(Room), nameof(Room.IsPartOf));
 
+    /// <summary>The predicate a rental names its property with — the first hop of the rental's rule.</summary>
+    public static string RentalProperty { get; } = PredicateOf(typeof(Rental), nameof(Rental.Property));
+
     /// <summary>
     /// A property is owned by <c>?agentIri</c> when the landlord it carries names that agent.
     /// </summary>
@@ -56,6 +60,16 @@ internal static class OwnershipRules
     /// </summary>
     public static string RoomOwnedByAgent { get; } =
         $"?entityIri <{RoomParent}> ?property . ?property <{PropertyLandlord}> ?landlord . " +
+        $"?landlord <{LandlordAgent}> ?agentIri .";
+
+    /// <summary>
+    /// A rental is owned by <c>?agentIri</c> when the property it is for belongs to that agent's
+    /// landlord. A rental reaches a landlord the same way a room does — through the property it
+    /// references — so an agent's rentals are exactly the ones its properties carry, and no
+    /// rental is reachable through the tenant it names.
+    /// </summary>
+    public static string RentalOwnedByAgent { get; } =
+        $"?entityIri <{RentalProperty}> ?property . ?property <{PropertyLandlord}> ?landlord . " +
         $"?landlord <{LandlordAgent}> ?agentIri .";
 
     /// <summary>

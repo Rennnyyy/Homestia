@@ -116,6 +116,22 @@ describe('the aspect contract', () => {
     });
   }
 
+  it('rentals: the Application stage gates its property and room pickers', () => {
+    // The gate lives on the server; the SELECTOR has to ask for it, or the dropdown lists every
+    // landlord's records. The Application stage carries an entity → query aspect map for its two
+    // ref pickers; a field left out of the map reads the ungated collection.
+    const src = source('features/rentals/rentals.ts');
+    expect(src, 'the Application pickers must carry their query aspects').toContain(
+      '[queryAspects]="applicationQueryAspects"',
+    );
+    expect(src, 'the property picker reads the property query aspect').toContain(
+      'Property: PROPERTY_QUERY_ASPECT_IRI',
+    );
+    expect(src, 'the room picker reads the room query aspect').toContain(
+      'Unit: ROOM_QUERY_ASPECT_IRI',
+    );
+  });
+
   it('names every aspect the pages select', () => {
     // A selection must resolve to an IRI the Program registers. A typo no longer degrades to
     // the no-op — the backend refuses an unresolvable aspect IRI (400 UNKNOWN_OPERATION_ASPECT

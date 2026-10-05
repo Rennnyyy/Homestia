@@ -255,6 +255,7 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                         [violations]="stageViolationsFor(stage.id)"
                         [createActions]="{ Tenant: { labelKey: 'nav.rentals.addTenant' } }"
                         [fieldDependencies]="{ Unit: { dependsOn: 'property', via: 'isPartOf' } }"
+                        [queryAspects]="applicationQueryAspects"
                         [fieldFooters]="{ Tenant: tenantCreateForm }"
                         [fieldActions]="{ Property: propertyManageLink, Unit: unitManageLink }"
                         [reloadActions]="{ Tenant: tenantReloadKey() }"
@@ -609,6 +610,17 @@ export class Rentals implements OnInit {
 
   // ── List state ──────────────────────────────────────────────────────────
   readonly items = signal<Record<string, unknown>[]>([]);
+
+  /**
+   * The query aspects the Application stage's pickers read their options under. A rental belongs
+   * to the landlord of the property it is for, so a landlord may only ever pick from its OWN
+   * properties and rooms: the field → aspect map makes the dropdowns ask the gated collections
+   * instead of every record in the store. Keys are the fields' CLR property names.
+   */
+  readonly applicationQueryAspects: Record<string, string> = {
+    Property: PROPERTY_QUERY_ASPECT_IRI,
+    Unit: ROOM_QUERY_ASPECT_IRI,
+  };
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly mode = signal<PageMode>('list');

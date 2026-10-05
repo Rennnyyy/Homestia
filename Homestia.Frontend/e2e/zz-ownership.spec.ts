@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 /**
  * Ownership, end to end — the property a page creates belongs to the landlord that created it, and
@@ -27,6 +27,9 @@ const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:5080';
 const LANDLORD_QUERY_ASPECT = 'urn:aletheia:homestia:query:landlord';
 const PROPERTY_QUERY_ASPECT = 'urn:aletheia:homestia:query:property';
 const PROPERTY_OPERATION_ASPECT = 'urn:aletheia:homestia:operations:property';
+const RENTAL_QUERY_ASPECT = 'urn:aletheia:homestia:query:rental-state';
+const RENTAL_APPLICATION_OPERATION_ASPECT = 'urn:aletheia:homestia:operations:rental:application';
+const TENANT_OPERATION_ASPECT = 'urn:aletheia:homestia:operations:tenant';
 
 /** Two identities that no earlier run can own. */
 const AGENT_A = 'e2e-owner-a';
@@ -222,5 +225,136 @@ test.describe('an anonymous caller', () => {
 
     expect(property, 'a store with no identities in it stays usable').toBeTruthy();
     expect(property!['landlord'] ?? null).toBeNull();
+  });
+});
+
+/** The IRI of a property the caller owns, read back through the gated list. */
+async function ownedPropertyIri(request: APIRequestContext, name: string): Promise<string> {
+  const listed = await request.post('/api/entities/properties/query', {
+    headers: queryAspect(PROPERTY_QUERY_ASPECT),
+    data: { count: 'none' },
+  });
+  const row = ((await listed.json()).items as Record<string, unknown>[]).find((r) => r['name'] === name);
+  expect(row, `the property '${name}' was persisted`).toBeTruthy();
+  return row!['iri'] as string;
+}
+
+/** The stage catalogue IRI for a key — enum records are definition-backed, never stored. */
+async function rentalStageIri(request: APIRequestContext, key: string): Promise<string> {
+  const listed = await request.post('/api/entities/rental-stages/query', { data: { count: 'none' } });
+  const row = ((await listed.json()).items as Record<string, unknown>[]).find((r) => r['key'] === key);
+  expect(row, `the '${key}' rental stage is registered`).toBeTruthy();
+  return row!['iri'] as string;
+}
+
+test.describe('a rental belongs to the landlord of the property it is for', () => {
+  test.use({ extraHTTPHeaders: asAgent(AGENT_A) });
+
+  test('the record is readable and writable by its owner, and refused to another agent', async ({
+    page,
+    request,
+    playwright,
+  }) => {
+    // A rental is owned through the property it names, so the property has to belong to the caller.
+    const propertyName = unique('Rental Property');
+    await createProperty(page, propertyName);
+    const property = await ownedPropertyIri(request, propertyName);
+
+    // A tenant is a party, not an owner; the agreement only has to name one.
+    const tenant = await request.post('/api/entities/tenants', {
+      headers: operationAspect(TENANT_OPERATION_ASPECT),
+      data: { displayName: unique('Rental Tenant') },
+    });
+    expect(tenant.ok()).toBeTruthy();
+    const tenantIri = (await tenant.json())['iri'] as string;
+
+    const created = await request.post('/api/entities/rentals', {
+      headers: operationAspect(RENTAL_APPLICATION_OPERATION_ASPECT),
+      data: {
+        property,
+        tenant: tenantIri,
+        viewingDate: '2026-05-01',
+        currentStage: await rentalStageIri(request, 'application'),
+      },
+    });
+    expect(created.ok(), await created.text()).toBeTruthy();
+    const rentalIri = (await created.json())['iri'] as string;
+
+    // ── The binding: the rental names the owner's property ──────────────────
+    const read = await request.get(`/api/entities/rentals?iri=${encode(rentalIri)}`, {
+      headers: queryAspect(RENTAL_QUERY_ASPECT),
+    });
+    expect(read.ok()).toBeTruthy();
+    expect(
+      (await read.json())['property'],
+      'a rental that names no owned property is reachable by nobody',
+    ).toBe(property);
+
+    // ── The gate: another agent reaches neither the record nor a way to change it ──
+    const stranger = await playwright.request.newContext({
+      baseURL: BASE_URL,
+      extraHTTPHeaders: asAgent(AGENT_B),
+    });
+    try {
+      const strangerRow = await stranger.get(`/api/entities/rentals?iri=${encode(rentalIri)}`, {
+        headers: queryAspect(RENTAL_QUERY_ASPECT),
+      });
+      expect(strangerRow.status(), 'a rental is not readable by a landlord it does not name').toBe(422);
+
+      const strangerList = await stranger.post('/api/entities/rentals/query', {
+        headers: queryAspect(RENTAL_QUERY_ASPECT),
+        data: { count: 'none' },
+      });
+      const strangerIris = ((await strangerList.json()).items as Record<string, unknown>[]).map(
+        (row) => row['iri'],
+      );
+      expect(strangerIris, 'the list is gated by the same rule as the point read').not.toContain(rentalIri);
+
+      const strangerWrite = await stranger.put(`/api/entities/rentals?iri=${encode(rentalIri)}`, {
+        headers: operationAspect(RENTAL_APPLICATION_OPERATION_ASPECT),
+        data: { viewingDate: '2026-06-01' },
+      });
+      expect(strangerWrite.status(), 'a rental is not writable by a landlord it does not name').toBe(422);
+    } finally {
+      await stranger.dispose();
+    }
+
+    // The refused write changed nothing — the gate rejected it before any stage applied.
+    const after = await request.get(`/api/entities/rentals?iri=${encode(rentalIri)}`, {
+      headers: queryAspect(RENTAL_QUERY_ASPECT),
+    });
+    expect((await after.json())['viewingDate']).toBe('2026-05-01');
+  });
+});
+
+test.describe('the rental Application stage offers only the caller its own properties', () => {
+  test.use({ extraHTTPHeaders: asAgent(AGENT_A) });
+
+  test("a stranger's property is never offered in the property picker", async ({ page, browser }) => {
+    const ownedName = unique('Offered Property');
+    await createProperty(page, ownedName);
+
+    // A property owned by ANOTHER landlord, created by that landlord in a browser of its own.
+    const strangerName = unique('Unlisted Property');
+    const strangerContext = await browser.newContext({
+      baseURL: BASE_URL,
+      extraHTTPHeaders: asAgent(AGENT_B),
+    });
+    try {
+      await createProperty(await strangerContext.newPage(), strangerName);
+    } finally {
+      await strangerContext.close();
+    }
+
+    await page.goto('/rentals');
+    await settle(page, 'app-rentals');
+    await page.getByRole('button', { name: 'Add Rental' }).first().click();
+
+    // The option load carries the property query aspect, so the dropdown asks the GATED
+    // collection: the caller's own property is offered, the stranger's never is.
+    const select = page.locator('[data-field="property"] select');
+    await expect(select).toBeVisible();
+    await expect(select.locator('option', { hasText: ownedName })).toHaveCount(1);
+    await expect(select.locator('option', { hasText: strangerName })).toHaveCount(0);
   });
 });

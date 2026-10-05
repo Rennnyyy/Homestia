@@ -308,7 +308,7 @@ public static class OperationAspects
     /// selects the gate it means rather than a gate that has to admit everything either
     /// of them might send.
     /// <br/><br/>
-    /// The property, room and landlord aspects also carry a <c>ContextWhere</c>: the ownership
+    /// The property, room, landlord and rental aspects also carry a <c>ContextWhere</c>: the ownership
     /// rule evaluated against the store, which is what makes "only the connected landlord may
     /// store this" enforceable rather than a convention the page happens to follow.
     /// </summary>
@@ -349,7 +349,11 @@ public static class OperationAspects
 
         // One aspect per lifecycle stage: the gate a stage's save selects carries that
         // stage's fields and that stage's presence rules, so a stage cannot be persisted
-        // with its own required fields empty.
+        // with its own required fields empty. Every stage also carries the ownership DENIAL
+        // clause: a rental is reachable only through the property it is for, so the landlord
+        // of that property — and nobody else — may advance its stages. A create is exempt (see
+        // OwnershipRules): the record does not exist yet, it is made reachable by the caller
+        // whose gated property picker the page binds.
         var rentalSuffix = EntityPathResolver.ResolveTypeSegment(typeof(Rental));
         foreach (var stage in AspectFields.RentalStages)
         {
@@ -357,7 +361,9 @@ public static class OperationAspects
             store.RegisterOperation(new InlineTtlOperationAspect(
                 iri,
                 ShapeFor(iri, (typeof(Rental), RentalWritableFieldsFor(stage), rentalSuffix)),
-                contextWhere: null));
+                contextWhere: OwnershipRules.DenyViolation(
+                    OwnershipRules.RentalOwnedByAgent,
+                    "Only the landlord of the property this rental is for may change it.")));
         }
     }
 }

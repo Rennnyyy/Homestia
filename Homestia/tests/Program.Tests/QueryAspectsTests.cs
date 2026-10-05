@@ -95,6 +95,7 @@ public sealed class QueryAspectsTests
         var propertyPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Property));
         var roomPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Room));
         var landlordPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Landlord));
+        var rentalPredicates = EntityQueryPredicates.ResolvePredicateIris(typeof(Rental));
 
         string FilterOf(string iri) => store.TryResolveQuery(iri)?.FilterWhere
             ?? throw new InvalidOperationException($"'{iri}' carries no ownership filter.");
@@ -109,6 +110,12 @@ public sealed class QueryAspectsTests
         room.ShouldContain($"?entityIri <{roomPredicates["IsPartOf"]}> ?property");
         room.ShouldContain($"?property <{propertyPredicates["Landlord"]}> ?landlord");
 
+        // A rental: same rule again, reached through the property it is for.
+        var rental = FilterOf(QueryAspects.RentalStateQueryAspectIri);
+        rental.ShouldContain($"?entityIri <{rentalPredicates["Property"]}> ?property");
+        rental.ShouldContain($"?property <{propertyPredicates["Landlord"]}> ?landlord");
+        rental.ShouldContain($"<{landlordPredicates["Agent"]}> ?agentIri");
+
         // A landlord: the record that names the acting agent — and only for a caller that IS an agent.
         // The page reads this answer as "this is mine", so an anonymous caller must be answered with
         // nothing rather than with the first landlord in the store.
@@ -116,16 +123,15 @@ public sealed class QueryAspectsTests
         landlordFilter.ShouldContain($"?entityIri <{landlordPredicates["Agent"]}> ?agentIri");
         landlordFilter.ShouldContain("bound(?agentIri) &&");
 
-        foreach (var filter in new[] { property, room })
+        foreach (var filter in new[] { property, room, rental })
         {
             filter.ShouldContain("!bound(?agentIri)");
             filter.ShouldNotContain("FILTER NOT EXISTS");
         }
 
-        // The tenant and rental reads stay ungated — ownership never scoped them, and a filter
-        // bolted on here would quietly change what those pages can see.
+        // The tenant read stays ungated — ownership never scoped it, and a filter bolted on here
+        // would quietly change what that page can see.
         store.TryResolveQuery(QueryAspects.TenantQueryAspectIri)!.FilterWhere.ShouldBeNull();
-        store.TryResolveQuery(QueryAspects.RentalStateQueryAspectIri)!.FilterWhere.ShouldBeNull();
     }
 
     /// <summary>Every read surface and the entity it returns.</summary>

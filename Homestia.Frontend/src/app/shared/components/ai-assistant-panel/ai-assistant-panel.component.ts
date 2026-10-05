@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, input, output, signal, viewChild, type OnDestroy } from '@angular/core';
+import { Component, ElementRef, computed, inject, input, output, signal, viewChild, type OnDestroy } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
@@ -110,8 +110,8 @@ export interface AiExistingProperty {
         <!-- Edit target picker (AI detected an edit but no property matched) -->
         @if (pickProperty()) {
           <div class="ai-pick">
-            <p class="ai-pick-title">{{ 'ai.pickPropertyTitle' | transloco }}</p>
-            <p class="ai-pick-hint">{{ 'ai.pickPropertyHint' | transloco }}</p>
+            <p class="ai-pick-title">{{ pickTitleKey() | transloco }}</p>
+            <p class="ai-pick-hint">{{ pickHintKey() | transloco }}</p>
             <div class="ai-pick-list">
               @for (p of existingProperties(); track p.iri) {
                 <button type="button" class="ai-pick-option" (click)="startEdit(p)">
@@ -181,7 +181,7 @@ export interface AiExistingProperty {
                   #composerInput
                   [(ngModel)]="prompt"
                   class="ai-composer-input"
-                  [placeholder]="'ai.placeholder' | transloco"
+                  [placeholder]="resolvedPlaceholderKey() | transloco"
                   (keydown.enter)="onSubmitKey($event)"
                   (input)="autosize()"
                 ></textarea>
@@ -666,6 +666,38 @@ export class AiAssistantPanelComponent implements OnDestroy {
   /** When true (default) the panel shows its own heading. */
   readonly showHeading = input(true);
 
+  /**
+   * The domain this panel fills. The chat surface, the scenario keys and the
+   * review flow are the same for both; only the words (placeholder, summary,
+   * edit-picker labels) and the intent payload's list name differ.
+   */
+  readonly domain = input<'property' | 'rental'>('property');
+
+  /** i18n key for a domain-scoped string: `ai.<base>` / `ai.rental.<base>`. */
+  aiKey(base: string): string {
+    return this.domain() === 'rental' ? `ai.rental.${base}` : `ai.${base}`;
+  }
+
+  /**
+   * The composer's invitation. A host that knows more than the domain — the rentals page knows
+   * WHICH stage is open — passes its own key; the domain's wording is the fallback.
+   */
+  readonly placeholderKey = input<string>();
+
+  /** The key actually rendered. */
+  readonly resolvedPlaceholderKey = computed(() => this.placeholderKey() ?? this.aiKey('placeholder'));
+
+  /** The edit-picker title/hint keys — the property ones name a property. */
+  readonly pickTitleKey = computed(() =>
+    this.domain() === 'rental' ? 'ai.rental.pickTitle' : 'ai.pickPropertyTitle');
+  readonly pickHintKey = computed(() =>
+    this.domain() === 'rental' ? 'ai.rental.pickHint' : 'ai.pickPropertyHint');
+
+  /** The list name the intent scenario reads for this domain. */
+  private recordField(): string {
+    return this.domain() === 'rental' ? 'rentals' : 'properties';
+  }
+
   /** Emits the validated form proposal when the flow completes. */
   readonly proposal = output<Record<string, unknown>>();
 
@@ -884,7 +916,7 @@ export class AiAssistantPanelComponent implements OnDestroy {
     } catch {
       this.finishRun();
       this.failed.set(true);
-      this.summary.set(this.translate.translate('ai.summaryError'));
+      this.summary.set(this.translate.translate(this.aiKey('summaryError')));
     }
   }
 
@@ -897,25 +929,33 @@ export class AiAssistantPanelComponent implements OnDestroy {
     if (!key) return null;
 
     this.status.set('ai.detecting');
-    let out: { intent?: string; propertyIri?: string } | undefined;
+    let out: { intent?: string; propertyIri?: string; rentalIri?: string } | undefined;
     try {
-      // One-shot: intent classification needs only the terminal output.
+      // One-shot: intent classification needs only the terminal output. The
+      // list the scenario reads is named for the domain — "properties" or
+      // "rentals" — and carries a label in "name"/"address" either way.
+      const list = this.existingProperties().map((p) => ({ iri: p.iri, name: p.name, address: p.address }));
       const { finalOutput } = await firstValueFrom(
         this.ai.flow(
           key,
           {
             userPrompt: prompt,
-            properties: this.existingProperties().map((p) => ({ iri: p.iri, name: p.name, address: p.address })),
+            [this.recordField()]: list,
           },
           parts,
         ),
       );
-      out = finalOutput as { intent?: string; propertyIri?: string } | undefined;
+      out = finalOutput as { intent?: string; propertyIri?: string; rentalIri?: string } | undefined;
     } catch {
       return null;
     }
     if (out && typeof out === 'object' && (out.intent === 'create' || out.intent === 'edit')) {
-      return { intent: out.intent, propertyIri: typeof out.propertyIri === 'string' ? out.propertyIri : '' };
+      const matched = typeof out.propertyIri === 'string'
+        ? out.propertyIri
+        : typeof out.rentalIri === 'string'
+          ? out.rentalIri
+          : '';
+      return { intent: out.intent, propertyIri: matched };
     }
     return null;
   }
@@ -948,7 +988,7 @@ export class AiAssistantPanelComponent implements OnDestroy {
       // completed flow — all the same to the user.
       this.finishRun();
       this.failed.set(true);
-      this.summary.set(this.translate.translate('ai.summaryError'));
+      this.summary.set(this.translate.translate(this.aiKey('summaryError')));
       return;
     }
 
@@ -1010,6 +1050,17 @@ export class AiAssistantPanelComponent implements OnDestroy {
 
   /** A short, plain-language recap of what the AI prepared — derived from the proposal. */
   private buildSuccessSummary(data: Record<string, unknown>): string {
+    // Nothing to fill: the stage has no field a model can supply (a document upload), or the request
+    // carried nothing the contract accepts. Reporting "done" here would be a lie about a draft that
+    // did not change.
+    if (Object.keys(data).length === 0) {
+      return this.translate.translate(this.aiKey('nothingToFill'));
+    }
+    // A rental proposal names its parties by IRI, which the panel cannot resolve
+    // to a word — so the recap stays generic rather than printing an IRI.
+    if (this.domain() === 'rental') {
+      return this.translate.translate('ai.rental.summaryDone');
+    }
     const name = typeof data['name'] === 'string' ? data['name'].trim() : '';
     const address = typeof data['address'] === 'string' ? data['address'].trim() : '';
     const roomCount = Array.isArray(data['rooms']) ? data['rooms'].length : 0;

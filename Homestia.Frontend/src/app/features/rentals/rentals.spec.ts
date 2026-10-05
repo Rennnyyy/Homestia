@@ -684,13 +684,16 @@ describe('Rentals page', () => {
     it('toggles the quick-create card for the tenant field only', () => {
       mount();
 
-      page.onCreateRequested('tenant');
+      // The entity form reports the field by its `propertyName` — the CLR name — so the tenant
+      // request arrives as `Tenant`, not the lowercase predicate. The handler must recognise it;
+      // matching only the predicate is what made the create button do nothing.
+      page.onCreateRequested('Tenant');
       expect(page.showTenantForm()).toBe(true);
 
-      page.onCreateRequested('property');
+      page.onCreateRequested('Property');
       expect(page.showTenantForm()).toBe(true);
 
-      page.onCreateRequested('tenant');
+      page.onCreateRequested('Tenant');
       expect(page.showTenantForm()).toBe(false);
     });
 

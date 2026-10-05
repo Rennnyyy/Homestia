@@ -23,14 +23,44 @@ public sealed class AiScenariosTests
     {
         var registry = RegisterAll();
 
-        registry.Scenarios.Keys.ShouldBe(
-            [
-                AiScenarios.CreateText,
-                AiScenarios.EditText,
-                AiScenarios.CompleteText,
-                AiScenarios.IntentText,
-            ],
-            ignoreOrder: true);
+        var expected = new List<string>
+        {
+            AiScenarios.CreateText,
+            AiScenarios.EditText,
+            AiScenarios.CompleteText,
+            AiScenarios.IntentText,
+        };
+        expected.AddRange(ViewAspects.RentalStages.Select(AiScenarios.RentalStageText));
+
+        registry.Scenarios.Keys.ShouldBe(expected, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void The_contract_stage_has_a_scenario_whose_view_declares_no_fields()
+    {
+        var registry = RegisterAll();
+
+        // The assistant is offered on EVERY stage (it is also a place to ask), so the key must exist.
+        // Its AI view declares no fields, though: the stage's only field is an uploaded document, and
+        // a model cannot supply a blob — a field it could see would be an invitation to invent an IRI.
+        var scenario = registry.Scenarios[AiScenarios.RentalStageText("contract")];
+        scenario.Steps.ShouldHaveSingleItem();
+        scenario.Steps[0].ViewIri.ShouldBe(
+            ViewAspects.AiShapeIriFor(ViewAspects.RentalContractShapeIri));
+    }
+
+    [Fact]
+    public void Each_rental_stage_scenario_is_judged_by_that_stages_ai_view()
+    {
+        var registry = RegisterAll();
+
+        foreach (var stage in ViewAspects.RentalStages)
+        {
+            var scenario = registry.Scenarios[AiScenarios.RentalStageText(stage)];
+            scenario.Steps.ShouldHaveSingleItem();
+            scenario.Steps[0].ViewIri.ShouldBe(
+                ViewAspects.AiShapeIriFor(ViewAspects.RentalStageShapeIri(stage)));
+        }
     }
 
     [Fact]

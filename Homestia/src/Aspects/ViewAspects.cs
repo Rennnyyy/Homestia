@@ -67,6 +67,51 @@ public static class ViewAspects
     public const string RentalTerminatedShapeIri = "urn:aletheia:homestia:shapes:rental:terminated";
 
     /// <summary>
+    /// The rental lifecycle stages, in workflow order — the keys the client's stepper uses.
+    /// A stage's form shape IRI is <c>urn:aletheia:homestia:shapes:rental:{stage}</c>.
+    /// </summary>
+    public static readonly string[] RentalStages =
+    [
+        "application", "contract", "deposit", "handover", "tenancy", "noticed", "handback", "terminated",
+    ];
+
+    /// <summary>The strict FORM view IRI of a rental stage, by its key.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The stage key is unknown.</exception>
+    public static string RentalStageShapeIri(string stage) => stage switch
+    {
+        "application" => RentalApplicationShapeIri,
+        "contract" => RentalContractShapeIri,
+        "deposit" => RentalDepositShapeIri,
+        "handover" => RentalHandoverShapeIri,
+        "tenancy" => RentalTenancyShapeIri,
+        "noticed" => RentalNoticedShapeIri,
+        "handback" => RentalHandbackShapeIri,
+        "terminated" => RentalTerminatedShapeIri,
+        _ => throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown rental stage."),
+    };
+
+    /// <summary>The strict form view TTL of a rental stage, by its key.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The stage key is unknown.</exception>
+    public static string RentalStageTtl(string stage) => stage switch
+    {
+        "application" => RentalApplicationTtl,
+        "contract" => RentalContractTtl,
+        "deposit" => RentalDepositTtl,
+        "handover" => RentalHandoverTtl,
+        "tenancy" => RentalTenancyTtl,
+        "noticed" => RentalNoticedTtl,
+        "handback" => RentalHandbackTtl,
+        "terminated" => RentalTerminatedTtl,
+        _ => throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown rental stage."),
+    };
+
+    /// <summary>
+    /// The AI companion view of a shape: <c>{shape}:ai</c>. One per rental stage, derived from the
+    /// stage's form shape by <see cref="LenientAiTtl"/>.
+    /// </summary>
+    public static string AiShapeIriFor(string shapeIri) => shapeIri + ":ai";
+
+    /// <summary>
     /// Property shape: <c>name</c> and <c>address</c> required, <c>propertyType</c>
     /// must be an IRI reference, <c>rentalModel</c> optional, and <c>rooms</c>
     /// recursively validated against the Room shape — one graph, one pass.
@@ -488,13 +533,73 @@ public static class ViewAspects
         store.RegisterView(new InlineTtlViewAspect(RoomShapeIri, RoomTtl));
         store.RegisterView(new InlineTtlViewAspect(TenantShapeIri, TenantTtl));
         store.RegisterView(new InlineTtlViewAspect(LandlordShapeIri, LandlordTtl));
-        store.RegisterView(new InlineTtlViewAspect(RentalApplicationShapeIri, RentalApplicationTtl));
-        store.RegisterView(new InlineTtlViewAspect(RentalContractShapeIri, RentalContractTtl));
-        store.RegisterView(new InlineTtlViewAspect(RentalDepositShapeIri, RentalDepositTtl));
-        store.RegisterView(new InlineTtlViewAspect(RentalHandoverShapeIri, RentalHandoverTtl));
-        store.RegisterView(new InlineTtlViewAspect(RentalTenancyShapeIri, RentalTenancyTtl));
-        store.RegisterView(new InlineTtlViewAspect(RentalNoticedShapeIri, RentalNoticedTtl));
-        store.RegisterView(new InlineTtlViewAspect(RentalHandbackShapeIri, RentalHandbackTtl));
-        store.RegisterView(new InlineTtlViewAspect(RentalTerminatedShapeIri, RentalTerminatedTtl));
+
+        // Every rental stage is registered as the form's shape (presence rules and all) AND as the
+        // AI's companion view derived from it. The two carry DISTINCT target classes, because the
+        // view engine validates a value against every shape that shares its class — one class for
+        // both would make the strict shape judge a deliberately partial proposal.
+        foreach (var stage in RentalStages)
+        {
+            var strictIri = RentalStageShapeIri(stage);
+            store.RegisterView(new InlineTtlViewAspect(strictIri, RentalStageTtl(stage)));
+            store.RegisterView(new InlineTtlViewAspect(AiShapeIriFor(strictIri), LenientAiTtl(stage)));
+        }
+    }
+
+    /// <summary>
+    /// The lines a derived AI view does NOT inherit from the stage's form view: the presence rules
+    /// and the write/read claims. What remains is the field surface — paths, types, IRI
+    /// requirements, descriptions and messages — which is what the model is shown and judged on.
+    /// </summary>
+    private static readonly string[] LinesDroppedFromAiViews =
+    [
+        "sh:minCount",
+        Aspect.OperationAspectPredicate,
+        Aspect.QueryAspectPredicate,
+    ];
+
+    /// <summary>
+    /// Derives a rental stage's AI view from its form view: the SAME fields, with every presence
+    /// rule lifted.
+    /// <br/><br/>
+    /// The difference is the difference between saving and asking. <c>sh:minCount</c> is right for a
+    /// save — a stage is not done until its fields are there — and wrong for an assistant: the model
+    /// may fill only what the sentence carried ("Maria applies for the top-floor flat" names no
+    /// viewing date), and a step judged by a presence rule would retry to exhaustion instead of
+    /// returning the partial draft the reader can complete. What stays is what the model must not
+    /// invent: which fields the stage HAS (the contract is shown to it), and the shape of each value
+    /// (an IRI reference stays an IRI, a date stays a string). The page then measures the completed
+    /// draft against the STRICT shape, which is where presence is enforced.
+    /// </summary>
+    private static string LenientAiTtl(string stage)
+    {
+        var strictIri = RentalStageShapeIri(stage);
+        var aiIri = AiShapeIriFor(strictIri);
+
+        // The Contract stage is the one exception, and deliberately so: its only field is an uploaded
+        // document, and a model cannot supply a blob. Leaving it in the contract would invite the
+        // model to invent a document IRI, which the page would then persist as a dangling reference.
+        // Its AI view therefore carries NO fields. The stage still offers the assistant — the reader
+        // may well have a question — it simply has nothing to fill there.
+        if (stage == "contract")
+        {
+            return $$"""
+                @prefix sh: <http://www.w3.org/ns/shacl#> .
+
+                <{{aiIri}}>
+                    a sh:NodeShape ;
+                    sh:targetClass <urn:aletheia:homestia:Rental:contract:ai> .
+                """;
+        }
+
+        var lines = RentalStageTtl(stage)
+            .Replace($"<{strictIri}>", $"<{AiShapeIriFor(strictIri)}>", StringComparison.Ordinal)
+            .Replace(
+                $"<urn:aletheia:homestia:Rental:{stage}>",
+                $"<urn:aletheia:homestia:Rental:{stage}:ai>",
+                StringComparison.Ordinal)
+            .Split('\n')
+            .Where(line => !LinesDroppedFromAiViews.Any(token => line.Contains(token, StringComparison.Ordinal)));
+        return string.Join('\n', lines);
     }
 }

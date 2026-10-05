@@ -1,3 +1,4 @@
+using Aletheia.Sdk.Aspects.Abstractions;
 using Aletheia.Sdk.Aspects.Abstractions.Contracts;
 using Aletheia.Sdk.Aspects.DependencyInjection;
 using Homestia.Aspects;
@@ -33,16 +34,55 @@ public sealed class ViewAspectsTests
                 ViewAspects.RoomShapeIri,
                 ViewAspects.TenantShapeIri,
                 ViewAspects.LandlordShapeIri,
-                ViewAspects.RentalApplicationShapeIri,
-                ViewAspects.RentalContractShapeIri,
-                ViewAspects.RentalDepositShapeIri,
-                ViewAspects.RentalHandoverShapeIri,
-                ViewAspects.RentalTenancyShapeIri,
-                ViewAspects.RentalNoticedShapeIri,
-                ViewAspects.RentalHandbackShapeIri,
-                ViewAspects.RentalTerminatedShapeIri,
+                .. ViewAspects.RentalStages.SelectMany(stage =>
+                {
+                    var strict = ViewAspects.RentalStageShapeIri(stage);
+                    return new[] { strict, ViewAspects.AiShapeIriFor(strict) };
+                }),
             ],
             ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Each_rental_stage_has_an_ai_view_with_the_presence_rules_lifted()
+    {
+        var store = CreateStore();
+        ViewAspects.RegisterViews(store);
+
+        foreach (var stage in ViewAspects.RentalStages)
+        {
+            var strictIri = ViewAspects.RentalStageShapeIri(stage);
+            var aiIri = ViewAspects.AiShapeIriFor(strictIri);
+            var aiTtl = store.ResolveView(aiIri).ViewTtl;
+
+            // Presence is what a SAVE needs and an assistant must not be judged by: the model fills
+            // what the sentence carried and the page completes the rest against the strict shape.
+            aiTtl.ShouldNotContain("sh:minCount");
+
+            if (stage == "contract")
+            {
+                // The one stage with no fillable field: its only field is an uploaded document, and a
+                // model cannot supply a blob. A field the model could SEE would invite it to invent a
+                // document IRI — which the page would then persist as a dangling reference.
+                aiTtl.ShouldNotContain("sh:property");
+            }
+            else
+            {
+                // Everything else is the very same field surface, so the model is shown the fields
+                // the stage actually has (the contract is injected into its prompt).
+                foreach (Match property in Regex.Matches(ViewAspects.RentalStageTtl(stage), @"json:\w+"))
+                    aiTtl.ShouldContain(property.Value);
+            }
+
+            // A DISTINCT class per shape: the engine validates a value against every shape sharing
+            // its class, so one class for both would let the strict shape judge the partial draft.
+            aiTtl.ShouldContain($"sh:targetClass <urn:aletheia:homestia:Rental:{stage}:ai>");
+            aiTtl.ShouldContain($"<{aiIri}>");
+            aiTtl.ShouldNotContain($"<{strictIri}>");
+            // The AI view carries the field surface, not the write or read rights.
+            aiTtl.ShouldNotContain(Aspect.OperationAspectPredicate);
+            aiTtl.ShouldNotContain(Aspect.QueryAspectPredicate);
+        }
     }
 
     [Fact]

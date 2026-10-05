@@ -16,9 +16,10 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { HlmButton } from '@rennnyyy/aletheia-ui';
 import {
   LucideFileSignature, LucidePlus, LucideChevronRight, LucideTrash,
-  LucideCheck, LucideLock, LucideArrowUpRight,
+  LucideCheck, LucideLock, LucideArrowUpRight, LucideSparkles, LucideAlertTriangle,
 } from '@lucide/angular';
 import { HlmAccordionImports } from '@spartan-ng/helm/accordion';
+import { AiAssistantWizardComponent } from '../../shared/components/ai-assistant-wizard/ai-assistant-wizard.component';
 import { AletheiaHttpClient } from '@rennnyyy/aletheia-core';
 import { ShaclValidatorService } from '@rennnyyy/aletheia-core';
 import { operationAspectHeaders, queryAspectHeaders } from '@rennnyyy/aletheia-core';
@@ -85,11 +86,14 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
     LucideCheck,
     LucideLock,
     LucideArrowUpRight,
+    LucideSparkles,
+    LucideAlertTriangle,
     RouterLink,
     EntityFormComponent,
     EntityTableComponent,
     ObjectUploadComponent,
     ConfirmDialogComponent,
+    AiAssistantWizardComponent,
     ...HlmAccordionImports,
   ],
   template: `
@@ -111,14 +115,22 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
 
         <div class="flex-1"></div>
 
-        @if (mode() === 'list') {
-          <div class="hidden md:flex items-center gap-2 rentals-actions">
+        <div class="hidden md:flex items-center gap-2 rentals-actions">
+          <!-- From the list it starts a rental and stands on its first stage; inside the stepper it
+               stands on whatever stage is shown — it is never absent, because it is also a place to
+               ask. On the Contract stage it has no field to fill (its only field is the uploaded
+               document), and it says so rather than pretending. -->
+          <button hlmBtn size="sm" class="ai-magic-button" (click)="openAssistant()">
+            <svg lucideSparkles class="size-4 mr-1"></svg>
+            {{ 'ai.assistButton' | transloco }}
+          </button>
+          @if (mode() === 'list') {
             <button hlmBtn size="sm" (click)="enterCreate()">
               <svg lucidePlus class="size-4 mr-1"></svg>
               {{ 'nav.rentals.create' | transloco }}
             </button>
-          </div>
-        }
+          }
+        </div>
       </div>
 
       <!-- Create/Edit subtext -->
@@ -127,6 +139,28 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
       }
       @if (mode() === 'edit') {
         <p style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.rentals.editSubtext' | transloco }}</p>
+      }
+
+      <!-- Partial AI fill warning: the assistant may have left details blank -->
+      @if (aiWarnings().length > 0 && (mode() === 'create' || mode() === 'edit')) {
+        <div class="ai-fill-warning">
+          <div class="flex items-start gap-2">
+            <svg lucideAlertTriangle class="size-6 text-amber-500" style="flex-shrink: 0; margin-top: 2px;"></svg>
+            <div class="flex-1">
+              <p class="ai-fill-warning-title">{{ 'ai.warningTitle' | transloco }}</p>
+              <ul class="ai-fill-warning-list">
+                @for (violation of aiWarnings(); track $index) {
+                  <li>{{ violation.message | transloco }}</li>
+                }
+              </ul>
+              <p class="ai-fill-warning-hint">{{ 'ai.warningHint' | transloco }}</p>
+            </div>
+            <button hlmBtn size="sm" variant="outline" class="text-foreground" style="flex-shrink: 0;" (click)="reopenAiWizard()">
+              <svg lucideSparkles class="size-4 mr-1"></svg>
+              {{ 'ai.askAgain' | transloco }}
+            </button>
+          </div>
+        </div>
       }
 
       <!-- List mode: tree table — expand a rental to reveal its stages -->
@@ -159,6 +193,10 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
         }
         <!-- Mobile-only Add Rental button (below table) -->
         <div class="md:hidden flex items-center gap-2" style="margin-top: 24px;">
+          <button hlmBtn size="sm" class="ai-magic-button" (click)="openAssistant()">
+            <svg lucideSparkles class="size-4 mr-1"></svg>
+            {{ 'ai.assistButton' | transloco }}
+          </button>
           <button hlmBtn size="sm" (click)="enterCreate()">
             <svg lucidePlus class="size-4 mr-1"></svg>
             {{ 'nav.rentals.create' | transloco }}
@@ -215,11 +253,11 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
                         [fieldNames]="['property', 'unit', 'tenant', 'viewingDate']"
                         [shapeKey]="stage.shapeIri"
                         [violations]="stageViolationsFor(stage.id)"
-                        [createActions]="{ tenant: { labelKey: 'nav.rentals.addTenant' } }"
-                        [fieldDependencies]="{ unit: { dependsOn: 'property', via: 'isPartOf' } }"
-                        [fieldFooters]="{ tenant: tenantCreateForm }"
-                        [fieldActions]="{ property: propertyManageLink, unit: unitManageLink }"
-                        [reloadActions]="{ tenant: tenantReloadKey() }"
+                        [createActions]="{ Tenant: { labelKey: 'nav.rentals.addTenant' } }"
+                        [fieldDependencies]="{ Unit: { dependsOn: 'property', via: 'isPartOf' } }"
+                        [fieldFooters]="{ Tenant: tenantCreateForm }"
+                        [fieldActions]="{ Property: propertyManageLink, Unit: unitManageLink }"
+                        [reloadActions]="{ Tenant: tenantReloadKey() }"
                         (createRequested)="onCreateRequested($event)" />
                     } @else if (stage.id === 1) {
                       <!-- Contract: a single field — the uploaded object-bearing documents.
@@ -251,6 +289,14 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
             </hlm-accordion-item>
           }
         </hlm-accordion>
+
+        <!-- Mobile-only assistant button: the header row is desktop-only. -->
+        <div class="md:hidden flex items-center gap-2" style="margin-top: 16px;">
+          <button hlmBtn size="sm" class="ai-magic-button" (click)="openAssistant()">
+            <svg lucideSparkles class="size-4 mr-1"></svg>
+            {{ 'ai.assistButton' | transloco }}
+          </button>
+        </div>
 
         <!-- Footer actions — every stage persists on its own "Save & Continue",
              so the only global actions here are Delete (edit mode) and Cancel. -->
@@ -372,6 +418,20 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
 
       <!-- Property & room jump buttons are projected per field via [fieldActions]
            (see the templates above). -->
+
+      <!-- AI wizard overlay — launched from inside the stepper, filling the stage it shows. The
+           domain is 'rental' and only the fill key is bound: launched from a stage, the intent,
+           edit and complete keys have nothing left to decide. -->
+      @if (aiWizardOpen()) {
+        <app-ai-assistant-wizard
+          domain="rental"
+          [placeholderKey]="aiPlaceholderKey()"
+          [textScenarioKey]="aiScenarioKey()"
+          [draft]="aiDraft()"
+          (proposal)="onAiProposal($event)"
+          (close)="aiWizardOpen.set(false)"
+        />
+      }
     </div>
   `,
   styles: [`
@@ -380,6 +440,50 @@ const STATE_LABEL_KEYS: Record<RentalState, string> = {
       border: 1px solid var(--destructive) !important;
       border-radius: 6px;
       box-shadow: 0 0 0 1px var(--destructive);
+    }
+    /* The AI assistant entry button — friendly gradient, easy to spot. */
+    .ai-magic-button {
+      background: linear-gradient(135deg, oklch(0.541 0.281 293.009), oklch(0.623 0.214 259.815));
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 16px -2px rgba(124, 58, 237, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+    .ai-magic-button:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 6px 20px -2px rgba(124, 58, 237, 0.55);
+      transform: translateY(-1px);
+    }
+    .ai-magic-button:active {
+      transform: translateY(0);
+    }
+    /* Partial AI fill warning — amber callout with the missing details. */
+    .ai-fill-warning {
+      border: 1px solid color-mix(in oklch, #f59e0b 45%, transparent);
+      background: color-mix(in oklch, #f59e0b 10%, transparent);
+      border-radius: 0.9rem;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 16px;
+    }
+    .ai-fill-warning-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--foreground);
+      margin: 0;
+    }
+    .ai-fill-warning-list {
+      margin: 0.4rem 0 0;
+      padding-left: 1.2rem;
+      color: var(--muted-foreground);
+      font-size: 0.98rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .ai-fill-warning-hint {
+      font-size: 0.92rem;
+      color: var(--muted-foreground);
+      margin: 0.4rem 0 0;
     }
     @media (max-width: 767px) {
       :host {
@@ -510,6 +614,27 @@ export class Rentals implements OnInit {
   readonly mode = signal<PageMode>('list');
   readonly confirmingDelete = signal(false);
   readonly deletingItem = signal<Record<string, unknown> | null>(null);
+
+  // ── AI Personal Assistent (per rental stage) ────────────────────────────
+  readonly aiWizardOpen = signal(false);
+  /** The stage the wizard was launched for; the wizard's key and validation follow it. */
+  private readonly aiTargetStage = signal(0);
+  readonly aiWarnings = signal<ShapeViolation[]>([]);
+
+  /** The stage the assistant fills: the one the stepper showed when it was launched. */
+  readonly aiCurrentStage = computed(() => STAGES[Math.min(this.aiTargetStage(), STAGES.length - 1)]);
+
+  /**
+   * The scenario that fills that stage. One scenario per stage, so the step is judged by the stage's
+   * OWN AI view — the model is asked for the right fields by construction, not by a sentence.
+   */
+  readonly aiScenarioKey = computed(() => `rental.stage.${this.aiCurrentStage().key}.text`);
+
+  /** The composer's invitation for that stage — a deposit is not a viewing. */
+  readonly aiPlaceholderKey = computed(() => `ai.rental.stage.${this.aiCurrentStage().key}.placeholder`);
+
+  /** The rental so far — handed to the model so earlier stages are kept, not rebuilt. */
+  readonly aiDraft = computed<Record<string, unknown> | null>(() => this.workingRental());
 
   // ── Reference lookups (for display labels + options) ────────────────────
   /**
@@ -855,6 +980,77 @@ export class Rentals implements OnInit {
     this.refresh();
   }
 
+  // ── AI Personal Assistent ───────────────────────────────────────────────
+
+  /**
+   * Open the assistant. From the list there is no open stage yet, so it starts a rental and stands
+   * on the first stage — the same entry the "Add Rental" button has, with the description already
+   * asked for. Inside the stepper it fills the stage the reader is on, because a stage is the unit
+   * of progress and "where am I" is the context — nothing has to be detected.
+   */
+  openAssistant(): void {
+    if (this.mode() === 'list') this.enterCreate();
+    this.openStageAssistant();
+  }
+
+  /** Open the assistant on the stage the stepper shows. */
+  private openStageAssistant(): void {
+    this.aiTargetStage.set(Math.min(this.currentStageIndex(), STAGES.length - 1));
+    this.aiWarnings.set([]);
+    this.aiWizardOpen.set(true);
+  }
+
+  /** Lets the reader chat / voice again to complete a partial fill. */
+  reopenAiWizard(): void {
+    this.aiWizardOpen.set(true);
+  }
+
+  /**
+   * The wizard produced a proposal. It merges into the rental so far — the
+   * earlier stages are kept — and lands in the stage form the reader is looking
+   * at. The stage is NOT saved here: "Save & Continue" stays the only write, so
+   * what the AI filled is always something the reader saw before it persisted.
+   */
+  async onAiProposal(data: Record<string, unknown>): Promise<void> {
+    this.aiWizardOpen.set(false);
+    const working = this.workingRental();
+    if (!working) return;
+    // REPLACE the object the mounted form two-way binds — a mutation would not re-render it.
+    const merged = { ...this.normalizeRefs(working), ...this.collapseRefs(data) };
+    if (this.mode() === 'edit') this.editingItem.set(merged);
+    else this.pendingRental.set(merged);
+    await this.refreshAiWarnings();
+  }
+
+  /** Collapses `{ iri }` reference objects in a proposal to plain IRI strings. */
+  private collapseRefs(data: Record<string, unknown>): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value && typeof value === 'object' && 'iri' in (value as object)) {
+        out[key] = ((value as { iri: unknown }).iri as string) ?? '';
+      } else {
+        out[key] = value;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * The AI is allowed to fill only part of a stage — the model is judged by the
+   * stage's lenient AI view, so a sentence that carried half the fields still
+   * returned. Here the draft meets the STRICT stage shape: what is still missing
+   * is reported against the stage the reader is on, and "Ask again" is offered.
+   */
+  private async refreshAiWarnings(): Promise<void> {
+    const working = this.workingRental();
+    if (!working) {
+      this.aiWarnings.set([]);
+      return;
+    }
+    const violations = await this.validator.validate(this.aiCurrentStage().shapeIri, working);
+    this.aiWarnings.set(violations);
+  }
+
   /** Resolves the raw (undecorated) item by IRI — the table works on display copies. */
   private rawItem(item: Record<string, unknown>): Record<string, unknown> {
     const iri = item['iri'];
@@ -1060,7 +1256,9 @@ export class Rentals implements OnInit {
 
   /** Toggles the tenant quick-create card when the inline selector action fires. */
   onCreateRequested(field: string): void {
-    if (field === 'tenant') {
+    // The form reports the property by its `propertyName` (the Tenant relation's CLR name), so the
+    // check is on the field's identity, not its casing — the label is the app's, the key is the SDK's.
+    if (field.toLowerCase() === 'tenant') {
       this.showTenantForm.set(!this.showTenantForm());
     }
   }
@@ -1089,10 +1287,13 @@ export class Rentals implements OnInit {
         phone: (data['phone'] as string) ?? '',
       }, operationAspectHeaders(TENANT_OPERATION_IRI)));
       await this.loadTenants();
+      // The new tenant becomes the selection. The mounted form owns its OWN copy of the draft, so a
+      // mutation of the page's draft never reaches the dropdown — write through the form that renders
+      // it. The reload key below re-fetches the options; the selector re-asserts the (now available)
+      // value after render, so the pick lands without re-mounting and every other field stays.
+      this.stageFormFor(0)?.setField('tenant', created.iri);
       const working = this.workingRental();
       if (working) working['tenant'] = created.iri;
-      // Reload the tenant dropdown's options; the selector reflects the new
-      // entry once it is in the list — no form re-mount, other selections stay.
       this.tenantReloadKey.update((n) => n + 1);
       this.showTenantForm.set(false);
     } catch (err) {

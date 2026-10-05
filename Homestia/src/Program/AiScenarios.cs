@@ -26,6 +26,23 @@ public static class AiScenarios
     /// <summary>Scenario key: continue/correct an in-progress draft from text or voice.</summary>
     public const string CompleteText = "property.complete.text";
 
+    /// <summary>Scenario key: start a rental application from free text or voice.</summary>
+    public const string RentalCreateText = "rental.create.text";
+
+    /// <summary>Scenario key: change an existing rental application from free text or voice.</summary>
+    public const string RentalEditText = "rental.edit.text";
+
+    /// <summary>Scenario key: continue/correct an in-progress rental draft from text or voice.</summary>
+    /// <summary>
+    /// Scenario key that fills ONE rental stage from free text or voice:
+    /// <c>rental.stage.{stage}.text</c>, e.g. <c>rental.stage.deposit.text</c>.
+    /// <br/><br/>
+    /// The assistant is launched from inside the stepper, so it already knows WHICH stage the reader
+    /// stands on — there is no create-vs-edit question to ask and no draft to detect, which is why the
+    /// rentals carry one scenario per stage and none of the property family's intent/complete keys.
+    /// </summary>
+    public static string RentalStageText(string stage) => $"rental.stage.{stage}.text";
+
     /// <summary>Model role: the form-filling model that emits property JSON.</summary>
     public const string FillRole = "formfill";
 
@@ -39,6 +56,15 @@ public static class AiScenarios
             .Register(EditScenario(EditText))
             .Register(CompleteScenario(CompleteText))
             .Register(IntentScenario(IntentText));
+
+        // One scenario per rental stage, keyed by the stage the stepper shows. The stage's own AI view
+        // gives the step its field contract, so the model is asked for the right fields by
+        // construction rather than by a sentence in the instruction — and the Contract stage's view
+        // declares no fields at all, so there is nothing there for the model to invent.
+        foreach (var stage in ViewAspects.RentalStages)
+        {
+            registry.Register(RentalStageScenario(stage));
+        }
     }
 
     private static ScenarioDefinition CreateScenario(string key) =>
@@ -95,6 +121,30 @@ public static class AiScenarios
         return new ScenarioDefinition(
             key,
             "Decide whether the user wants to create or edit a property.",
+            steps);
+    }
+
+    /// <summary>
+    /// Fills ONE rental stage — the stage the stepper is showing. The step is judged by the stage's
+    /// AI view: the same fields as the form, with the presence rules lifted, so a sentence that
+    /// carries only part of the stage still returns a usable draft instead of exhausting its retries.
+    /// </summary>
+    private static ScenarioDefinition RentalStageScenario(string stage)
+    {
+        var steps = new List<ScenarioStep>();
+
+        steps.Add(new ScenarioStep(
+            Name: "fill_stage",
+            ModelRole: FillRole,
+            Instruction: RentalStageInstruction,
+            OutputSchema: EmptySchema(),
+            MaxRetries: 3,
+            ViewIri: ViewAspects.AiShapeIriFor(ViewAspects.RentalStageShapeIri(stage)),
+            TextOutput: false));
+
+        return new ScenarioDefinition(
+            RentalStageText(stage),
+            $"Fill the '{stage}' stage of a rental agreement from the user's description.",
             steps);
     }
 
@@ -175,6 +225,29 @@ public static class AiScenarios
         {"intent": "create" | "edit", "propertyIri": "<matching iri or empty string>"}
         """;
 
+    private const string RentalStageInstruction = """
+        You fill ONE stage of a Homestia rental agreement from the information in the user message.
+
+        The user message is a JSON object with:
+        - "userPrompt": the reader's request (possibly transcribed from voice), e.g. "she paid 1200 on the 3rd", and
+        - "current": the rental so far — the fields already filled, from earlier stages as well as this one.
+
+        Fill the fields the View Contract below defines for THIS stage. Keep every value already present
+        in "current": the earlier stages are not yours to change, and a field the reader did not mention
+        must be left as it is rather than cleared.
+
+        Fill only what the request actually supports. A stage may be saved partially and completed later,
+        so a field nobody mentioned is left OUT — never invented, never guessed from a plausible-looking
+        default. Never invent IRIs.
+
+        Always respond with a single JSON object and nothing else — never prose, never an explanation,
+        never a refusal.
+
+        Follow the View Contract exactly. For every field the contract marks as an IRI reference, call
+        the matching list/read tool to discover valid IRIs — look up the existing tenants, properties
+        and rooms before choosing. Do not call any create, update, or delete tools; you only return JSON.
+        """;
+
     /// <summary>
     /// Output contract for the intent step: a create/edit classification plus an
     /// optional matched property IRI (empty string when nothing matched).
@@ -190,7 +263,6 @@ public static class AiScenarios
         required = new[] { "intent" },
         additionalProperties = false,
     });
-
     private static JsonElement EmptySchema() =>
         JsonSerializer.SerializeToElement(new { type = "object" });
 

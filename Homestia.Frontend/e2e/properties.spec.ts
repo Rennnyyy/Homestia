@@ -92,6 +92,41 @@ test.describe('editing a property', () => {
   });
 });
 
+test.describe('the personal assistent in edit mode', () => {
+  /**
+   * The AI fill itself needs a model endpoint this suite does not run, so what is reachable is the
+   * mechanism: the assistant is offered on an EXISTING property too, and opens on THAT property (the
+   * wizard is handed the open record as its draft). The scenario contract is proven server-side.
+   */
+  test('an existing property offers the assistant when it is open', async ({ page, request }) => {
+    const name = unique('Assistant Property');
+    const iri = await createProperty(request, name, 'Assistweg 6');
+
+    await page.goto('/properties');
+    await settle(page, 'app-properties');
+    // List mode offers it as well — this is the same button, one screen later.
+    await expect(page.getByRole('button', { name: 'Personal Assistent' }).first()).toBeVisible();
+
+    await page.locator('tr', { hasText: name }).first().click();
+    await expect(page.locator('aletheia-entity-form:visible').first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'Personal Assistent' }).first().click();
+    const card = page.locator('app-ai-assistant-wizard .ai-card');
+    await expect(card).toBeVisible();
+    await expect(card.locator('textarea.ai-composer-input')).toHaveAttribute(
+      'placeholder',
+      /Describe the property/,
+    );
+    await card.getByRole('button', { name: 'Close' }).first().click();
+    await expect(page.locator('app-ai-assistant-wizard')).toHaveCount(0);
+
+    // Opening it did not disturb the record being edited.
+    const record = await readProperty(request, name);
+    expect(record!['address']).toBe('Assistweg 6');
+    expect(iri).toBeTruthy();
+  });
+});
+
 test.describe('deleting a property', () => {
   test('the row disappears and so does the record', async ({ page, request }) => {
     const name = unique('Delete Me');

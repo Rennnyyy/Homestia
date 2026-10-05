@@ -30,6 +30,6 @@
          with -p:AletheiaSdkVersion=... (see scripts/build-local.sh).
          NOTE: NuGet floating versions are NOT supported under central package
          management. The pin is deliberate — there is no version resolution. -->
-    <AletheiaSdkVersion>0.9.7-rc.3abb53c</AletheiaSdkVersion>
+    <AletheiaSdkVersion>0.9.7-rc.e986cf7</AletheiaSdkVersion>
   </PropertyGroup>
 </Project>

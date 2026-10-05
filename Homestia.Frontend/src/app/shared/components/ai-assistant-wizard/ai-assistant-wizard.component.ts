@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, input, output, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, input, output, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@rennnyyy/aletheia-ui';
 import { LucideSparkles, LucideX, LucideCheck, LucideChevronRight } from '@lucide/angular';
@@ -64,6 +64,8 @@ type WizardPhase = 'ask' | 'review';
             <app-ai-assistant-panel
               [framed]="false"
               [showHeading]="false"
+              [domain]="domain()"
+              [placeholderKey]="placeholderKey()"
               [textScenarioKey]="textScenarioKey()"
               [editTextScenarioKey]="editTextScenarioKey()"
               [completeTextScenarioKey]="completeTextScenarioKey()"
@@ -80,7 +82,7 @@ type WizardPhase = 'ask' | 'review';
               <span class="ai-done-icon" aria-hidden="true">
                 <svg lucideCheck class="ai-done-check"></svg>
               </span>
-              <h3 class="ai-done-title">{{ 'ai.wizardDoneTitle' | transloco }}</h3>
+              <h3 class="ai-done-title">{{ doneTitleKey() | transloco }}</h3>
               <p class="ai-done-hint">{{ 'ai.wizardDoneHint' | transloco }}</p>
             </div>
           }
@@ -93,7 +95,7 @@ type WizardPhase = 'ask' | 'review';
           </button>
           @if (phase() === 'review') {
             <button hlmBtn size="lg" style="font-size: 1.05rem;" (click)="continue()">
-              {{ 'ai.wizardReview' | transloco }}
+              {{ reviewKey() | transloco }}
               <svg lucideChevronRight class="size-5 ml-1"></svg>
             </button>
           }
@@ -291,6 +293,20 @@ export class AiAssistantWizardComponent {
   readonly editTextScenarioKey = input<string>();
   readonly completeTextScenarioKey = input<string>();
   readonly intentTextScenarioKey = input<string>();
+
+  /** The domain being filled — the words ("property" vs "rental") follow from it. */
+  readonly domain = input<'property' | 'rental'>('property');
+
+  /** The composer's invitation, when the host knows more than the domain does (e.g. the stage). */
+  readonly placeholderKey = input<string>();
+
+  /** The done-state heading: a property or a rental is ready. */
+  readonly doneTitleKey = computed(() =>
+    this.domain() === 'rental' ? 'ai.rental.wizardDoneTitle' : 'ai.wizardDoneTitle');
+
+  /** The review call to action. */
+  readonly reviewKey = computed(() =>
+    this.domain() === 'rental' ? 'ai.rental.wizardReview' : 'ai.wizardReview');
   readonly existingProperties = input<{ iri: string; name?: string; address?: string; [key: string]: unknown }[]>([]);
   readonly draft = input<Record<string, unknown> | null>(null);
   readonly draftIri = input<string | null>(null);

@@ -64,23 +64,34 @@ interface CreateStepDef {
 
         <div class="flex-1"></div>
 
-        <!-- Actions (list mode only) -->
-        @if (mode() === 'list') {
+        <!-- Actions. The assistant is offered wherever a property is on screen: in the list it
+             detects create-vs-edit, and in EDIT mode it continues the property already open — the
+             wizard is handed that property as its draft, so "add a balcony room" lands on it. -->
+        @if (mode() === 'list' || mode() === 'edit') {
           <div class="hidden md:flex items-center gap-2 properties-actions">
             <button hlmBtn size="sm" class="ai-magic-button" (click)="openAiWizard()">
               <svg lucideSparkles class="size-4 mr-1"></svg>
               {{ 'ai.assistButton' | transloco }}
             </button>
-            <button hlmBtn size="sm" (click)="enterCreate()">
-              <svg lucidePlus class="size-4 mr-1"></svg>
-              {{ 'nav.properties.create' | transloco }}
-            </button>
+            @if (mode() === 'list') {
+              <button hlmBtn size="sm" (click)="enterCreate()">
+                <svg lucidePlus class="size-4 mr-1"></svg>
+                {{ 'nav.properties.create' | transloco }}
+              </button>
+            }
           </div>
         }
       </div>
 
       <!-- Create/Edit mode: subtext (desktop only) -->
       @if (mode() === 'create') {
+        <!-- Mobile-only assistant entry: the header row is desktop-only. -->
+        <div class="md:hidden flex items-center gap-2" style="margin-bottom: 16px;">
+          <button hlmBtn size="sm" class="ai-magic-button" (click)="openAiWizard()">
+            <svg lucideSparkles class="size-4 mr-1"></svg>
+            {{ 'ai.assistButton' | transloco }}
+          </button>
+        </div>
         <p class="hidden md:block" style="font-size: 1em; color: var(--muted-foreground); margin-bottom: 15px;">{{ 'nav.properties.createSubtext' | transloco }}</p>
       }
       @if (mode() === 'edit') {

@@ -7,10 +7,10 @@ Angular unit-test builder with the v8 provider and enforces the floors below.
 
 | Metric | Floor | Achieved |
 |---|---|---|
-| Statements | 75% | 78.48% |
-| Branches | 72% | 74.47% |
-| Functions | 65% | 68.77% |
-| Lines | 80% | 85.30% |
+| Statements | 78% | 79.24% |
+| Branches | 75% | 77.01% |
+| Functions | 68% | 70.94% |
+| Lines | 84% | 85.27% |
 
 Wiring lives in `angular.json` → `projects.spartan.architect.test.options`:
 
@@ -39,7 +39,7 @@ their guards and every route the pages call are covered.
 | `core/services/accent.service.spec.ts` | The `data-theme` axis only — persistence, wrap-around cycling, unavailable storage |
 | `core/theme/homestia-skin.spec.ts` | `homestia` is the only registered skin |
 | `features/properties/properties.spec.ts` | List (columns, error), create/edit/reset, room tree + violation scoping, composite save **selecting the property operation aspect**, delete (same aspect), deep links, the mobile wizard steps, the AI proposal paths |
-| `features/rentals/rentals.spec.ts` | Stage gating (unlock only after the previous stage), replay from `currentStage`, per-stage save + create-then-update **carrying the rental operation aspect**, queued document deletion, inline tenant create (tenant aspect), delete |
+| `features/rentals/rentals.spec.ts` | Stage gating (unlock only after the previous stage), replay from `currentStage`, per-stage save + create-then-update **carrying the rental operation aspect**, queued document deletion, inline tenant create (tenant aspect), delete, the per-stage AI assistant (open from the list vs the stepper, proposal merge + strict-shape warnings, no-draft guard), the reference-label fallbacks, and the derived `ending` state |
 | `shared/components/ai-assistant-panel/ai-assistant-panel.component.spec.ts` | Voice capture → bare-mime audio part |
 | `shared/components/ai-assistant-wizard/ai-assistant-wizard.component.spec.ts` | ask → review → hand-back order (edit IRI before proposal), dismissal paths |
 | `shared/components/theme-picker.spec.ts` | Accent swatch + `‹ ›` cycling |

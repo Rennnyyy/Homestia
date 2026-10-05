@@ -605,6 +605,15 @@ describe('Rentals page', () => {
       expect(page.doneStages().has(0)).toBe(false);
       expect(page.savingStage()).toBe(false);
     });
+
+    it('does nothing when there is no open draft to save', async () => {
+      mount();
+
+      await page.saveStage(0);
+
+      expect(validator.validate).not.toHaveBeenCalled();
+      expect(page.savingStage()).toBe(false);
+    });
   });
 
   describe('contract documents', () => {
@@ -677,6 +686,23 @@ describe('Rentals page', () => {
       page.onContractDocumentRemoved('doc-3');
       page.onContractDocumentRemoved('doc-3');
       expect(page['pendingDocDeletes']).toEqual(['doc-3']);
+    });
+
+    it('renders a document that carries neither a name nor a content type', async () => {
+      wire.seed('rental-documents', [{ iri: 'doc-1' }]);
+      mount();
+      page.enterEdit(rental({ rentalDocuments: ['doc-1'] }));
+      await fixture.whenStable();
+
+      expect(page.contractDocuments()).toEqual([{ iri: 'doc-1', name: '', contentType: '' }]);
+    });
+
+    it('ignores a document change while no rental is open', () => {
+      mount();
+
+      page.onContractDocumentsChanged(['doc-9']);
+
+      expect(page.contractDocuments()).toEqual([]);
     });
   });
 
@@ -752,6 +778,37 @@ describe('Rentals page', () => {
 
       expect(save).toHaveBeenCalled();
     });
+
+    it('ignores a tenant name that is not a string', async () => {
+      mount();
+      page.enterCreate();
+      page.pendingRental.set({});
+
+      await page.onTenantSaved({ displayName: 42 });
+
+      expect(wire.calls.some((c) => c.method === 'create')).toBe(false);
+    });
+
+    it('refuses a second tenant save while the first is in flight', async () => {
+      mount();
+      const save = vi.fn(async () => true);
+      page.savingTenant.set(true);
+
+      await page.saveTenantFromForm({ save } as never);
+
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    it('shows the generic message when a tenant create fails without an Error', async () => {
+      vi.spyOn(wire, 'create').mockReturnValue(throwError(() => 'nope'));
+      mount();
+      page.enterCreate();
+      page.pendingRental.set({});
+
+      await page.onTenantSaved({ displayName: 'Bernd' });
+
+      expect(page.tenantError()).toBe('Failed to create tenant');
+    });
   });
 
   describe('deleting a rental', () => {
@@ -799,6 +856,182 @@ describe('Rentals page', () => {
       await fixture.whenStable();
 
       expect(page.error()).toBe('still referenced');
+    });
+
+    it('ignores a delete when the row carries no IRI', () => {
+      mount();
+
+      page.deletingItem.set({});
+      page.onDelete();
+
+      expect(wire.calls.some((c) => c.method === 'delete')).toBe(false);
+    });
+
+    it('falls back to the Application stage aspect when the rental names no stage', async () => {
+      mount();
+
+      page.deletingItem.set({ iri: 'https://example.test/rentals/stageless' });
+      page.onDelete();
+      await fixture.whenStable();
+
+      expect(wire.aspectOf('delete')).toBe(RENTAL_APPLICATION_OPERATION_IRI);
+    });
+
+    it('says what went wrong even when the refusal is not an Error', async () => {
+      vi.spyOn(wire, 'delete').mockReturnValue(throwError(() => 'plain refusal'));
+      mount();
+
+      page.deletingItem.set(rental());
+      page.onDelete();
+      await fixture.whenStable();
+
+      expect(page.error()).toBe('Failed to delete rental');
+    });
+  });
+
+  describe('the AI personal assistant', () => {
+    it('starts a create and stands on the first stage when opened from the list', () => {
+      mount();
+
+      page.openAssistant();
+
+      expect(page.mode()).toBe('create');
+      expect(page.aiWizardOpen()).toBe(true);
+      expect(page.aiCurrentStage().key).toBe('application');
+      expect(page.aiScenarioKey()).toBe('rental.stage.application.text');
+      expect(page.aiPlaceholderKey()).toBe('ai.rental.stage.application.placeholder');
+    });
+
+    it('fills the stage the stepper shows when opened inside the editor', () => {
+      mount();
+      page.enterEdit(rental());
+      page.doneStages.set(new Set([0, 1]));
+
+      page.openAssistant();
+
+      expect(page.mode()).toBe('edit');
+      expect(page.aiWizardOpen()).toBe(true);
+      expect(page.aiCurrentStage().key).toBe('deposit');
+      expect(page.aiScenarioKey()).toBe('rental.stage.deposit.text');
+    });
+
+    it('reopens the wizard without moving off the stage it was launched for', () => {
+      mount();
+      page.openAssistant();
+      page.aiWizardOpen.set(false);
+
+      page.reopenAiWizard();
+
+      expect(page.aiWizardOpen()).toBe(true);
+      expect(page.aiCurrentStage().key).toBe('application');
+    });
+
+    it('merges a proposal into the open draft, collapsing reference objects', async () => {
+      mount();
+      page.enterEdit(rental());
+
+      await page.onAiProposal({
+        property: { iri: 'https://example.test/properties/2' },
+        viewingDate: '2026-02-01',
+      });
+
+      expect(page.aiWizardOpen()).toBe(false);
+      expect(page.workingRental()?.['property']).toBe('https://example.test/properties/2');
+      expect(page.workingRental()?.['viewingDate']).toBe('2026-02-01');
+      // The strict stage shape judges what the assistant left out.
+      expect(validator.validate).toHaveBeenCalledWith(RENTAL_APPLICATION_SHAPE_IRI, expect.anything());
+    });
+
+    it('lands a proposal on the create draft and reports the still-missing fields', async () => {
+      validator.validate.mockResolvedValue([
+        { jsonPath: 'tenant', message: 'Required', kind: 'minCount' } as never,
+      ]);
+      mount();
+      page.enterCreate();
+
+      await page.onAiProposal({ unit: { iri: 'https://example.test/rooms/4' } });
+
+      expect(page.pendingRental()?.['unit']).toBe('https://example.test/rooms/4');
+      expect(page.aiWarnings()).toHaveLength(1);
+    });
+
+    it('ignores a proposal when no draft is open', async () => {
+      mount();
+
+      await page.onAiProposal({ name: 'nowhere' });
+
+      expect(page.aiWizardOpen()).toBe(false);
+      expect(page.pendingRental()).toBeNull();
+      expect(validator.validate).not.toHaveBeenCalled();
+    });
+
+    it('resolves the raw row behind a display copy when the editor opens', async () => {
+      wire.seed('rentals', [rental({ tenant: { iri: 'https://example.test/tenants/9' } })]);
+      mount();
+      await fixture.whenStable();
+
+      const displayRow = (page.displayItems()[0]['__children'] as Record<string, unknown>[])[0];
+      page.onRowClick(displayRow);
+
+      expect(page.mode()).toBe('edit');
+      expect(page.workingRental()?.['tenant']).toBe('https://example.test/tenants/9');
+    });
+  });
+
+  describe('reference labels', () => {
+    it('names a reference it can resolve and echoes the IRI it cannot', async () => {
+      wire.seed('properties', [{ iri: 'https://example.test/properties/1', name: 'Haus 1' }]);
+      mount();
+      await fixture.whenStable();
+
+      expect(page.tenantLabel(null)).toBe('');
+      expect(page.tenantLabel('https://example.test/tenants/9')).toBe('Anna');
+      expect(page.tenantLabel('https://example.test/tenants/unknown')).toBe(
+        'https://example.test/tenants/unknown',
+      );
+      expect(page.propertyLabel('https://example.test/properties/1')).toBe('Haus 1');
+      expect(page.propertyLabel('')).toBe('');
+      expect(page.propertyLabel('https://example.test/properties/unknown')).toBe(
+        'https://example.test/properties/unknown',
+      );
+    });
+
+    it('translates a known stage, echoes an unknown one, and neither on an absent value', async () => {
+      mount();
+      await fixture.whenStable();
+
+      expect(page.stageLabel(null)).toBe('');
+      expect(page.stageLabel('https://example.test/rental-stages/unknown')).toBe(
+        'https://example.test/rental-stages/unknown',
+      );
+      expect(page.stageLabel(STAGE_IRIS['application'])).not.toBe(STAGE_IRIS['application']);
+    });
+
+    it('counts documents and writes the count sentence itself', () => {
+      mount();
+
+      expect(page.documentCountLabel(null)).toBe('0 item(s)');
+      expect(page.documentCountLabel(['a', 'b'])).toBe('2 item(s)');
+    });
+  });
+
+  describe('derived state', () => {
+    it('derives "ending" for a notice or handback, and "progressing" for an unknown stage', async () => {
+      wire.seed('rentals', [
+        rental({ iri: 'n', currentStage: STAGE_IRIS['noticed'] }),
+        rental({ iri: 'h', currentStage: STAGE_IRIS['handback'] }),
+        rental({ iri: 'u', currentStage: 'https://example.test/rental-stages/unknown' }),
+      ]);
+      mount();
+      await fixture.whenStable();
+
+      const groups = page.displayItems().map((g) => g['__group']);
+      expect(groups).toEqual(['progressing', 'ending']);
+      // An unknown stage sits on the first one — never negative, never beyond the end.
+      const stages = (page.displayItems()[0]['__children'] as Record<string, unknown>[])[0][
+        '__stages'
+      ] as { status: string }[];
+      expect(stages[0].status).toBe('current');
     });
   });
 
